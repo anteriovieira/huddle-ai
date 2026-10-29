@@ -1,12 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
+import { formatClock, formatTranscript } from './lib/format.js';
+import { MINUTES_CATEGORIES, MODELS } from './lib/models.js';
 
-export const MODELS = [
-  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 — mais preciso' },
-  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — equilibrado' },
-  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 — mais rápido' },
-];
+export { MINUTES_CATEGORIES, MODELS, formatClock, formatTranscript };
 
 // Models that support server-side refusal fallbacks ("default" mode).
 const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
@@ -59,18 +57,6 @@ const KIND_FIELDS = {
   questions: 'open_questions',
   suggestions: 'suggestions',
 };
-
-export function formatClock(ms) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const hours = Math.floor(total / 3600);
-  const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
-  const seconds = String(total % 60).padStart(2, '0');
-  return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
-}
-
-export function formatTranscript(utterances) {
-  return utterances.map((u, i) => `#${i + 1} [${formatClock(u.at)}] ${u.speaker}: ${u.text}`).join('\n');
-}
 
 function client(apiKey) {
   return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -206,18 +192,6 @@ export async function titleChat({ settings, question }) {
     throw new Error(describeError(error));
   }
 }
-
-export const MINUTES_CATEGORIES = [
-  'Planejamento',
-  'Daily',
-  'Alinhamento',
-  'Vendas',
-  'Suporte',
-  '1:1',
-  'Retrospectiva',
-  'Entrevista',
-  'Outro',
-];
 
 const MinutesSchema = z.object({
   title: z.string(),

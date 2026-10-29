@@ -1,4 +1,9 @@
 node_modules/
+.test-build/
 extension/sidepanel.js
 key.pem
 .ext-pubkey.b64
+
+# macOS
+.DS_Store
+**/.DS_Store

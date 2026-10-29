@@ -4,11 +4,12 @@ import * as esbuild from 'esbuild';
 const watch = process.argv.includes('--watch');
 
 const options = {
-  entryPoints: ['src/sidepanel/main.js'],
+  entryPoints: ['src/sidepanel/main.jsx'],
   outfile: 'extension/sidepanel.js',
   bundle: true,
   format: 'esm',
   target: 'chrome116',
+  jsx: 'automatic',
   minify: !watch,
   sourcemap: watch ? 'inline' : false,
   logLevel: 'info',

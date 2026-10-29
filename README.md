@@ -7,6 +7,7 @@ Chrome extension that reads the live captions of a Slack huddle and shows insigh
 ```bash
 npm install
 npm run build        # or: npm run watch
+npm test             # unit + React component tests (Node test runner)
 ```
 
 1. Open `chrome://extensions`, turn on **Developer mode** and click **Load unpacked**, then pick the `extension/` folder.
@@ -24,10 +25,15 @@ The extension can only see huddle windows opened after the Slack tab loaded with
 | `extension/scanner.js` | Finds the Captions tab panel in a window and turns each row (one avatar per row) into `{ speaker, text }`. |
 | `extension/content.js` | Bridge: relays what the page finds to the background worker, and side-panel requests back to the page. |
 | `extension/background.js` | Keeps the current huddle and its captions in `chrome.storage.session`; archives finished huddles into `chrome.storage.local` when history is on. |
-| `src/sidepanel/main.js` | Side panel UI. Every N seconds, when new captions arrive, it asks Claude for updated insights. |
+| `src/sidepanel/main.jsx` | React entry: mounts `<App>` into `#app`. |
+| `src/sidepanel/App.jsx` | The side panel container (React). Holds the UI state, mirrors `chrome.storage`, runs the live loop (every N seconds, when new captions arrive, it asks Claude for updated insights), and wires every action. |
+| `src/sidepanel/views/*.jsx` | The screens as React components: Header/Tabs/InfoBar, Insights, Captions, Ata, Chat, Idle, Settings, Logs, Atas, Import. |
+| `src/sidepanel/ui/*.jsx` | Shared React pieces: `Icon`, `Markdown` (marked + DOMPurify), and `primitives` (`Avatar`, `Section`, `Field`, …). |
+| `src/sidepanel/lib/*.js` | Pure, DOM-free logic (formatting, transcript parsing, minutes text/grouping, log text). Unit-tested in Node. |
 | `src/sidepanel/insights.js` | Claude calls: structured insights and the structured minutes (`messages.parse` + zod). |
-| `src/sidepanel/ata.js` | The **Ata** (meeting minutes): date, duration, source and participants computed from the huddle; classification with confidence, tags, signals, summary, key points and next steps from Claude; Markdown/Slack exports; the "Atas anteriores" list. |
 | `src/sidepanel/drive.js` | Google Drive access via `chrome.identity.getAuthToken`. Uploads one minutes file per huddle, scope `drive.file` (the extension only ever sees files it created). |
+
+The side panel is a React 19 app, bundled (with the pure logic and Claude SDK) into `extension/sidepanel.js` by esbuild (`npm run build`).
 
 The session minutes are written when the huddle window closes (toggle in the Ata tab or settings) or on demand with **Gerar ata agora**. Keep the side panel open while it is generated. Finished sessions are kept with the huddle history in `chrome.storage.local`.
 

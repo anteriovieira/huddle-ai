@@ -1,11 +1,4 @@
-// DOM helpers. Everything from Slack or the model goes through text nodes, never HTML.
-
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-marked.setOptions({ gfm: true, breaks: true });
-
-const AVATAR_COLORS = ['#4A6FA5', '#7A4E8C', '#3E7D5E', '#9A6B2F', '#A04E5A', '#2F7F8F'];
+// Inline SVG icon set. Markup is static and defined here, so dangerouslySetInnerHTML is safe.
 
 const ICONS = {
   headphones:
@@ -53,83 +46,8 @@ const ICONS = {
   hash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg>',
 };
 
-export function h(tag, props, ...children) {
-  const el = document.createElement(tag);
-  for (const [key, value] of Object.entries(props ?? {})) {
-    if (value == null || value === false) continue;
-    if (key === 'class') el.className = value;
-    else if (key === 'style') el.style.cssText = value;
-    else if (key.startsWith('on')) el.addEventListener(key.slice(2).toLowerCase(), value);
-    else if (key in el && typeof value !== 'string') el[key] = value;
-    else el.setAttribute(key, value === true ? '' : value);
-  }
-  for (const child of children.flat(Infinity)) {
-    if (child == null || child === false) continue;
-    el.append(child instanceof Node ? child : String(child));
-  }
-  return el;
-}
-
-export function icon(name, className = 'icon') {
-  const el = h('span', { class: className, 'aria-hidden': 'true' });
-  el.innerHTML = ICONS[name]; // static markup defined above
-  return el;
-}
-
-export function initials(name) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('');
-}
-
-function colorFor(name) {
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-export function avatar(name, size = 'md') {
-  return h('span', { class: `avatar avatar--${size}`, style: `background:${colorFor(name)}` }, initials(name));
-}
-
-export function ago(timestamp) {
-  const seconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
-  if (seconds < 60) return `há ${seconds}s`;
-  if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
-  return `há ${Math.round(seconds / 3600)} h`;
-}
-
-export async function copy(text, button) {
-  await navigator.clipboard.writeText(text);
-  const label = button.textContent;
-  button.textContent = 'Copiado';
-  setTimeout(() => (button.textContent = label), 1500);
-}
-
-// Copies with an icon button, showing a check mark for a moment.
-export async function copyWithIcon(text, button) {
-  await navigator.clipboard.writeText(text);
-  button.replaceChildren(icon('check'));
-  setTimeout(() => button.replaceChildren(icon('copy')), 1500);
-}
-
-// Renders model text as Markdown. Output is sanitized before it touches the DOM, since
-// the model may echo content from the (untrusted) transcript.
-export function markdown(text) {
-  const el = h('div', { class: 'md' });
-  el.innerHTML = DOMPurify.sanitize(marked.parse(text ?? '', { async: false }));
-  el.querySelectorAll('a').forEach((a) => {
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-  });
-  return el;
-}
-
-export function download(filename, text, type = 'text/plain') {
-  const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
-  h('a', { href: url, download: filename }).click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function Icon({ name, className = 'icon' }) {
+  const svg = ICONS[name];
+  if (!svg) return null;
+  return <span className={className} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
 }
