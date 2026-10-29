@@ -1,0 +1,4 @@
+node_modules/
+extension/sidepanel.js
+key.pem
+.ext-pubkey.b64
