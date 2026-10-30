@@ -94,6 +94,47 @@ test('parseTranscript returns [] for empty input', () => {
   assert.deepEqual(parseTranscript(null), []);
 });
 
+test('parseTranscript reads name-line + text-line blocks (meeting export)', () => {
+  const text = [
+    'bignerve123.',
+    'joined the huddle.',
+    '',
+    'Onezino Moreira',
+    'joined the huddle.',
+    '',
+    'Onezino Moreira',
+    'Highlight generated total. static neurons generated.',
+    '',
+    'bignerve123.',
+    'OK. Good, good.',
+    '',
+    'Onezino Moreira',
+    'Oh,',
+    '',
+    'bignerve123.',
+    'The variable',
+  ].join('\n');
+  const out = parseTranscript(text);
+  // Presence events ("joined the huddle.") are dropped; names are detected per block.
+  assert.deepEqual(
+    out.map((u) => [u.speaker, u.text]),
+    [
+      ['Onezino Moreira', 'Highlight generated total. static neurons generated.'],
+      ['bignerve123', 'OK. Good, good.'],
+      ['Onezino Moreira', 'Oh,'],
+      ['bignerve123', 'The variable'],
+    ],
+  );
+  assert.ok(!out.some((u) => u.speaker === 'Transcrição'));
+});
+
+test('parseTranscript folds multi-line text within a block', () => {
+  const out = parseTranscript('Ana\nprimeira parte\nsegunda parte\n\nLucas\nbeleza');
+  assert.equal(out.length, 2);
+  assert.deepEqual(out[0], { id: 'imp-0', speaker: 'Ana', text: 'primeira parte segunda parte', at: 0 });
+  assert.equal(out[1].speaker, 'Lucas');
+});
+
 test('sourceFromTitle maps channel and DM titles', () => {
   assert.equal(sourceFromTitle('Huddle in general'), 'Slack · #general');
   assert.equal(sourceFromTitle('Huddle em #vendas'), 'Slack · #vendas');

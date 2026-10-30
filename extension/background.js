@@ -107,7 +107,34 @@ function onCaption(state, message) {
   return { ...state, utterances };
 }
 
-chrome.runtime.onMessage.addListener((message, sender) => {
+// Injects the capture scripts into an already-open Slack tab (one loaded before the
+// extension, so the manifest content scripts never ran there). Mirrors the manifest:
+// scanner + page-hook in the page's own JS world, then the isolated-world bridge.
+// Lets the side panel connect without a full page reload; the user only reopens the
+// huddle so the freshly installed window.open hook can capture its popup.
+async function connectTab(tabId) {
+  await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', injectImmediately: true, files: ['scanner.js', 'page-hook.js'] });
+  await chrome.scripting.executeScript({ target: { tabId }, injectImmediately: true, files: ['content.js'] });
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === 'connect:tab') {
+    const tabId = message.tabId ?? sender.tab?.id;
+    if (tabId == null) {
+      sendResponse({ ok: false, error: 'aba não informada' });
+      return false;
+    }
+    connectTab(tabId)
+      .then(() => {
+        addLog({ source: 'background', message: 'Scripts injetados na aba do Slack', data: { aba: tabId } });
+        sendResponse({ ok: true });
+      })
+      .catch((error) => {
+        addLog({ level: 'error', source: 'background', message: `Falha ao injetar na aba: ${error.message}`, data: { aba: tabId } });
+        sendResponse({ ok: false, error: String(error?.message ?? error) });
+      });
+    return true; // resposta assíncrona
+  }
   if (message?.type === 'huddle:status') {
     addLog({
       source: 'background',

@@ -1,8 +1,18 @@
 import { formatClock } from '../lib/format.js';
 import { Icon } from '../ui/Icon.jsx';
+import { Tooltip } from '../ui/Tooltip.jsx';
 import { AtaInfo } from './Ata.jsx';
 
-export function Header({ huddle, version, chatOpen, onToggleChat, onOpenLogs, onOpenSettings, now }) {
+export function Header({
+  huddle,
+  version,
+  chatOpen,
+  onToggleChat,
+  onOpenLogs,
+  onOpenSettings,
+  now,
+  onOpenAtas,
+}) {
   return (
     <header className="header">
       <Icon name="headphones" className="icon icon--title" />
@@ -19,24 +29,36 @@ export function Header({ huddle, version, chatOpen, onToggleChat, onOpenLogs, on
         ) : (
           <span className="pill">Encerrado</span>
         ))}
-      {huddle && (
-        <button
-          className={chatOpen ? 'icon-button icon-button--on' : 'icon-button'}
-          type="button"
-          aria-label="Chat com a reunião"
-          aria-pressed={String(chatOpen)}
-          title="Perguntar à reunião"
-          onClick={onToggleChat}
-        >
-          <Icon name="chat" />
-        </button>
+      {onOpenAtas && (
+        <Tooltip label="Sessões anteriores" side="bottom">
+          <button className="icon-button" type="button" aria-label="Sessões anteriores" onClick={onOpenAtas}>
+            <Icon name="history" />
+          </button>
+        </Tooltip>
       )}
-      <button className="icon-button" type="button" aria-label="Logs" title="Logs" onClick={onOpenLogs}>
-        <Icon name="logs" />
-      </button>
-      <button className="icon-button" type="button" aria-label="Configurações" title="Configurações" onClick={onOpenSettings}>
-        <Icon name="settings" />
-      </button>
+      {huddle && (
+        <Tooltip label="Perguntar à reunião" side="bottom">
+          <button
+            className={chatOpen ? 'icon-button icon-button--on' : 'icon-button'}
+            type="button"
+            aria-label="Chat com a reunião"
+            aria-pressed={String(chatOpen)}
+            onClick={onToggleChat}
+          >
+            <Icon name="chat" />
+          </button>
+        </Tooltip>
+      )}
+      <Tooltip label="Logs" side="bottom">
+        <button className="icon-button" type="button" aria-label="Logs" onClick={onOpenLogs}>
+          <Icon name="logs" />
+        </button>
+      </Tooltip>
+      <Tooltip label="Configurações" side="bottom">
+        <button className="icon-button" type="button" aria-label="Configurações" onClick={onOpenSettings}>
+          <Icon name="settings" />
+        </button>
+      </Tooltip>
     </header>
   );
 }
@@ -47,10 +69,10 @@ const TAB_ITEMS = [
   ['ata', 'Ata'],
 ];
 
-export function Tabs({ tab, onSelect }) {
+export function Tabs({ tab, onSelect, items = TAB_ITEMS }) {
   return (
     <nav className="tabs" role="tablist" aria-label="Seções">
-      {TAB_ITEMS.map(([id, label]) => (
+      {items.map(([id, label]) => (
         <button
           key={id}
           className="tab"
@@ -66,6 +88,53 @@ export function Tabs({ tab, onSelect }) {
   );
 }
 
+function SummaryActions({
+  canCopySummary,
+  canPostSummary,
+  onCopySummary,
+  onPostSummary,
+  onAnalyzeNow,
+  analyzing,
+  tickerHidden,
+  hasRecent,
+  onToggleTicker,
+}) {
+  return (
+    <div className="info__actions">
+      {onAnalyzeNow && (
+        <Tooltip label={analyzing ? 'Analisando…' : 'Analisar agora'}>
+          <button className="icon-button" type="button" aria-label="Analisar agora" disabled={analyzing} onClick={onAnalyzeNow}>
+            <Icon name="spark" />
+          </button>
+        </Tooltip>
+      )}
+      <Tooltip label="Copiar resumo">
+        <button className="icon-button" type="button" aria-label="Copiar resumo" disabled={!canCopySummary} onClick={onCopySummary}>
+          <Icon name="copy" />
+        </button>
+      </Tooltip>
+      <Tooltip label="Postar no thread">
+        <button className="icon-button" type="button" aria-label="Postar no thread" disabled={!canPostSummary} onClick={onPostSummary}>
+          <Icon name="hash" />
+        </button>
+      </Tooltip>
+      {hasRecent && (
+        <Tooltip label={tickerHidden ? 'Mostrar últimas falas' : 'Ocultar últimas falas'}>
+          <button
+            className={tickerHidden ? 'icon-button' : 'icon-button icon-button--on'}
+            type="button"
+            aria-label={tickerHidden ? 'Mostrar últimas falas' : 'Ocultar últimas falas'}
+            aria-pressed={String(!tickerHidden)}
+            onClick={onToggleTicker}
+          >
+            <Icon name={tickerHidden ? 'eye-off' : 'eye'} />
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
+
 export function InfoBar({
   tab,
   settings,
@@ -74,6 +143,14 @@ export function InfoBar({
   utteranceCount,
   currentMinutes,
   minutesRunning,
+  canCopySummary,
+  canPostSummary,
+  onCopySummary,
+  onPostSummary,
+  onAnalyzeNow,
+  tickerHidden,
+  hasRecent,
+  onToggleTicker,
   onOpenSettings,
   onDownloadTranscript,
   onRegenerate,
@@ -90,26 +167,42 @@ export function InfoBar({
         </div>
       );
     }
+    const actions = (
+      <SummaryActions
+        canCopySummary={canCopySummary}
+        canPostSummary={canPostSummary}
+        onCopySummary={onCopySummary}
+        onPostSummary={onPostSummary}
+        onAnalyzeNow={onAnalyzeNow}
+        analyzing={analysis.running}
+        tickerHidden={tickerHidden}
+        hasRecent={hasRecent}
+        onToggleTicker={onToggleTicker}
+      />
+    );
     if (analysis.error) {
       return (
-        <div className="info info--error" role="status">
-          {analysis.error}
-        </div>
-      );
-    }
-    if (analysis.running) {
-      return (
-        <div className="info" role="status">
-          Analisando as últimas falas…
+        <div className="info info--row info--error" role="status">
+          <span className="info__text">{analysis.error}</span>
+          {actions}
         </div>
       );
     }
     return (
-      <div className="info">
-        {`Analisando legendas a cada ${settings.freq} s. `}
-        <button className="link" type="button" onClick={onOpenSettings}>
-          Alterar
-        </button>
+      <div className="info info--row">
+        <span className="info__text" role={analysis.running ? 'status' : undefined}>
+          {analysis.running ? (
+            'Analisando as últimas falas…'
+          ) : (
+            <>
+              {`Analisando legendas a cada ${settings.freq} s. `}
+              <button className="link" type="button" onClick={onOpenSettings}>
+                Alterar
+              </button>
+            </>
+          )}
+        </span>
+        {actions}
       </div>
     );
   }
@@ -124,14 +217,13 @@ export function InfoBar({
               ? `Lendo legendas em ${huddle.language} do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
               : `Lendo legendas do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`}
         </span>
-        <button className="icon-button" type="button" aria-label="Baixar transcrição" onClick={onDownloadTranscript}>
-          <Icon name="download" />
-        </button>
+        <Tooltip label="Baixar transcrição">
+          <button className="icon-button" type="button" aria-label="Baixar transcrição" onClick={onDownloadTranscript}>
+            <Icon name="download" />
+          </button>
+        </Tooltip>
       </div>
     );
   }
-  if (currentMinutes && !minutesRunning) {
-    return <AtaInfo record={currentMinutes} onRegenerate={onRegenerate} onOpenList={onOpenAtas} />;
-  }
-  return null;
+  return <AtaInfo onRegenerate={onRegenerate} onOpenList={onOpenAtas} busy={minutesRunning} />;
 }

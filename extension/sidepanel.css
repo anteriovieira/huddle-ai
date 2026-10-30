@@ -26,6 +26,37 @@
   box-sizing: border-box;
 }
 
+/* Barra de rolagem discreta (sobrepõe a nativa do SO) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background-color: var(--border-strong);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html,
 body {
   height: 100%;
@@ -50,6 +81,21 @@ select {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* Telas de coluna única (idle, sessões, config, logs, import): o cabeçalho e a
+   barra de rolagem ocupam a largura toda; só o conteúdo fica limitado à largura
+   de um painel e centralizado (padding lateral que cresce com a janela). */
+.screen {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen > *:not(.header) {
+  padding-inline: max(20px, calc((100% - 480px) / 2));
 }
 
 .icon {
@@ -252,6 +298,67 @@ select {
 
 .main--captions {
   padding-bottom: 72px;
+}
+
+/* Legendas: área rolável própria + botão flutuante de "seguir ao vivo",
+   em qualquer largura (coluna única ou lado a lado). */
+.captions-pane {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.captions-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 72px;
+  display: flex;
+  flex-direction: column;
+}
+
+.captions-scroll > .captions {
+  margin-top: auto;
+}
+
+/* Colunas lado a lado (painel expandido) */
+
+.panes {
+  flex: 1;
+  display: grid;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panes--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panes--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panes--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pane + .pane {
+  border-left: 1px solid var(--border);
+}
+
+.pane__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
 }
 
 .stack {
@@ -542,22 +649,163 @@ select {
   flex: 1;
 }
 
-.ticker {
+.ticker-viewport {
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Lista de ações (action items) */
+
+.action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.action-item__check {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.action-item__check:hover {
+  border-color: var(--muted);
+}
+
+.action-item__check:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.action-item__check:checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.action-item__check:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.action-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.action-item__title {
+  color: var(--text-strong);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.action-item--done .action-item__title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.action-item__meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
+}
+
+.owner__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.due {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.due--soon {
+  color: var(--yellow);
+  background: var(--yellow-bg);
+}
+
+.due--later {
+  color: var(--muted);
+  background: var(--surface-hover);
+}
+
+.due--today {
+  color: var(--danger);
+  background: rgba(242, 140, 168, 0.14);
+}
+
+.ticker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  will-change: transform;
+}
+
+.ticker__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ticker__body {
+  min-width: 0;
+  gap: 1px;
+}
+
+.ticker__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 .ticker__text {
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ticker__text b {
-  color: var(--text-strong);
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .buttons {
@@ -623,8 +871,9 @@ select {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  padding: 56px 24px 24px;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 24px;
   overflow-y: auto;
 }
 
@@ -670,10 +919,14 @@ select {
 }
 
 .idle__footer {
-  margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.idle__footer p {
+  margin-top: 6px;
 }
 
 .checklist {
@@ -1082,10 +1335,15 @@ select {
   color: var(--purple);
 }
 
-.ata-item__meta .chip {
-  padding: 1px 6px;
-  font-size: 12px;
-  font-weight: 700;
+.ata-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bullets {
@@ -1293,7 +1551,7 @@ select {
 /* Atas anteriores */
 
 .searchbar {
-  padding: 12px 20px;
+  padding: 16px 20px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1337,16 +1595,71 @@ select {
 .ata-item {
   width: calc(100% + 24px);
   margin: 0 -12px;
-  padding: 12px;
+  padding: 10px 8px 10px 12px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
   border: none;
   border-radius: 8px;
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+.ata-item:hover {
+  background: var(--surface-hover);
+}
+
+.ata-item:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: -2px;
+}
+
+.ata-item__icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  color: var(--muted);
+}
+
+.ata-item__icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.ata-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ata-item__avatars {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ata-item__avatars .avatar {
+  margin-left: -6px;
+  border: 2px solid var(--bg);
+}
+
+.ata-item__avatars .avatar:first-child {
+  margin-left: 0;
+}
+
+.ata-item__more {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
 }
 
 .ata-item:hover {
@@ -1385,6 +1698,9 @@ select {
   font-weight: 700;
   line-height: 1.35;
   color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Alertas pra você */
@@ -1395,21 +1711,8 @@ select {
   gap: 8px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
-}
-
-.alert--purple {
-  border-left-color: var(--purple);
-}
-
-.alert--green {
-  border-left-color: var(--green);
-}
-
-.alert--yellow {
-  border-left-color: var(--yellow);
 }
 
 .alert__head {
@@ -1575,6 +1878,25 @@ select {
 
 .chatdock--expanded {
   top: 0;
+  height: auto;
+}
+
+/* Painel expandido: chat flutua à direita, do tamanho de uma coluna. */
+.chatdock--floating {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+  width: min(400px, 40vw);
+  height: 70%;
+  min-height: 320px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.chatdock--floating.chatdock--expanded {
+  top: 12px;
   height: auto;
 }
 
@@ -1758,6 +2080,11 @@ select {
   color: var(--text-strong);
   animation: thinking-spin 1.5s linear infinite;
 }
+.chat-thinking__spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
 
 .chat-thinking span {
   animation: thinking-pulse 1.5s ease-in-out infinite;
@@ -1878,26 +2205,36 @@ select {
   flex: 1;
 }
 
-.chatdock__input input {
+.chatdock__input textarea {
+  display: block;
   width: 100%;
-  height: 40px;
-  padding: 0 44px 0 12px;
+  min-height: 40px;
+  max-height: 148px;
+  padding: 9px 44px 9px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
+  font: inherit;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
-.chatdock__input input:focus {
+.chatdock__input textarea::-webkit-scrollbar {
+  display: none;
+}
+
+.chatdock__input textarea:focus {
   outline: none;
   border-color: var(--blue);
 }
 
 .chatdock__send {
   position: absolute;
-  top: 50%;
+  bottom: 6px;
   right: 6px;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2035,7 +2372,7 @@ a.ref__title {
 .tagbar {
   display: flex;
   gap: 6px;
-  padding: 0 16px 10px;
+  padding: 12px 16px 10px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -2107,6 +2444,20 @@ a.ref__title {
   text-align: left;
 }
 
+/* Aviso discreto de recarregar no idle (sem caixa de alerta). */
+.idle__reload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.idle__reload p {
+  margin: 0;
+  max-width: 340px;
+}
+
 .banner .row__stack {
   gap: 8px;
 }
@@ -2140,4 +2491,190 @@ a.ref__title {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+/* Tooltips (Radix) ------------------------------------------------------- */
+.tooltip {
+  z-index: 1000;
+  max-width: 260px;
+  padding: 6px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-hover);
+  color: var(--text-strong);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  overflow-wrap: anywhere;
+  animation: tooltip-in 0.12s ease-out;
+}
+
+.tooltip__arrow {
+  fill: var(--surface-hover);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Danger variants (per-session delete) ---------------------------------- */
+.icon-button--danger {
+  color: var(--danger);
+}
+
+.icon-button--danger:hover {
+  background: var(--surface-hover);
+  color: var(--danger);
+}
+
+.banner--danger {
+  border-color: var(--danger);
+  background: rgba(242, 140, 168, 0.1);
+}
+
+.badge-icon--danger {
+  background: rgba(242, 140, 168, 0.14);
+  color: var(--danger);
+}
+
+/* Insights info-bar actions + last-utterances balloon ------------------- */
+.info__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.info__actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ticker-card {
+  position: relative;
+  padding: 14px 34px 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.ticker-card__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ticker-card__close:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.ticker-card__close .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Session list kebab menu ------------------------------------------------ */
+.kebab {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.pill--xs {
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.menu {
+  z-index: 1000;
+  min-width: 168px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  animation: tooltip-in 0.1s ease-out;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.menu__item[data-highlighted] {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.menu__item[data-disabled] {
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.menu__item .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.menu__item--danger {
+  color: var(--danger);
+}
+
+.menu__item--danger[data-highlighted] {
+  background: rgba(242, 140, 168, 0.12);
+  color: var(--danger);
+}
+
+/* Floating "últimas falas" popover (insights footer) --------------------- */
+.footer--insights {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 20px 12px 12px;
+  gap: 8px;
+  border-top: none;
+  background: none;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.footer--insights > * {
+  pointer-events: auto;
+}
+
+.footer--insights .ticker-card {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Room so insights content can scroll clear of the floating popover. */
+.main--insights {
+  padding-bottom: 232px;
 }

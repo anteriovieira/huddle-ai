@@ -1,7 +1,43 @@
 import { formatClock } from '../lib/format.js';
 import { ago } from '../lib/format.js';
 import { Icon } from '../ui/Icon.jsx';
-import { IconRow, Section } from '../ui/primitives.jsx';
+import { Avatar, IconRow, Section } from '../ui/primitives.jsx';
+
+// Tom da pílula de prazo a partir do texto (o prazo vem como foi dito).
+function dueTone(due) {
+  const s = due.toLowerCase();
+  if (/hoje|today|agora|urgente|j[áa]\b/.test(s)) return 'today';
+  if (/pr[óo]x|semana|m[êe]s|depois|week|month|que vem/.test(s)) return 'later';
+  return 'soon';
+}
+
+function ActionItem({ action, checked, onToggle }) {
+  return (
+    <li className={checked ? 'action-item action-item--done' : 'action-item'}>
+      <input
+        className="action-item__check"
+        type="checkbox"
+        checked={checked}
+        aria-label={action.text}
+        onChange={(e) => onToggle(action.text, e.target.checked)}
+      />
+      <div className="action-item__body">
+        <span className="action-item__title">{action.text}</span>
+        {(action.owner || action.due) && (
+          <div className="action-item__meta">
+            {action.owner && (
+              <span className="owner">
+                <Avatar name={action.owner} size="xs" />
+                <span className="owner__name">{action.owner}</span>
+              </span>
+            )}
+            {action.due && <span className={`due due--${dueTone(action.due)}`}>{action.due}</span>}
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
 
 const DRIFT_THRESHOLD_MS = 90 * 1000;
 
@@ -235,19 +271,13 @@ export function InsightsView({
       </Section>
       {settings.detect.actions && (
         <Section title="Ações" count={data.actions.length}>
-          {data.actions.map((action, i) => (
-            <label key={i} className="row row--check">
-              <input
-                type="checkbox"
-                checked={done.has(action.text)}
-                onChange={(e) => onToggleDone(action.text, e.target.checked)}
-              />
-              <span className="row__stack">
-                <span>{action.text}</span>
-                {action.owner && <span className="muted small">{action.owner}</span>}
-              </span>
-            </label>
-          ))}
+          {data.actions.length > 0 && (
+            <ul className="action-list">
+              {data.actions.map((action, i) => (
+                <ActionItem key={i} action={action} checked={done.has(action.text)} onToggle={onToggleDone} />
+              ))}
+            </ul>
+          )}
         </Section>
       )}
       {settings.detect.decisions && (
@@ -272,6 +302,15 @@ export function InsightsView({
         <Section title="Sugestões para você">
           {data.suggestions.map((text, i) => (
             <IconRow key={i} name="spark" tone="purple">
+              {text}
+            </IconRow>
+          ))}
+        </Section>
+      )}
+      {settings.detect.replies && (
+        <Section title="Respostas sugeridas" count={(data.replies ?? []).length}>
+          {(data.replies ?? []).map((text, i) => (
+            <IconRow key={i} name="chat" tone="blue">
               {text}
             </IconRow>
           ))}

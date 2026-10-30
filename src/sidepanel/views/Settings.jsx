@@ -118,6 +118,7 @@ export function SettingsView({
             <Toggle id="detect-decisions" label="Decisões" checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
             <Toggle id="detect-questions" label="Perguntas em aberto" checked={draft.detect.questions} onChange={(v) => setDetect('questions', v)} />
             <Toggle id="detect-suggestions" label="Sugestões do que falar" checked={draft.detect.suggestions} onChange={(v) => setDetect('suggestions', v)} />
+            <Toggle id="detect-replies" label="Respostas sugeridas" checked={draft.detect.replies} onChange={(v) => setDetect('replies', v)} />
             <Toggle id="detect-references" label="Referências (livros, apps, links)" checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
             <Toggle id="detect-acronyms" label="Siglas citadas" checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
           </section>

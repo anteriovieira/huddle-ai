@@ -13,8 +13,10 @@ const { Avatar } = await import('../src/sidepanel/ui/primitives.jsx');
 const { Markdown } = await import('../src/sidepanel/ui/Markdown.jsx');
 const { InsightsView } = await import('../src/sidepanel/views/Insights.jsx');
 const { CaptionsView } = await import('../src/sidepanel/views/Captions.jsx');
-const { AtaContent, AtaEmpty } = await import('../src/sidepanel/views/Ata.jsx');
+const { AtaContent, AtaEmpty, AtasList } = await import('../src/sidepanel/views/Ata.jsx');
 const { IdleView } = await import('../src/sidepanel/views/Idle.jsx');
+const { Header, InfoBar } = await import('../src/sidepanel/views/Header.jsx');
+const { TooltipProvider } = await import('../src/sidepanel/ui/Tooltip.jsx');
 const React = await import('react');
 
 const h = React.createElement;
@@ -180,12 +182,103 @@ test('AtaEmpty disables generation without a key', () => {
   assert.match(html, /disabled/);
 });
 
-test('IdleView shows the checklist and the reload banner', () => {
+test('Header has the sessions button and no insights copy/post actions', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(Header, {
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        version: '1.0.0',
+        chatOpen: false,
+        now: Date.now(),
+        onOpenAtas() {},
+        onToggleChat() {},
+        onOpenLogs() {},
+        onOpenSettings() {},
+      }),
+    ),
+  );
+  assert.match(html, /aria-label="Sessões anteriores"/);
+  assert.doesNotMatch(html, /Copiar resumo/);
+  assert.doesNotMatch(html, /Postar no thread/);
+});
+
+test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InfoBar, {
+        tab: 'insights',
+        settings: { apiKey: 'sk-ant-x', freq: 30 },
+        analysis: { running: false, error: null },
+        huddle: { active: true },
+        utteranceCount: 3,
+        currentMinutes: null,
+        minutesRunning: false,
+        canCopySummary: true,
+        canPostSummary: true,
+        onCopySummary() {},
+        onPostSummary() {},
+        tickerHidden: false,
+        hasRecent: true,
+        onToggleTicker() {},
+        onOpenSettings() {},
+        onDownloadTranscript() {},
+        onRegenerate() {},
+        onOpenAtas() {},
+      }),
+    ),
+  );
+  assert.match(html, /aria-label="Copiar resumo"/);
+  assert.match(html, /aria-label="Postar no thread"/);
+  assert.match(html, /aria-label="Ocultar últimas falas"/);
+});
+
+test('AtasList renders Slack-like rows: title, icon, avatars and a kebab menu', () => {
+  const record = {
+    huddleId: 'h1',
+    meta: {
+      startedAt: Date.now() - 3600000,
+      endedAt: Date.now(),
+      source: 'Slack · #general',
+      participants: ['Ana', 'Lucas', 'Bia', 'Caio'],
+    },
+    data: {
+      title: 'Planejamento do Q4',
+      classification: { category: 'Planejamento' },
+      tags: ['q4'],
+      next_steps: [],
+    },
+  };
+  const html = render(
+    h(AtasList, {
+      records: [record],
+      query: '',
+      tag: null,
+      now: Date.now(),
+      currentHuddleId: null,
+      onOpen() {},
+      onLoad() {},
+      onDelete() {},
+    }),
+  );
+  assert.match(html, /ata-item__title/);
+  assert.match(html, /Planejamento do Q4/);
+  assert.match(html, /role="button"/); // the row itself opens
+  assert.match(html, /aria-label="Ações"/); // kebab menu trigger
+  assert.match(html, /\+1/); // 4 participants -> 3 avatars + "+1"
+  assert.doesNotMatch(html, /próximo passo/); // old meta line removed
+});
+
+test('IdleView shows the connect action and the reload fallback', () => {
   const html = render(
     h(IdleView, {
       slackOpen: true,
       slackReloadTabId: 7,
       savedCount: 3,
+      onConnectSlackTab() {},
       onReloadSlackTab() {},
       onGoToSlack() {},
       onOpenImport() {},
@@ -193,6 +286,7 @@ test('IdleView shows the checklist and the reload banner', () => {
     }),
   );
   assert.match(html, /Nenhum huddle ativo/);
-  assert.match(html, /Recarregar aba do Slack/);
+  assert.match(html, /Conectar a esta aba/);
+  assert.match(html, /ou recarregar a aba/);
   assert.match(html, /Sessões anteriores \(3\)/);
 });

@@ -1,18 +1,15 @@
 import { Icon } from '../ui/Icon.jsx';
 
-function CheckItem({ ok, title, detail }) {
-  return (
-    <div className="check">
-      <span className={ok ? 'check__mark check__mark--ok' : 'check__mark'}>{ok && <Icon name="check" />}</span>
-      <span className="row__stack">
-        <span className="strong">{title}</span>
-        <span className="muted small">{detail}</span>
-      </span>
-    </div>
-  );
-}
-
-export function IdleView({ slackOpen, slackReloadTabId, savedCount, onReloadSlackTab, onGoToSlack, onOpenImport, onOpenAtas }) {
+export function IdleView({
+  slackOpen,
+  slackReloadTabId,
+  savedCount,
+  onConnectSlackTab,
+  onReloadSlackTab,
+  onGoToSlack,
+  onOpenImport,
+  onOpenAtas,
+}) {
   return (
     <main className="idle">
       <div className="idle__hero">
@@ -25,29 +22,20 @@ export function IdleView({ slackOpen, slackReloadTabId, savedCount, onReloadSlac
         </p>
       </div>
       {slackReloadTabId != null && (
-        <div className="banner">
-          <span className="badge-icon badge-icon--yellow">
-            <Icon name="warn" />
-          </span>
-          <div className="row__stack">
-            <span className="strong">Já tem um huddle rolando?</span>
-            <span className="muted small">
-              Esta aba do Slack foi aberta antes da extensão, então um huddle já em andamento não é capturado. Recarregue a
-              aba para começar.
-            </span>
-            <button className="button button--primary button--block" type="button" onClick={onReloadSlackTab}>
-              <Icon name="download" />
-              Recarregar aba do Slack
-            </button>
-          </div>
+        <div className="idle__reload">
+          <p className="muted small">
+            Já tem um huddle rolando? Conecte esta aba e reabra o huddle — sem recarregar a página.
+          </p>
+          <button className="button button--block" type="button" onClick={onConnectSlackTab}>
+            <Icon name="enter" />
+            Conectar a esta aba
+          </button>
+          <button className="link" type="button" onClick={onReloadSlackTab}>
+            ou recarregar a aba
+          </button>
         </div>
       )}
-      <section className="checklist" aria-label="O que falta">
-        <CheckItem ok={slackOpen} title="Slack aberto no navegador" detail="app.slack.com" />
-        <CheckItem ok={false} title="Janela do huddle aberta" detail="Inicie ou entre num huddle" />
-        <CheckItem ok={false} title="Captions ativadas" detail="Aba Captions na janela do huddle" />
-      </section>
-      {slackOpen && (
+      {slackOpen && slackReloadTabId == null && (
         <p className="muted small center">
           Huddle já aberto e nada aqui? Recarregue a aba do Slack (o huddle precisa ser aberto depois da extensão) e entre de
           novo.

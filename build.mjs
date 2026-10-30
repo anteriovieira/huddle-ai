@@ -10,6 +10,9 @@ const options = {
   format: 'esm',
   target: 'chrome116',
   jsx: 'automatic',
+  // Production builds use React's production build (smaller, faster, and no StrictMode
+  // double-invocation of renders/effects); watch keeps the dev build for warnings.
+  define: { 'process.env.NODE_ENV': watch ? '"development"' : '"production"' },
   minify: !watch,
   sourcemap: watch ? 'inline' : false,
   logLevel: 'info',

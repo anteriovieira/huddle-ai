@@ -7,15 +7,18 @@ import * as drive from './drive.js';
 import { analyze, askMeeting, generateMinutes, titleChat } from './insights.js';
 import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
-import { CaptionsView } from './views/Captions.jsx';
+import { CaptionsPanel } from './views/Captions.jsx';
 import { ChatDock } from './views/Chat.jsx';
 import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
+import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
-import { Avatar } from './ui/primitives.jsx';
+import { toast } from 'sonner';
+import { Icon } from './ui/Icon.jsx';
+import { Tooltip } from './ui/Tooltip.jsx';
 
 const DEFAULT_SETTINGS = {
   apiKey: '',
@@ -23,13 +26,24 @@ const DEFAULT_SETTINGS = {
   language: 'Português',
   freq: 30,
   userName: '',
-  detect: { actions: true, decisions: true, questions: true, suggestions: false, alerts: true, references: true, acronyms: true },
+  detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true },
   saveHistory: true,
   autoMinutes: true,
   captionSource: 'auto',
 };
 const MIN_UTTERANCES_FOR_MINUTES = 3;
 const EMPTY_STATE = { huddle: null, utterances: [] };
+
+// Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
+// dividir a coluna com Insights) e Copilot vive no ícone do cabeçalho.
+const TWO_COL_TABS = [
+  ['insights', 'Insights'],
+  ['ata', 'Ata'],
+];
+
+// Larguras em que o painel passa a mostrar mais de uma coluna lado a lado.
+const COLS_2_MIN = 640;
+const COLS_3_MIN = 1000;
 
 const chromeApi = typeof chrome !== 'undefined' ? chrome : undefined;
 const version = () => chromeApi?.runtime?.getManifest?.().version ?? '0.0.0';
@@ -48,8 +62,16 @@ function download(filename, text, type = 'text/plain') {
 }
 
 let chatSeq = 0;
+// Creates a chat with a fresh unique id. Call this in event handlers (not inside a setState
+// updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
 function newChat(index = 1) {
   return { id: `c${Date.now().toString(36)}${chatSeq++}`, title: `Chat ${index}`, messages: [] };
+}
+
+// A deterministic first chat for a huddle. Used inside the reset updater, so the same inputs
+// always yield the same chat (pure) — safe under StrictMode's double invocation.
+function seedChat(huddleId) {
+  return { id: `c-${huddleId ?? 'none'}-1`, title: 'Chat 1', messages: [] };
 }
 
 export function App() {
@@ -68,6 +90,7 @@ export function App() {
 
   // --- UI state ---
   const [tab, setTab] = useState('insights');
+  const [cols, setCols] = useState(1);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsReturnToSettings, setLogsReturnToSettings] = useState(false);
@@ -75,10 +98,9 @@ export function App() {
   const [atasQuery, setAtasQuery] = useState('');
   const [atasTag, setAtasTag] = useState(null);
   const [viewingAta, setViewingAta] = useState(null);
-  const [follow, setFollow] = useState(true);
   const [notice, setNotice] = useState(null);
-  const [flashText, setFlashText] = useState(null);
   const [topicExpanded, setTopicExpanded] = useState(false);
+  const [tickerHidden, setTickerHidden] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -101,8 +123,6 @@ export function App() {
   const [minutesStartedAt, setMinutesStartedAt] = useState(0);
   const [minutesError, setMinutesError] = useState(null);
   const booted = useRef(false);
-  const mainRef = useRef(null);
-  const flashTimer = useRef(null);
 
   const huddle = extState.huddle;
   const utterances = extState.utterances;
@@ -119,9 +139,7 @@ export function App() {
   const speakerCount = useMemo(() => new Set(utterances.map((u) => u.speaker)).size, [utterances]);
 
   const flash = useCallback((text) => {
-    setFlashText(text);
-    clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => setFlashText(null), 8000);
+    toast(text);
   }, []);
 
   // --- Boot: load stored state, subscribe to storage changes ---
@@ -184,10 +202,8 @@ export function App() {
   useEffect(() => {
     const huddleId = huddle?.id ?? null;
     setChats((prev) => {
-      let next = prev;
-      if (prev.huddleId !== huddleId) next = { huddleId, list: [] };
-      if (!next.list.length) next = { huddleId, list: [newChat(1)] };
-      return next;
+      if (prev.huddleId === huddleId) return prev.list.length ? prev : { huddleId, list: [seedChat(huddleId)] };
+      return { huddleId, list: [seedChat(huddleId)] };
     });
   }, [huddle?.id]);
 
@@ -268,6 +284,39 @@ export function App() {
     }
   }, [transcriptKey]);
 
+  // Análise sob demanda: ignora o intervalo e o throttle, e reinicia a contagem
+  // a partir de agora (o próximo ciclo automático parte deste momento).
+  const analyzeNow = useCallback(async () => {
+    const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
+    const ctl = analysisCtl.current;
+    if (ctl.running || !h || !s.apiKey || !u.length) return;
+    ctl.running = true;
+    ctl.lastRunAt = Date.now();
+    setAnalysisRunning(true);
+    logEvent('info', `Analisando ${u.length} falas agora com ${s.model}`);
+    const startedAt = Date.now();
+    try {
+      const data = await analyze({ settings: s, utterances: u, previous: ci?.data });
+      logEvent('info', `Insights atualizados em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
+        topico: data.topic.title,
+        acoes: data.actions.length,
+        decisoes: data.decisions.length,
+      });
+      ctl.lastKey = transcriptKey();
+      ctl.lastRunAt = Date.now(); // reinicia o intervalo a partir de agora
+      setAnalysisError(null);
+      const record = { huddleId: h.id, updatedAt: Date.now(), data };
+      setInsights(record);
+      await chromeApi?.storage.session.set({ insights: record });
+    } catch (error) {
+      setAnalysisError(error.message);
+      logEvent('error', `Falha na análise sob demanda: ${error.message}`);
+    } finally {
+      ctl.running = false;
+      setAnalysisRunning(false);
+    }
+  }, [transcriptKey]);
+
   const saveMinutesToHistory = useCallback(async (record) => {
     if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
     const { history: saved = [] } = await chromeApi.storage.local.get('history');
@@ -333,23 +382,24 @@ export function App() {
     };
   }, [maybeAnalyze, maybeGenerateMinutes, loadSlackOpen, refreshDriveStatus]);
 
-  // --- Captions auto-follow ---
+  // --- Responsividade: quantas colunas cabem no painel ---
+  // Ao expandir, cada aba vira coluna fixa: 1 col = abas; 2 cols = Insights
+  // (Insights + Captions) e Ata; 3 cols = Insights + Captions + Ata sem abas.
   useEffect(() => {
-    if (tab === 'captions' && follow && !settingsOpen && !atasOpen && !viewingAta && !logsOpen && !importOpen) {
-      const el = mainRef.current;
-      if (el) el.scrollTop = el.scrollHeight;
-    }
-  }, [utterances.length, tab, follow, settingsOpen, atasOpen, viewingAta, logsOpen, importOpen]);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq2 = window.matchMedia(`(min-width: ${COLS_2_MIN}px)`);
+    const mq3 = window.matchMedia(`(min-width: ${COLS_3_MIN}px)`);
+    const update = () => setCols(mq3.matches ? 3 : mq2.matches ? 2 : 1);
+    update();
+    mq2.addEventListener('change', update);
+    mq3.addEventListener('change', update);
+    return () => {
+      mq2.removeEventListener('change', update);
+      mq3.removeEventListener('change', update);
+    };
+  }, []);
 
-  const onMainScroll = useCallback(
-    (event) => {
-      if (tab !== 'captions') return;
-      const el = event.currentTarget;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-      setFollow(atBottom);
-    },
-    [tab],
-  );
+  // (Auto-follow das legendas vive no CaptionsPanel, que é dono do próprio scroll.)
 
   // --- Clipboard ---
   const copyToClipboard = useCallback(
@@ -401,6 +451,22 @@ export function App() {
       flash('Aba do Slack recarregada. Se o huddle estiver numa janela separada, reabra o huddle.');
     } catch (error) {
       flash(`Não consegui recarregar a aba do Slack: ${error.message}`);
+    }
+  }, [slackReloadTabId, goToSlack, flash]);
+
+  // Conecta à aba do Slack já aberta injetando os scripts de captura, sem recarregar
+  // a página. O usuário só precisa reabrir o huddle para o hook capturar.
+  const connectSlackTab = useCallback(async () => {
+    if (slackReloadTabId == null || !chromeApi?.runtime) return goToSlack();
+    try {
+      const res = await chromeApi.runtime.sendMessage({ type: 'connect:tab', tabId: slackReloadTabId });
+      if (!res?.ok) throw new Error(res?.error ?? 'sem resposta do serviço');
+      await chromeApi.tabs.update(slackReloadTabId, { active: true });
+      const t = await chromeApi.tabs.get(slackReloadTabId);
+      if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
+      flash('Conectado a esta aba. Feche e reabra o huddle (sem recarregar a página) para começar a captura.');
+    } catch (error) {
+      flash(`Não consegui conectar à aba: ${error.message}. Tente recarregar a aba.`);
     }
   }, [slackReloadTabId, goToSlack, flash]);
 
@@ -706,38 +772,58 @@ export function App() {
     [history, flash],
   );
 
+  // Removes a saved session from the archive. If it is the session currently loaded (and not
+  // a live huddle), it is also unloaded from the app. Returns to the list afterwards.
+  const deleteSession = useCallback(
+    async (record) => {
+      const id = record.huddleId;
+      if (chromeApi?.storage) {
+        const { history: saved = [] } = await chromeApi.storage.local.get('history');
+        const next = saved.filter((entry) => (entry.huddle?.id ?? entry.minutes?.huddleId) !== id);
+        await chromeApi.storage.local.set({ history: next });
+      }
+      const cur = latest.current.huddle;
+      if (cur?.id === id && !cur.active) {
+        setExtState(EMPTY_STATE);
+        setInsights(null);
+        setMinutes(null);
+        await chromeApi?.storage.session.set({ state: EMPTY_STATE });
+        await chromeApi?.storage.session.remove(['insights', 'minutes']);
+      }
+      setViewingAta(null);
+      logEvent('info', 'Sessão apagada');
+      flash('Sessão apagada.');
+    },
+    [flash],
+  );
+
   // --- Chat ---
   const activeChat = chats.list.find((c) => c.id === activeChatId) ?? null;
 
   const toggleChat = useCallback(() => setChatOpen((v) => !v), []);
   const addChat = useCallback(() => {
+    const chat = newChat(); // unique id created in the handler, not inside the updater
+    setChats((prev) => ({ ...prev, list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}` }] }));
+    setActiveChatId(chat.id);
+  }, []);
+  // The activeChatId effect reselects the first tab when the active one is removed, so the
+  // updater here stays pure (no setActiveChatId inside it).
+  const closeChat = useCallback((id) => {
+    setChatDrafts((d) => {
+      const next = { ...d };
+      delete next[id];
+      return next;
+    });
+    setChatBusy((b) => {
+      const next = new Set(b);
+      next.delete(id);
+      return next;
+    });
     setChats((prev) => {
-      const chat = newChat(prev.list.length + 1);
-      setActiveChatId(chat.id);
-      return { ...prev, list: [...prev.list, chat] };
+      const list = prev.list.filter((c) => c.id !== id);
+      return { ...prev, list: list.length ? list : [seedChat(prev.huddleId)] };
     });
   }, []);
-  const closeChat = useCallback(
-    (id) => {
-      setChatDrafts((d) => {
-        const next = { ...d };
-        delete next[id];
-        return next;
-      });
-      setChatBusy((b) => {
-        const next = new Set(b);
-        next.delete(id);
-        return next;
-      });
-      setChats((prev) => {
-        let list = prev.list.filter((c) => c.id !== id);
-        if (!list.length) list = [newChat(1)];
-        if (activeChatId === id) setActiveChatId(list[0].id);
-        return { ...prev, list };
-      });
-    },
-    [activeChatId],
-  );
   const selectChat = useCallback((id) => setActiveChatId(id), []);
   const setDraft = useCallback((id, value) => setChatDrafts((d) => ({ ...d, [id]: value })), []);
 
@@ -825,11 +911,12 @@ export function App() {
       uploaded: record.drive ?? null,
       driveBusy: driveBusy === record.huddleId,
       onDrive: () => uploadToDrive(record),
-      flash: flashText,
     };
   };
 
   // --- Screens ---
+  // Telas sem huddle ao vivo não têm layout multi-coluna: num painel largo,
+  // ficam limitadas à largura de um painel e centralizadas (.screen).
   if (logsOpen) {
     return (
       <LogsView
@@ -870,6 +957,7 @@ export function App() {
         now={now}
         onBack={() => setViewingAta(null)}
         onLoad={loadSession}
+        onDelete={viewingAta.huddleId === huddle?.id && huddle?.active ? undefined : deleteSession}
         ataProps={ataProps(viewingAta)}
         footerProps={footerProps(viewingAta)}
       />
@@ -882,10 +970,12 @@ export function App() {
         query={atasQuery}
         tag={atasTag}
         now={now}
+        currentHuddleId={huddle?.id}
         onQueryChange={setAtasQuery}
         onSelectTag={selectTag}
         onOpen={setViewingAta}
         onLoad={loadSession}
+        onDelete={deleteSession}
         onBack={closeAtas}
         onOpenImport={openImport}
       />
@@ -893,12 +983,13 @@ export function App() {
   }
   if (!huddle) {
     return (
-      <>
+      <div className="screen">
         <Header
           huddle={null}
           version={version()}
           chatOpen={false}
           now={now}
+          onOpenAtas={openAtas}
           onToggleChat={toggleChat}
           onOpenLogs={openLogs}
           onOpenSettings={openSettings}
@@ -907,37 +998,71 @@ export function App() {
           slackOpen={slackOpen}
           slackReloadTabId={slackReloadTabId}
           savedCount={allMinutes.length}
+          onConnectSlackTab={connectSlackTab}
           onReloadSlackTab={reloadSlackTab}
           onGoToSlack={goToSlack}
           onOpenImport={openImport}
           onOpenAtas={openAtas}
         />
-      </>
+      </div>
     );
   }
 
   // --- Live screen ---
-  const lastUtterance = utterances.at(-1);
-  const content =
-    tab === 'insights' ? (
-      <InsightsView
-        current={currentInsights}
-        settings={settings}
-        huddle={huddle}
-        utterances={utterances}
-        now={now}
-        acked={acked}
-        done={done}
-        topicExpanded={topicExpanded}
-        onToggleTopic={() => setTopicExpanded((v) => !v)}
-        onAcceptAlert={acceptAlert}
-        onEditAlert={editAlert}
-        onToggleDone={toggleDone}
-        onOpenSettings={openSettings}
-      />
-    ) : tab === 'captions' ? (
-      <CaptionsView utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
-    ) : minutesRunning ? (
+  const recentUtterances = utterances.slice(-3);
+  const canCopySummary = !!currentInsights;
+  const canPostSummary = !!currentInsights && !!huddle.active;
+  const copySummary = () => currentInsights && copyToClipboard(insightsAsText(currentInsights.data, settings.detect));
+  const postSummary = () => currentInsights && postToThread(insightsAsText(currentInsights.data, settings.detect));
+
+  // Props da barra de informação — iguais para qualquer seção; a InfoBar usa só
+  // o que importa para a aba que recebe.
+  const infoBarProps = {
+    settings,
+    analysis: { running: analysisRunning, error: analysisError },
+    huddle,
+    utteranceCount: utterances.length,
+    currentMinutes,
+    minutesRunning,
+    canCopySummary,
+    canPostSummary,
+    onCopySummary: copySummary,
+    onPostSummary: postSummary,
+    onAnalyzeNow: analyzeNow,
+    tickerHidden,
+    hasRecent: recentUtterances.length > 0,
+    onToggleTicker: () => setTickerHidden((v) => !v),
+    onOpenSettings: openSettings,
+    onDownloadTranscript: downloadTranscript,
+    onRegenerate: runMinutes,
+    onOpenAtas: openAtas,
+  };
+
+  // Conteúdo de uma seção — os painéis em si não mudam com a largura.
+  const panelContent = (section) => {
+    if (section === 'insights') {
+      return (
+        <InsightsView
+          current={currentInsights}
+          settings={settings}
+          huddle={huddle}
+          utterances={utterances}
+          now={now}
+          acked={acked}
+          done={done}
+          topicExpanded={topicExpanded}
+          onToggleTopic={() => setTopicExpanded((v) => !v)}
+          onAcceptAlert={acceptAlert}
+          onEditAlert={editAlert}
+          onToggleDone={toggleDone}
+          onOpenSettings={openSettings}
+        />
+      );
+    }
+    if (section === 'captions') {
+      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />;
+    }
+    return minutesRunning ? (
       <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} />
     ) : currentMinutes ? (
       <AtaContent record={currentMinutes} {...ataProps(currentMinutes)} />
@@ -955,46 +1080,97 @@ export function App() {
         onOpenList={openAtas}
       />
     );
+  };
 
-  const footer =
-    tab === 'ata' ? (
-      currentMinutes && !minutesRunning ? <AtaFooter record={currentMinutes} {...footerProps(currentMinutes)} /> : null
-    ) : tab === 'insights' ? (
-      <footer className="footer">
-        {lastUtterance && (
-          <div className="ticker">
-            <Avatar name={lastUtterance.speaker} size="sm" />
-            <span className="ticker__text">
-              <b>{lastUtterance.speaker.split(/\s+/)[0]}</b>
-              {` ${lastUtterance.text}`}
-            </span>
+  // Rodapé por seção — só no modo de coluna única; nas colunas lado a lado as
+  // ações do resumo seguem na própria InfoBar de cada painel.
+  const renderFooter = (section) => {
+    if (section === 'ata') {
+      return currentMinutes && !minutesRunning ? <AtaFooter record={currentMinutes} {...footerProps(currentMinutes)} /> : null;
+    }
+    if (section === 'insights') {
+      return (
+        <footer className="footer footer--insights">
+          {!tickerHidden && recentUtterances.length > 0 && (
+            <div className="ticker-card">
+              <Tooltip label="Fechar últimas falas">
+                <button
+                  className="ticker-card__close"
+                  type="button"
+                  aria-label="Fechar últimas falas"
+                  onClick={() => setTickerHidden(true)}
+                >
+                  <Icon name="close" />
+                </button>
+              </Tooltip>
+              <RecentTicker utterances={utterances} />
+            </div>
+          )}
+        </footer>
+      );
+    }
+    return null;
+  };
+
+  const onSelectTab = (id) => {
+    setTab(id);
+  };
+
+  // Uma seção renderizada como coluna: a InfoBar (que faz as vezes de cabeçalho
+  // da coluna) seguida do corpo rolável.
+  const Pane = (section) => (
+    <section className="pane" key={section}>
+      <InfoBar tab={section} {...infoBarProps} />
+      {section === 'captions' ? (
+        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+      ) : (
+        <div className="pane__body">{panelContent(section)}</div>
+      )}
+    </section>
+  );
+
+  // Captions só é aba com uma coluna; a partir de duas, divide a coluna Insights.
+  const effTab = cols >= 2 && tab === 'captions' ? 'insights' : tab;
+
+  let region;
+  if (cols === 1) {
+    region = (
+      <>
+        <Tabs tab={tab} onSelect={onSelectTab} />
+        <InfoBar tab={tab} {...infoBarProps} />
+        {tab === 'captions' ? (
+          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+        ) : (
+          <main className={`main main--${tab}`} id="main">
+            {panelContent(tab)}
+          </main>
+        )}
+        {renderFooter(tab)}
+      </>
+    );
+  } else if (cols === 2) {
+    region = (
+      <>
+        <Tabs tab={effTab} items={TWO_COL_TABS} onSelect={onSelectTab} />
+        {effTab === 'ata' ? (
+          <div className="panes panes--solo">{Pane('ata')}</div>
+        ) : (
+          <div className="panes panes--2">
+            {Pane('insights')}
+            {Pane('captions')}
           </div>
         )}
-        <div className="buttons">
-          <button
-            className="button button--primary"
-            type="button"
-            disabled={!currentInsights}
-            onClick={() => copyToClipboard(insightsAsText(currentInsights.data, settings.detect))}
-          >
-            Copiar resumo
-          </button>
-          <button
-            className="button"
-            type="button"
-            disabled={!currentInsights || !huddle.active}
-            onClick={() => postToThread(insightsAsText(currentInsights.data, settings.detect))}
-          >
-            Postar no thread
-          </button>
-        </div>
-        {flashText && (
-          <p className="muted small" role="status">
-            {flashText}
-          </p>
-        )}
-      </footer>
-    ) : null;
+      </>
+    );
+  } else {
+    region = (
+      <div className="panes panes--3">
+        {Pane('insights')}
+        {Pane('captions')}
+        {Pane('ata')}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -1003,34 +1179,12 @@ export function App() {
         version={version()}
         chatOpen={chatOpen}
         now={now}
+        onOpenAtas={openAtas}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}
         onOpenSettings={openSettings}
       />
-      <Tabs
-        tab={tab}
-        onSelect={(id) => {
-          setTab(id);
-          setFollow(true);
-        }}
-      />
-      <InfoBar
-        tab={tab}
-        settings={settings}
-        analysis={{ running: analysisRunning, error: analysisError }}
-        huddle={huddle}
-        utteranceCount={utterances.length}
-        currentMinutes={currentMinutes}
-        minutesRunning={minutesRunning}
-        onOpenSettings={openSettings}
-        onDownloadTranscript={downloadTranscript}
-        onRegenerate={runMinutes}
-        onOpenAtas={openAtas}
-      />
-      <main className={`main main--${tab}`} id="main" ref={mainRef} onScroll={onMainScroll}>
-        {content}
-      </main>
-      {footer}
+      {region}
       {chatOpen && (
         <ChatDock
           chats={chats.list}
@@ -1039,6 +1193,7 @@ export function App() {
           busy={activeChat ? chatBusy.has(activeChat.id) : false}
           draft={activeChat ? chatDrafts[activeChat.id] ?? '' : ''}
           expanded={chatExpanded}
+          floating={cols >= 2}
           streamText={chatStream?.chatId === activeChatId ? chatStream.text : ''}
           onSelectChat={selectChat}
           onCloseChat={closeChat}
@@ -1048,21 +1203,6 @@ export function App() {
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
         />
-      )}
-      {tab === 'captions' && huddle.active && utterances.length > 0 && (
-        <button
-          className={follow ? 'follow' : 'follow follow--paused'}
-          type="button"
-          aria-pressed={String(follow)}
-          onClick={() => {
-            setFollow(true);
-            const el = mainRef.current;
-            if (el) el.scrollTop = el.scrollHeight;
-          }}
-        >
-          <span className="dot" />
-          {follow ? 'Seguindo ao vivo' : 'Voltar ao vivo'}
-        </button>
       )}
     </>
   );

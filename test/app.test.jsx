@@ -7,6 +7,15 @@ global.window = dom.window;
 global.document = dom.window.document;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+for (const name of ['scrollIntoView', 'hasPointerCapture', 'setPointerCapture', 'releasePointerCapture']) {
+  if (!dom.window.HTMLElement.prototype[name]) dom.window.HTMLElement.prototype[name] = function () {};
+}
+global.ResizeObserver = dom.window.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Minimal chrome stub: no huddle in storage, no Slack tabs, Drive not connected.
 global.chrome = {
   runtime: {
@@ -27,12 +36,14 @@ const React = await import('react');
 const { act } = React;
 const { createRoot } = await import('react-dom/client');
 const { App } = await import('../src/sidepanel/App.jsx');
+const { TooltipProvider } = await import('../src/sidepanel/ui/Tooltip.jsx');
+const tree = () => React.createElement(TooltipProvider, null, React.createElement(App));
 
 test('App boots to the idle screen with a mocked chrome and no huddle', async () => {
   const container = document.getElementById('app');
   const root = createRoot(container);
   await act(async () => {
-    root.render(React.createElement(App));
+    root.render(tree());
   });
   // Let the async boot() reads + effects settle.
   await act(async () => {

@@ -1,6 +1,8 @@
 import { ago, formatDateTime, formatDuration } from '../lib/format.js';
 import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minutes.js';
 import { Icon } from '../ui/Icon.jsx';
+import { KebabMenu } from '../ui/Menu.jsx';
+import { Tooltip } from '../ui/Tooltip.jsx';
 import { Avatar, Chip } from '../ui/primitives.jsx';
 
 function MetaCell({ label, value }) {
@@ -138,23 +140,24 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
   );
 }
 
-export function AtaInfo({ record, onRegenerate, onOpenList, now }) {
+export function AtaInfo({ onRegenerate, onOpenList, busy }) {
   return (
     <div className="info info--row">
-      <span>{`Gerada ${ago(record.generatedAt, now)} com ${modelLabel(record.model)}.`}</span>
-      {onRegenerate && (
-        <button className="link" type="button" onClick={onRegenerate}>
-          Gerar de novo
-        </button>
-      )}
-      {onRegenerate && (
-        <span className="muted" aria-hidden="true">
-          ·
-        </span>
-      )}
-      <button className="link" type="button" onClick={onOpenList}>
-        Anteriores
-      </button>
+      <span className="info__text" />
+      <div className="info__actions">
+        {onRegenerate && (
+          <Tooltip label={busy ? 'Gerando…' : 'Gerar ata'}>
+            <button className="icon-button" type="button" aria-label="Gerar ata" disabled={busy} onClick={onRegenerate}>
+              <Icon name="spark" />
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label="Atas anteriores">
+          <button className="icon-button" type="button" aria-label="Atas anteriores" onClick={onOpenList}>
+            <Icon name="history" />
+          </button>
+        </Tooltip>
+      </div>
     </div>
   );
 }
@@ -168,15 +171,16 @@ function DriveButton({ uploaded, driveBusy, onDrive }) {
     );
   }
   return (
-    <button
-      className={uploaded ? 'icon-button icon-button--lg is-done' : 'icon-button icon-button--lg'}
-      type="button"
-      aria-label={uploaded ? 'Reenviar ao Google Drive' : 'Enviar ao Google Drive'}
-      title={uploaded ? 'Enviada ao Drive · reenviar' : 'Enviar ao Google Drive'}
-      onClick={onDrive}
-    >
-      <Icon name="cloud" />
-    </button>
+    <Tooltip label={uploaded ? 'Enviada ao Drive · reenviar' : 'Enviar ao Google Drive'}>
+      <button
+        className={uploaded ? 'icon-button icon-button--lg is-done' : 'icon-button icon-button--lg'}
+        type="button"
+        aria-label={uploaded ? 'Reenviar ao Google Drive' : 'Enviar ao Google Drive'}
+        onClick={onDrive}
+      >
+        <Icon name="cloud" />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -191,15 +195,11 @@ export function AtaFooter({ record, onCopy, canPost, onPost, onDownload, uploade
           Postar no thread
         </button>
         <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} />
-        <button
-          className="icon-button icon-button--lg"
-          type="button"
-          aria-label="Baixar ata em Markdown"
-          title="Baixar .md"
-          onClick={onDownload}
-        >
-          <Icon name="download" />
-        </button>
+        <Tooltip label="Baixar ata em Markdown (.md)">
+          <button className="icon-button icon-button--lg" type="button" aria-label="Baixar ata em Markdown" onClick={onDownload}>
+            <Icon name="download" />
+          </button>
+        </Tooltip>
       </div>
       {uploaded && (
         <a className="muted small ata__drive-link" href={uploaded.link} target="_blank" rel="noopener noreferrer">
@@ -316,8 +316,10 @@ export function AtaLoading({ startedAt, utterances, participants, now }) {
   );
 }
 
-// The list part of "Sessões anteriores". onOpen shows details; onLoad (optional) loads it.
-export function AtasList({ records, query, tag, onOpen, onLoad, now }) {
+// The list part of "Sessões anteriores", styled like Slack's "Recent huddles": an icon, the
+// title on one truncated line, a time·duration meta line, participant avatars and a kebab
+// menu (Abrir / Carregar / Apagar). Clicking the row opens the session.
+export function AtasList({ records, query, tag, onOpen, onLoad, onDelete, currentHuddleId, now }) {
   const { visible, groups } = groupSessions(records, query, tag, now);
   if (!records.length) {
     return (
@@ -339,35 +341,48 @@ export function AtasList({ records, query, tag, onOpen, onLoad, now }) {
         <section key={label} className="atas-group" aria-label={label}>
           <h2 className="atas-group__title">{label}</h2>
           {items.map((record) => {
-            const tone = CATEGORY_TONES[record.data.classification.category];
             const people = record.meta.participants;
+            const isCurrent = record.huddleId === currentHuddleId;
+            const menuItems = [
+              { label: 'Abrir', icon: 'open', onSelect: () => onOpen(record) },
+              isCurrent
+                ? { label: 'Já está no app', icon: 'check', disabled: true }
+                : onLoad && { label: 'Carregar', icon: 'download', onSelect: () => onLoad(record) },
+              onDelete && { label: 'Apagar', icon: 'trash', danger: true, onSelect: () => onDelete(record) },
+            ].filter(Boolean);
             return (
-              <div key={record.huddleId} className="ata-row">
-                <button className="ata-item" type="button" onClick={() => onOpen(record)}>
-                  <span className="ata-item__meta">
-                    <Chip tone={tone}>{record.data.classification.category}</Chip>
-                    {`${listTime(record.meta.startedAt, now)} · ${formatDuration(record.meta.endedAt - record.meta.startedAt)} · ${record.meta.source.replace(/^Slack · /, '')}`}
-                  </span>
+              <div
+                key={record.huddleId}
+                className="ata-item"
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(record)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpen(record);
+                  }
+                }}
+              >
+                <span className="ata-item__icon">
+                  <Icon name="headphones" />
+                </span>
+                <div className="ata-item__body">
                   <span className="ata-item__title">{record.data.title}</span>
-                  <span className="muted small">
-                    {`${people.length > 2 ? `${people.length} pessoas` : people.map((p) => p.split(/\s+/)[0]).join(', ')} · ${record.data.next_steps.length} ${record.data.next_steps.length === 1 ? 'próximo passo' : 'próximos passos'}`}
+                  <span className="ata-item__meta">
+                    {`${listTime(record.meta.startedAt, now)} · ${formatDuration(record.meta.endedAt - record.meta.startedAt)}`}
+                    {isCurrent && <span className="pill pill--xs">No app</span>}
                   </span>
-                  {record.data.tags.length > 0 && (
-                    <span className="chips chips--tight">
-                      {record.data.tags.slice(0, 5).map((t) => (
-                        <span key={t} className={tag === t ? 'chip chip--on' : 'chip'}>
-                          {t}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </button>
-                {onLoad && (
-                  <button className="button button--small ata-row__load" type="button" onClick={() => onLoad(record)}>
-                    <Icon name="download" />
-                    Carregar
-                  </button>
+                </div>
+                {people.length > 0 && (
+                  <div className="ata-item__avatars">
+                    {people.slice(0, 3).map((name) => (
+                      <Avatar key={name} name={name} size="sm" />
+                    ))}
+                    {people.length > 3 && <span className="ata-item__more">+{people.length - 3}</span>}
+                  </div>
                 )}
+                <KebabMenu items={menuItems} />
               </div>
             );
           })}

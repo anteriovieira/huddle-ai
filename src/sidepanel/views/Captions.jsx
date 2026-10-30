@@ -1,7 +1,54 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { formatClock } from '../lib/format.js';
 import { Avatar } from '../ui/primitives.jsx';
 
 const MARK_LABELS = { action: 'Ação', decision: 'Decisão', question: 'Pergunta' };
+
+// Área rolável das legendas com acompanhamento ao vivo: enquanto o scroll está
+// no fim, novas falas rolam junto; ao subir, o auto-scroll pausa e aparece o
+// botão para voltar ao vivo. Funciona em qualquer largura (1, 2 ou 3 colunas),
+// porque é dona do próprio contêiner de scroll.
+export function CaptionsPanel({ utterances, huddle, marks }) {
+  const scrollRef = useRef(null);
+  const [follow, setFollow] = useState(true);
+
+  useLayoutEffect(() => {
+    if (!follow) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [utterances.length, follow]);
+
+  const onScroll = (event) => {
+    const el = event.currentTarget;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    setFollow(atBottom);
+  };
+
+  const backToLive = () => {
+    setFollow(true);
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
+  return (
+    <div className="captions-pane">
+      <div className="captions-scroll" ref={scrollRef} onScroll={onScroll}>
+        <CaptionsView utterances={utterances} huddle={huddle} marks={marks} />
+      </div>
+      {huddle.active && utterances.length > 0 && (
+        <button
+          className={follow ? 'follow' : 'follow follow--paused'}
+          type="button"
+          aria-pressed={String(follow)}
+          onClick={backToLive}
+        >
+          <span className="dot" />
+          {follow ? 'Seguindo ao vivo' : 'Voltar ao vivo'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function CaptionsView({ utterances, huddle, marks }) {
   if (!utterances.length) {
