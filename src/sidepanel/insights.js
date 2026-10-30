@@ -100,22 +100,21 @@ function languageModel(settings) {
   }
 }
 
-// Call options (system + prompt) for generateText/streamText. For Anthropic, the system prompt is
-// passed as a system message marked for prompt caching (cacheControl ephemeral): it is identical
-// across the 30s analysis loop and across recall queries in a session, so caching its prefix cuts
-// input tokens and latency on cache hits (short prompts below the provider minimum simply are not
-// cached, no error). Other providers reject a system role inside `messages` ("Use the instructions
-// option instead"), so they keep the plain `system` + `prompt` form.
+// Call options for generateText/streamText. AI SDK v7 rejects a system role inside `messages`
+// ("Use the instructions option instead"), so the system prompt goes through the `instructions`
+// field. For Anthropic, instructions is the structured { role:'system', ... } form carrying a
+// cacheControl breakpoint: the system prompt is identical across the 30s analysis loop and across
+// recall queries in a session, so caching its prefix cuts input tokens and latency on cache hits
+// (prompts below the provider minimum simply are not cached, no error). Other providers get the
+// plain string, which ignores the Anthropic-only cache metadata.
+function cachedInstructions(settings, system) {
+  return providerOf(settings) === 'anthropic'
+    ? { role: 'system', content: system, providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } } }
+    : system;
+}
+
 function promptOptions(settings, system, userText) {
-  if (providerOf(settings) === 'anthropic') {
-    return {
-      messages: [
-        { role: 'system', content: system, providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } } },
-        { role: 'user', content: userText },
-      ],
-    };
-  }
-  return { system, prompt: userText };
+  return { instructions: cachedInstructions(settings, system), prompt: userText };
 }
 
 function insightsSystem(settings) {
@@ -268,7 +267,7 @@ export async function askMeeting({ settings, utterances, history, question, sess
   try {
     const result = streamText({
       model: languageModel(settings),
-      system,
+      instructions: cachedInstructions(settings, system),
       messages,
       maxOutputTokens: 1024,
       ...(tools ? { tools, stopWhen: stepCountIs(5) } : {}),
@@ -293,7 +292,7 @@ export async function titleChat({ settings, question }) {
     const { text: raw } = await generateText({
       model: languageModel(settings),
       maxOutputTokens: 64,
-      system: `Create a very short title, 2 to 4 words, in ${settings.language}, naming what this question to a meeting assistant is about. Reply with the title only: no quotes, no trailing punctuation, no prefix.`,
+      instructions: `Create a very short title, 2 to 4 words, in ${settings.language}, naming what this question to a meeting assistant is about. Reply with the title only: no quotes, no trailing punctuation, no prefix.`,
       prompt: question,
     });
     const text = raw
