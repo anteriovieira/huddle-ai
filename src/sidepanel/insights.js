@@ -1,7 +1,11 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createCerebras } from '@ai-sdk/cerebras';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
+import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
-import { APICallError, generateObject, generateText, streamText } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { APICallError, generateObject, generateText, NoObjectGeneratedError, streamText } from 'ai';
 import { z } from 'zod';
 import { formatClock, formatTranscript } from './lib/format.js';
 import { apiKeyFor, MINUTES_CATEGORIES, MODELS, PROVIDERS, providerOf } from './lib/models.js';
@@ -65,12 +69,25 @@ function languageModel(settings) {
   const provider = providerOf(settings);
   const apiKey = apiKeyFor(settings);
   if (!apiKey) throw new Error(`Configure a chave da API ${PROVIDERS[provider].label} nas configurações.`);
-  if (provider === 'openai') return createOpenAI({ apiKey })(settings.model);
-  if (provider === 'google') return createGoogleGenerativeAI({ apiKey })(settings.model);
-  return createAnthropic({
-    apiKey,
-    headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
-  })(settings.model);
+  switch (provider) {
+    case 'openai':
+      return createOpenAI({ apiKey })(settings.model);
+    case 'google':
+      return createGoogleGenerativeAI({ apiKey })(settings.model);
+    case 'groq':
+      return createGroq({ apiKey })(settings.model);
+    case 'openrouter':
+      return createOpenRouter({ apiKey })(settings.model);
+    case 'cerebras':
+      return createCerebras({ apiKey })(settings.model);
+    case 'mistral':
+      return createMistral({ apiKey })(settings.model);
+    default:
+      return createAnthropic({
+        apiKey,
+        headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
+      })(settings.model);
+  }
 }
 
 function insightsSystem(settings) {
@@ -104,6 +121,9 @@ function insightsSystem(settings) {
 }
 
 function describeError(error) {
+  if (NoObjectGeneratedError.isInstance?.(error) || error?.name === 'NoObjectGeneratedError') {
+    return 'O modelo não retornou os dados no formato esperado. Alguns modelos (sobretudo gratuitos) não suportam saída estruturada — tente outro modelo.';
+  }
   const isApiError = APICallError.isInstance?.(error) || error?.name === 'APICallError';
   if (isApiError) {
     const status = error.statusCode;

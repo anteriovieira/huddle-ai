@@ -22,7 +22,7 @@ import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
 
 const DEFAULT_SETTINGS = {
-  apiKeys: { anthropic: '', openai: '', google: '' },
+  apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '' },
   model: 'claude-haiku-5-5',
   // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
   modelProvider: '',

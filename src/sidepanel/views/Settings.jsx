@@ -37,6 +37,9 @@ export function SettingsView({
   const modelIsKnown = MODELS.some((m) => m.id === draft.model);
   const needProvider = providerOf(draft);
   const missingKey = !hasKeyForModel(draft);
+  // Abre a seção de chaves só na montagem se faltar a chave do modelo atual; prop constante
+  // depois, para o usuário poder recolher/expandir sem o painel fechar enquanto digita.
+  const [keysOpen] = useState(missingKey);
   const onModelChange = (value) => {
     if (value === CUSTOM_MODEL) {
       setDraft((d) => ({ ...d, model: '', modelProvider: d.modelProvider || PROVIDER_IDS[0] }));
@@ -77,21 +80,27 @@ export function SettingsView({
         <form className="settings" id="settings-form" onSubmit={submit}>
           <section className="stack">
             <h2 className="section__title">Inteligência</h2>
-            <p className="muted small">
-              As chaves ficam só neste navegador (chrome.storage.local). Preencha a do provider do modelo escolhido.
-            </p>
-            {PROVIDER_IDS.map((p) => (
-              <Field key={p} label={`Chave da API ${PROVIDERS[p].label}`} htmlFor={`key-${p}`}>
-                <input
-                  id={`key-${p}`}
-                  type="password"
-                  value={draft.apiKeys[p]}
-                  autoComplete="off"
-                  placeholder={PROVIDERS[p].keyPlaceholder}
-                  onChange={(e) => setKey(p, e.target.value)}
-                />
-              </Field>
-            ))}
+            <details className="provider-keys" open={keysOpen}>
+              <summary>
+                Chaves de API por provider
+                {missingKey && <span className="muted small"> — falta a de {PROVIDERS[needProvider].label}</span>}
+              </summary>
+              <p className="muted small">
+                As chaves ficam só neste navegador (chrome.storage.local). Preencha a do provider do modelo escolhido.
+              </p>
+              {PROVIDER_IDS.map((p) => (
+                <Field key={p} label={`Chave da API ${PROVIDERS[p].label}`} htmlFor={`key-${p}`}>
+                  <input
+                    id={`key-${p}`}
+                    type="password"
+                    value={draft.apiKeys[p]}
+                    autoComplete="off"
+                    placeholder={PROVIDERS[p].keyPlaceholder}
+                    onChange={(e) => setKey(p, e.target.value)}
+                  />
+                </Field>
+              ))}
+            </details>
             <Field
               label="Modelo"
               htmlFor="model"
