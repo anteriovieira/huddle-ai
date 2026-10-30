@@ -15,6 +15,7 @@ import {
   tagCounts,
 } from '../src/sidepanel/lib/minutes.js';
 import { logEntryAsText, logsAsText } from '../src/sidepanel/lib/logs.js';
+import { normalizeInsights } from '../src/sidepanel/lib/insights-data.js';
 
 test('formatClock renders mm:ss and h:mm:ss', () => {
   assert.equal(formatClock(0), '00:00');
@@ -232,6 +233,34 @@ test('sessionDigests handles empty history and sorts newest first', () => {
   const b = { ...sampleMinutes, huddleId: 'b', meta: { ...sampleMinutes.meta, startedAt: 2000 } };
   const ids = sessionDigests([{ minutes: a }, { minutes: b }]).map((d) => d.id);
   assert.deepEqual(ids, ['b', 'a']);
+});
+
+test('normalizeInsights fills every field from an empty/partial object', () => {
+  const d = normalizeInsights(undefined);
+  assert.deepEqual(d.topic, { title: '', summary: '' });
+  for (const k of ['topics', 'points', 'actions', 'decisions', 'open_questions', 'suggestions', 'replies', 'alerts', 'references', 'acronyms', 'marks', 'context_queries']) {
+    assert.deepEqual(d[k], [], `${k} should default to []`);
+  }
+  assert.deepEqual(d.agenda, { items: [], current: -1 });
+  assert.deepEqual(d.focus, { on_agenda: true, since_line: 0 });
+});
+
+test('normalizeInsights drops half-built streaming entries', () => {
+  const d = normalizeInsights({
+    topic: { title: 'Billing' },
+    points: ['ok', undefined, 42],
+    actions: [{ text: 'fazer', owner: 'Ana' }, { owner: 'sem texto' }, null],
+    alerts: [{ kind: 'mention', text: 'oi', from: 'Lu', line: 3 }, { kind: 'bogus', text: 'x' }],
+    context_queries: [{ text: 'o número de Q3?', about: 'Q3' }, { about: 'sem texto' }],
+    marks: [{ line: 2, kind: 'action' }, { line: 'x', kind: 'action' }],
+  });
+  assert.equal(d.topic.summary, '');
+  assert.deepEqual(d.points, ['ok']);
+  assert.deepEqual(d.actions, [{ text: 'fazer', owner: 'Ana' }]);
+  assert.equal(d.alerts.length, 1);
+  assert.equal(d.context_queries.length, 1);
+  assert.equal(d.context_queries[0].line, 0);
+  assert.deepEqual(d.marks, [{ line: 2, kind: 'action' }]);
 });
 
 test('matchesQuery matches across fields, all words required', () => {

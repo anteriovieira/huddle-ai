@@ -287,6 +287,17 @@ export function App() {
     return `${h?.id}:${u.length}:${u.at(-1)?.text.length ?? 0}`;
   }, []);
 
+  // Insights parciais (streaming): atualiza o painel ao vivo, com throttle, sem persistir em
+  // storage (o registro final é que persiste). Só aplica se ainda for o huddle da análise.
+  const partialAt = useRef(0);
+  const applyPartial = useCallback((huddleId, data) => {
+    const t = Date.now();
+    if (t - partialAt.current < 120) return;
+    partialAt.current = t;
+    if (latest.current.huddle?.id !== huddleId) return;
+    setInsights({ huddleId, updatedAt: t, data });
+  }, []);
+
   const maybeAnalyze = useCallback(async () => {
     const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
     const ctl = analysisCtl.current;
@@ -300,8 +311,16 @@ export function App() {
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
+    const ctrl = new AbortController();
+    ctl.ctrl = ctrl;
     try {
-      const data = await analyze({ settings: s, utterances: u, previous: ci?.data });
+      const data = await analyze({
+        settings: s,
+        utterances: u,
+        previous: ci?.data,
+        abortSignal: ctrl.signal,
+        onPartial: (d) => applyPartial(h.id, d),
+      });
       logEvent('info', `Insights atualizados em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
         topico: data.topic.title,
         acoes: data.actions.length,
@@ -313,13 +332,15 @@ export function App() {
       setInsights(record);
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
+      if (ctrl.signal.aborted) return; // análise descartada (huddle mudou/encerrou)
       setAnalysisError(error.message);
       logEvent('error', `Falha na análise: ${error.message}`);
     } finally {
+      if (ctl.ctrl === ctrl) ctl.ctrl = null;
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey]);
+  }, [transcriptKey, applyPartial]);
 
   // Análise sob demanda: ignora o intervalo e o throttle, e reinicia a contagem
   // a partir de agora (o próximo ciclo automático parte deste momento).
@@ -332,8 +353,16 @@ export function App() {
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas agora com ${s.model}`);
     const startedAt = Date.now();
+    const ctrl = new AbortController();
+    ctl.ctrl = ctrl;
     try {
-      const data = await analyze({ settings: s, utterances: u, previous: ci?.data });
+      const data = await analyze({
+        settings: s,
+        utterances: u,
+        previous: ci?.data,
+        abortSignal: ctrl.signal,
+        onPartial: (d) => applyPartial(h.id, d),
+      });
       logEvent('info', `Insights atualizados em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
         topico: data.topic.title,
         acoes: data.actions.length,
@@ -346,13 +375,15 @@ export function App() {
       setInsights(record);
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
+      if (ctrl.signal.aborted) return;
       setAnalysisError(error.message);
       logEvent('error', `Falha na análise sob demanda: ${error.message}`);
     } finally {
+      if (ctl.ctrl === ctrl) ctl.ctrl = null;
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey]);
+  }, [transcriptKey, applyPartial]);
 
   const saveMinutesToHistory = useCallback(async (record) => {
     if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
@@ -702,22 +733,32 @@ export function App() {
       analysisCtl.current.running = true;
       setAnalysisRunning(true);
       setAnalysisError(null);
+      const ctrl = new AbortController();
+      analysisCtl.current.ctrl = ctrl;
       try {
-        const data = await analyze({ settings: s, utterances: latest.current.utterances, previous: null });
+        const data = await analyze({
+          settings: s,
+          utterances: latest.current.utterances,
+          previous: null,
+          abortSignal: ctrl.signal,
+          onPartial: (d) => applyPartial(huddleId, d),
+        });
         if (latest.current.huddle?.id !== huddleId) return;
         const record = { huddleId, updatedAt: Date.now(), data };
         setInsights(record);
         await chromeApi?.storage.session.set({ insights: record });
         await saveInsightsToHistory(huddleId, data);
       } catch (error) {
+        if (ctrl.signal.aborted) return;
         setAnalysisError(error.message);
         logEvent('error', `Falha na análise da importação: ${error.message}`);
       } finally {
+        if (analysisCtl.current.ctrl === ctrl) analysisCtl.current.ctrl = null;
         analysisCtl.current.running = false;
         setAnalysisRunning(false);
       }
     },
-    [saveInsightsToHistory],
+    [saveInsightsToHistory, applyPartial],
   );
 
   const importSession = useCallback(
@@ -813,10 +854,14 @@ export function App() {
   // passada sobre X?") triggers the recall subagent over past session summaries; the answer shows
   // as a context suggestion in Insights. Cards reset when the huddle changes. ---
   useEffect(() => {
+    analysisCtl.current.ctrl?.abort(); // descarta análise em voo da sessão anterior
     contextSeen.current = new Set();
     setContextCards([]);
     setContextDismissed(new Set());
   }, [huddle?.id]);
+
+  // Aborta qualquer análise em andamento ao desmontar o painel.
+  useEffect(() => () => analysisCtl.current.ctrl?.abort(), []);
 
   useEffect(() => {
     if (!settings.detect.context || !hasKeyForModel(settings) || !pastSessions.length) return;
@@ -955,6 +1000,7 @@ export function App() {
         question,
         sessions: latest.current.pastSessions,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+        log: logEvent,
       });
       appendMessage(chat.id, { role: 'assistant', text: answer });
     } catch (error) {
