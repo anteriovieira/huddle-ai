@@ -117,6 +117,33 @@ function promptOptions(settings, system, userText) {
   return { instructions: cachedInstructions(settings, system), prompt: userText };
 }
 
+// Runs a structured-output call through streamText (consuming partialOutputStream) rather than
+// generateText. For some providers (notably Anthropic) structured output finishes as a tool call,
+// and generateText's `output` getter then throws NoOutputGeneratedError; the stream yields the
+// parsed object regardless of finish reason. Returns the final (cumulative) object. `onPartial`
+// receives each cumulative partial. Throws the raw error so callers can map it with describeError.
+async function streamStructured({ settings, schema, system, prompt, maxOutputTokens, abortSignal, onPartial }) {
+  let streamError = null;
+  const result = streamText({
+    model: languageModel(settings),
+    output: Output.object({ schema }),
+    maxOutputTokens,
+    abortSignal,
+    ...promptOptions(settings, system, prompt),
+    onError: ({ error }) => {
+      streamError = error;
+    },
+  });
+  let last = null;
+  for await (const partial of result.partialOutputStream) {
+    last = partial;
+    onPartial?.(partial);
+  }
+  if (streamError) throw streamError;
+  if (!last) throw new Error('O modelo não retornou os dados no formato esperado.');
+  return last;
+}
+
 function insightsSystem(settings) {
   const disabled = Object.entries(KIND_FIELDS)
     .filter(([kind]) => !settings.detect[kind])
@@ -179,29 +206,16 @@ function describeError(error) {
 // normalized to a safe shape. `abortSignal` lets the caller cancel a stale run (e.g. the huddle
 // ended) without paying for the rest. Returns the final, normalized object.
 export async function analyze({ settings, utterances, previous, onPartial, abortSignal }) {
-  let streamError = null;
   try {
-    const result = streamText({
-      model: languageModel(settings),
-      output: Output.object({ schema: InsightsSchema }),
+    const last = await streamStructured({
+      settings,
+      schema: InsightsSchema,
+      system: insightsSystem(settings),
+      prompt: `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>\n\n<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
       maxOutputTokens: 8000,
       abortSignal,
-      ...promptOptions(
-        settings,
-        insightsSystem(settings),
-        `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>\n\n<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
-      ),
-      onError: ({ error }) => {
-        streamError = error;
-      },
+      onPartial: (partial) => onPartial?.(normalizeInsights(partial)),
     });
-    let last = null;
-    for await (const partial of result.partialOutputStream) {
-      last = partial;
-      onPartial?.(normalizeInsights(partial));
-    }
-    if (streamError) throw streamError;
-    if (!last) throw new Error('O modelo não retornou os dados no formato esperado.');
     return normalizeInsights(last);
   } catch (error) {
     if (abortSignal?.aborted) throw error; // caller detects the abort and ignores it
@@ -346,22 +360,20 @@ function formatMeetingDate(timestamp) {
 
 export async function generateMinutes({ settings, meta, utterances }) {
   try {
-    const { output: data } = await generateText({
-      model: languageModel(settings),
-      output: Output.object({ schema: MinutesSchema }),
+    const data = await streamStructured({
+      settings,
+      schema: MinutesSchema,
+      system: minutesSystem(settings),
+      prompt: [
+        `<meeting>\nTítulo: ${meta.title ?? 'Huddle'}\nInício: ${formatMeetingDate(meta.startedAt)}\nParticipantes que falaram: ${meta.participants.join(', ')}\n</meeting>`,
+        `<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
+      ].join('\n\n'),
       maxOutputTokens: 16000,
-      ...promptOptions(
-        settings,
-        minutesSystem(settings),
-        [
-          `<meeting>\nTítulo: ${meta.title ?? 'Huddle'}\nInício: ${formatMeetingDate(meta.startedAt)}\nParticipantes que falaram: ${meta.participants.join(', ')}\n</meeting>`,
-          `<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
-        ].join('\n\n'),
-      ),
     });
-    data.classification.confidence = Math.min(100, Math.max(0, data.classification.confidence));
+    if (!data?.classification) throw new Error('O modelo não retornou os dados no formato esperado.');
+    data.classification.confidence = Math.min(100, Math.max(0, data.classification.confidence ?? 0));
     data.classification.category =
-      MINUTES_CATEGORIES.find((c) => c.toLowerCase() === data.classification.category.trim().toLowerCase()) ?? 'Outro';
+      MINUTES_CATEGORIES.find((c) => c.toLowerCase() === (data.classification.category ?? '').trim().toLowerCase()) ?? 'Outro';
     return data;
   } catch (error) {
     throw new Error(describeError(error));
@@ -405,15 +417,17 @@ export async function recallContext({ settings, sessions, query }) {
     `<past_meetings>\n${corpus}\n</past_meetings>`,
   ].join('\n\n');
   try {
-    const { output: object } = await generateText({
-      model: languageModel(settings),
-      output: Output.object({ schema: RecallSchema }),
+    const object = await streamStructured({
+      settings,
+      schema: RecallSchema,
+      system,
+      prompt: query,
       maxOutputTokens: 1024,
-      ...promptOptions(settings, system, query),
     });
     const ids = new Set(sessions.map((s) => s.id));
-    const sources = (object.sources ?? []).filter((src) => ids.has(src.id));
-    return { found: object.found && Boolean(object.answer.trim()), answer: object.answer.trim(), sources };
+    const sources = (object.sources ?? []).filter((src) => src && ids.has(src.id));
+    const answer = (object.answer ?? '').trim();
+    return { found: Boolean(object.found && answer), answer, sources };
   } catch (error) {
     throw new Error(describeError(error));
   }
