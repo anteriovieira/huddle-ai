@@ -104,7 +104,7 @@ function SummaryActions({
       {onAnalyzeNow && (
         <Tooltip label={analyzing ? 'Analisando…' : 'Analisar agora'}>
           <button className="icon-button" type="button" aria-label="Analisar agora" disabled={analyzing} onClick={onAnalyzeNow}>
-            <Icon name="spark" />
+            <Icon name="sparkles" />
           </button>
         </Tooltip>
       )}
@@ -115,7 +115,7 @@ function SummaryActions({
       </Tooltip>
       <Tooltip label="Postar no thread">
         <button className="icon-button" type="button" aria-label="Postar no thread" disabled={!canPostSummary} onClick={onPostSummary}>
-          <Icon name="hash" />
+          <Icon name="plane" />
         </button>
       </Tooltip>
       {hasRecent && (
@@ -210,12 +210,25 @@ export function InfoBar({
     const count = utteranceCount;
     return (
       <div className="info info--row">
-        <span>
-          {!huddle.captions
-            ? 'Abra a aba Captions na janela do huddle para começar.'
-            : huddle.language
-              ? `Lendo legendas em ${huddle.language} do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
-              : `Lendo legendas do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`}
+        <span className="info__text">
+          {!huddle.captions ? (
+            <>
+              Legendas não aparecem? Ative no huddle (botão de legendas) ou nas{' '}
+              <a
+                className="link"
+                href="https://slack.com/help/articles/1500002037922-Adjust-your-huddles-preferences"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                preferências do Slack
+              </a>
+              .
+            </>
+          ) : huddle.language ? (
+            `Lendo legendas em ${huddle.language} do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
+          ) : (
+            `Lendo legendas do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
+          )}
         </span>
         <Tooltip label="Baixar transcrição">
           <button className="icon-button" type="button" aria-label="Baixar transcrição" onClick={onDownloadTranscript}>

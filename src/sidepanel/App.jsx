@@ -22,7 +22,7 @@ import { Tooltip } from './ui/Tooltip.jsx';
 
 const DEFAULT_SETTINGS = {
   apiKey: '',
-  model: 'claude-opus-5-5',
+  model: 'claude-haiku-5-5',
   language: 'Português',
   freq: 30,
   userName: '',

@@ -53,8 +53,20 @@ export function CaptionsPanel({ utterances, huddle, marks }) {
 export function CaptionsView({ utterances, huddle, marks }) {
   if (!utterances.length) {
     return (
-      <div className="empty">
-        <p>Nenhuma fala ainda. As legendas aparecem aqui enquanto as pessoas falam.</p>
+      <div className="captions-empty">
+        <p className="captions-empty__title">Nenhuma fala ainda. As legendas aparecem aqui enquanto as pessoas falam.</p>
+        <p className="captions-empty__hint muted small">
+          Nada aparecendo mesmo com o huddle aberto? Veja se as legendas estão ativadas no huddle ou nas{' '}
+          <a
+            className="link"
+            href="https://slack.com/help/articles/1500002037922-Adjust-your-huddles-preferences"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            preferências do Slack
+          </a>{' '}
+          (Preferências › Áudio e vídeo).
+        </p>
       </div>
     );
   }

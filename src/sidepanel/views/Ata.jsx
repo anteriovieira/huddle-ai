@@ -148,7 +148,7 @@ export function AtaInfo({ onRegenerate, onOpenList, busy }) {
         {onRegenerate && (
           <Tooltip label={busy ? 'Gerando…' : 'Gerar ata'}>
             <button className="icon-button" type="button" aria-label="Gerar ata" disabled={busy} onClick={onRegenerate}>
-              <Icon name="spark" />
+              <Icon name="sparkles" />
             </button>
           </Tooltip>
         )}
