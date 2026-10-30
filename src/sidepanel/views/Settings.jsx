@@ -37,6 +37,7 @@ export function SettingsView({
   const modelIsKnown = MODELS.some((m) => m.id === draft.model);
   const needProvider = providerOf(draft);
   const missingKey = !hasKeyForModel(draft);
+  const configuredCount = PROVIDER_IDS.filter((p) => draft.apiKeys[p]?.trim()).length;
   // Abre a seção de chaves só na montagem se faltar a chave do modelo atual; prop constante
   // depois, para o usuário poder recolher/expandir sem o painel fechar enquanto digita.
   const [keysOpen] = useState(missingKey);
@@ -74,33 +75,18 @@ export function SettingsView({
       </header>
       <main className="main" id="settings-main">
         <form className="settings" id="settings-form" onSubmit={submit}>
-          <section className="stack">
-            <h2 className="section__title">Inteligência</h2>
-            <details className="provider-keys" open={keysOpen}>
-              <summary>
-                Chaves de API por provider
-                {missingKey && <span className="muted small"> — falta a de {PROVIDERS[needProvider].label}</span>}
-              </summary>
-              <p className="muted small">
-                As chaves ficam só neste navegador (chrome.storage.local). Preencha a do provider do modelo escolhido.
-              </p>
-              {PROVIDER_IDS.map((p) => (
-                <Field key={p} label={`Chave da API ${PROVIDERS[p].label}`} htmlFor={`key-${p}`}>
-                  <input
-                    id={`key-${p}`}
-                    type="password"
-                    value={draft.apiKeys[p]}
-                    autoComplete="off"
-                    placeholder={PROVIDERS[p].keyPlaceholder}
-                    onChange={(e) => setKey(p, e.target.value)}
-                  />
-                </Field>
-              ))}
-            </details>
+          <section className="settings-card">
+            <div className="card-head">
+              <span className="card-icon card-icon--purple">
+                <Icon name="sparkles" />
+              </span>
+              <h2 className="section__title">Inteligência</h2>
+            </div>
             <Field
               label="Modelo"
               htmlFor="model"
-              hint={missingKey ? `Falta a chave da API ${PROVIDERS[needProvider].label} para este modelo.` : undefined}
+              headAside={<span className="provider-pill">{PROVIDERS[needProvider].label}</span>}
+              hint="Anthropic, OpenAI, Google e provedores com camada gratuita. A chave usada acompanha o provedor."
             >
               <select id="model" value={modelIsKnown ? draft.model : CUSTOM_MODEL} onChange={(e) => onModelChange(e.target.value)}>
                 {PROVIDER_IDS.map((p) => (
@@ -137,12 +123,69 @@ export function SettingsView({
                 </Field>
               </div>
             )}
+            <details className="provider-keys" open={keysOpen}>
+              <summary>
+                <span className="provider-keys__icon">
+                  <Icon name="key" />
+                </span>
+                <span className="provider-keys__label">Chaves de API</span>
+                <span className={`key-count${missingKey ? ' key-count--warn' : ''}`}>
+                  {configuredCount} de {PROVIDER_IDS.length}
+                </span>
+                <span className="provider-keys__chevron" aria-hidden="true">
+                  <Icon name="back" />
+                </span>
+              </summary>
+              <div className="provider-keys__body">
+                <p className="muted small">Ficam só neste navegador. Preencha a do provedor do modelo escolhido.</p>
+                {PROVIDER_IDS.map((p) => {
+                  const filled = Boolean(draft.apiKeys[p]?.trim());
+                  return (
+                    <Field
+                      key={p}
+                      label={PROVIDERS[p].label}
+                      htmlFor={`key-${p}`}
+                      headAside={
+                        <span
+                          className={`key-dot${filled ? ' key-dot--on' : ''}`}
+                          title={filled ? 'Configurada' : 'Vazia'}
+                          aria-label={filled ? 'Configurada' : 'Vazia'}
+                          role="img"
+                        />
+                      }
+                    >
+                      <input
+                        id={`key-${p}`}
+                        type="password"
+                        value={draft.apiKeys[p]}
+                        autoComplete="off"
+                        placeholder={PROVIDERS[p].keyPlaceholder}
+                        onChange={(e) => setKey(p, e.target.value)}
+                      />
+                    </Field>
+                  );
+                })}
+              </div>
+            </details>
             <div className="field-row">
               <Field label="Idioma" htmlFor="language">
                 <Select id="language" options={LANGUAGES.map((l) => [l, l])} value={draft.language} onChange={(v) => set('language', v)} />
               </Field>
               <Field label="Analisar a cada" htmlFor="freq">
-                <Select id="freq" options={FREQUENCIES.map((f) => [f, `${f} s`])} value={draft.freq} onChange={(v) => set('freq', v)} />
+                <div className="segmented" role="radiogroup" aria-label="Analisar a cada">
+                  {FREQUENCIES.map((f) => (
+                    <label key={f} className="segmented__opt">
+                      <input
+                        type="radio"
+                        name="freq"
+                        value={f}
+                        checked={Number(draft.freq) === f}
+                        onChange={() => set('freq', f)}
+                      />
+                      <span>{f}s</span>
+                    </label>
+                  ))}
+                </div>
               </Field>
             </div>
             <Field
@@ -160,9 +203,13 @@ export function SettingsView({
               />
             </Field>
           </section>
-          <hr />
-          <section className="stack">
-            <h2 className="section__title">Legendas</h2>
+          <section className="settings-card">
+            <div className="card-head">
+              <span className="card-icon card-icon--blue">
+                <Icon name="headphones" />
+              </span>
+              <h2 className="section__title">Legendas</h2>
+            </div>
             <Field
               label="Como capturar"
               htmlFor="captionSource"
@@ -171,9 +218,13 @@ export function SettingsView({
               <Select id="captionSource" options={CAPTION_SOURCES} value={draft.captionSource} onChange={(v) => set('captionSource', v)} />
             </Field>
           </section>
-          <hr />
-          <section className="stack stack--tight">
-            <h2 className="section__title">Insights</h2>
+          <section className="settings-card">
+            <div className="card-head">
+              <span className="card-icon card-icon--yellow">
+                <Icon name="bulb" />
+              </span>
+              <h2 className="section__title">Insights</h2>
+            </div>
             <Toggle id="detect-alerts" label="Alertas pra você (menções, ações, perguntas)" checked={draft.detect.alerts} onChange={(v) => setDetect('alerts', v)} />
             <Toggle id="detect-actions" label="Ações e responsáveis" checked={draft.detect.actions} onChange={(v) => setDetect('actions', v)} />
             <Toggle id="detect-decisions" label="Decisões" checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
@@ -183,14 +234,22 @@ export function SettingsView({
             <Toggle id="detect-references" label="Referências (livros, apps, links)" checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
             <Toggle id="detect-acronyms" label="Siglas citadas" checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
           </section>
-          <hr />
-          <section className="stack stack--tight">
-            <h2 className="section__title">Ata</h2>
+          <section className="settings-card settings-card--tight">
+            <div className="card-head">
+              <span className="card-icon card-icon--green">
+                <Icon name="doc" />
+              </span>
+              <h2 className="section__title">Ata</h2>
+            </div>
             <Toggle id="autoMinutes" label="Gerar a ata ao encerrar o huddle" checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
           </section>
-          <hr />
-          <section className="stack stack--tight">
-            <h2 className="section__title">Google Drive</h2>
+          <section className="settings-card settings-card--tight">
+            <div className="card-head">
+              <span className="card-icon card-icon--muted">
+                <Icon name="cloud" />
+              </span>
+              <h2 className="section__title">Google Drive</h2>
+            </div>
             {driveState.connected ? (
               <p className="muted small">
                 {driveState.email ? `Conectado como ${driveState.email}. ` : 'Conectado. '}
@@ -219,9 +278,13 @@ export function SettingsView({
               )}
             </div>
           </section>
-          <hr />
-          <section className="stack stack--tight">
-            <h2 className="section__title">Privacidade</h2>
+          <section className="settings-card settings-card--tight">
+            <div className="card-head">
+              <span className="card-icon card-icon--muted">
+                <Icon name="shield" />
+              </span>
+              <h2 className="section__title">Privacidade</h2>
+            </div>
             <Toggle id="saveHistory" label="Salvar histórico de huddles e sessões" checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
             <div className="buttons buttons--start">
               <button className="button button--danger" type="button" onClick={onClearHistory}>

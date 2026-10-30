@@ -1061,6 +1061,280 @@ select {
   accent-color: var(--button);
 }
 
+/* --- Configurações redesenhadas: seções em cards --- */
+.settings {
+  gap: 12px;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.settings-card--tight {
+  gap: 12px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.card-icon .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.card-icon--purple {
+  background: var(--purple-bg);
+  color: var(--purple);
+}
+.card-icon--blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+.card-icon--yellow {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+.card-icon--green {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.card-icon--muted {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.settings-card .section__title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.field__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.provider-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple);
+  background: var(--purple-bg);
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+
+.settings-card .field input,
+.settings-card .field select {
+  background: var(--bg);
+  border-color: var(--border);
+  border-radius: 8px;
+}
+
+/* Chaves de API por provedor */
+.provider-keys {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.provider-keys > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--surface-hover);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  color: var(--text-strong);
+  font-size: 13.5px;
+}
+
+.provider-keys > summary::-webkit-details-marker {
+  display: none;
+}
+
+.provider-keys__icon .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+.provider-keys__label {
+  flex: 1;
+}
+
+.key-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  background: var(--green-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.key-count--warn {
+  color: var(--yellow);
+  background: var(--yellow-bg);
+}
+
+.provider-keys__chevron {
+  display: inline-flex;
+  color: var(--muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s;
+}
+
+.provider-keys__chevron .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.provider-keys[open] .provider-keys__chevron {
+  transform: rotate(90deg);
+}
+
+.provider-keys__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+}
+
+.provider-keys__body > p {
+  margin: 0;
+}
+
+.key-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.key-dot--on {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+/* Segmented control (frequência) */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  height: 40px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.segmented__opt {
+  display: flex;
+  cursor: pointer;
+}
+
+.segmented__opt input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.segmented__opt > span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.segmented__opt > input:checked + span {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.segmented__opt > input:focus-visible + span {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Toggles como switch dentro das configurações */
+.settings .toggle {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  min-height: 40px;
+}
+
+.settings .toggle > span {
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.settings .toggle input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings .toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-strong);
+  transition: left 0.15s;
+}
+
+.settings .toggle input:checked {
+  background: var(--button);
+}
+
+.settings .toggle input:checked::after {
+  left: 18px;
+}
+
 :focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;

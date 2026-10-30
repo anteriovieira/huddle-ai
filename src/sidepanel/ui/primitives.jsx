@@ -42,10 +42,17 @@ export function Chip({ children, tone, className }) {
   return <span className={cls}>{children}</span>;
 }
 
-export function Field({ label, htmlFor, children, hint }) {
+export function Field({ label, htmlFor, children, hint, headAside }) {
   return (
     <div className="field">
-      <label htmlFor={htmlFor}>{label}</label>
+      {headAside ? (
+        <div className="field__head">
+          <label htmlFor={htmlFor}>{label}</label>
+          {headAside}
+        </div>
+      ) : (
+        <label htmlFor={htmlFor}>{label}</label>
+      )}
       {children}
       {hint && <span className="muted small">{hint}</span>}
     </div>
