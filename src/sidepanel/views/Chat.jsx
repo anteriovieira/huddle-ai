@@ -32,9 +32,13 @@ function ChatPending({ streamText }) {
     );
   }
   return (
-    <div className="chat-thinking">
-      <span className="spinner chat-thinking__spinner" aria-hidden="true" />
-      <span>Pensando</span>
+    <div className="chat-thinking" role="status" aria-label="Pensando">
+      <span className="chat-thinking__dots" aria-hidden="true">
+        <span className="chat-thinking__dot" />
+        <span className="chat-thinking__dot" />
+        <span className="chat-thinking__dot" />
+      </span>
+      <span className="chat-thinking__label">Pensando</span>
     </div>
   );
 }

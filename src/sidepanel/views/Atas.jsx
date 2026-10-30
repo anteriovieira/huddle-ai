@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { formatDateTime } from '../lib/format.js';
 import { tagCounts } from '../lib/minutes.js';
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
+
+const DELETE_MESSAGE = 'A transcrição, os insights e a ata desta sessão serão removidos deste navegador. Não dá para desfazer.';
 import { AtaContent, AtaFooter, AtasList } from './Ata.jsx';
 
 export function AtasView({
@@ -71,32 +74,17 @@ export function AtasView({
         </div>
       )}
       {confirmDelete && (
-        <div className="banner banner--danger" role="alertdialog" aria-label="Confirmar exclusão">
-          <span className="badge-icon badge-icon--danger">
-            <Icon name="trash" />
-          </span>
-          <div className="row__stack">
-            <span className="strong">Apagar “{confirmDelete.data.title}”?</span>
-            <span className="muted small">A transcrição, os insights e a ata desta sessão serão removidos deste navegador. Não dá para desfazer.</span>
-            <div className="buttons buttons--start">
-              <button className="button button--small" type="button" onClick={() => setConfirmDelete(null)}>
-                Cancelar
-              </button>
-              <button
-                className="button button--small button--danger"
-                type="button"
-                onClick={() => {
-                  const record = confirmDelete;
-                  setConfirmDelete(null);
-                  onDelete(record);
-                }}
-              >
-                <Icon name="trash" />
-                Apagar sessão
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={`Apagar “${confirmDelete.data.title}”?`}
+          message={DELETE_MESSAGE}
+          confirmLabel="Apagar sessão"
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            const record = confirmDelete;
+            setConfirmDelete(null);
+            onDelete(record);
+          }}
+        />
       )}
       <main className="main main--atas" id="main">
         <div id="atas-list">
@@ -149,31 +137,16 @@ export function PastAtaView({ record, isCurrent, now, onBack, onLoad, onDelete, 
         )}
       </header>
       {confirming && (
-        <div className="banner banner--danger" role="alertdialog" aria-label="Confirmar exclusão">
-          <span className="badge-icon badge-icon--danger">
-            <Icon name="trash" />
-          </span>
-          <div className="row__stack">
-            <span className="strong">Apagar esta sessão?</span>
-            <span className="muted small">A transcrição, os insights e a ata desta sessão serão removidos deste navegador. Não dá para desfazer.</span>
-            <div className="buttons buttons--start">
-              <button className="button button--small" type="button" onClick={() => setConfirming(false)}>
-                Cancelar
-              </button>
-              <button
-                className="button button--small button--danger"
-                type="button"
-                onClick={() => {
-                  setConfirming(false);
-                  onDelete(record);
-                }}
-              >
-                <Icon name="trash" />
-                Apagar sessão
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Apagar esta sessão?"
+          message={DELETE_MESSAGE}
+          confirmLabel="Apagar sessão"
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            onDelete(record);
+          }}
+        />
       )}
       <main className="main" id="main">
         <AtaContent record={record} {...ataProps} />

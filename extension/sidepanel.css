@@ -2442,40 +2442,70 @@ select {
   font-size: 14px;
 }
 
-.chat-thinking__icon {
-  color: var(--text-strong);
-  animation: thinking-spin 1.5s linear infinite;
-}
-.chat-thinking__spinner {
-  width: 16px;
-  height: 16px;
-  border-width: 2px;
+/* Three dots doing a staggered wave — the classic "working" signal. */
+.chat-thinking__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.chat-thinking span {
-  animation: thinking-pulse 1.5s ease-in-out infinite;
+.chat-thinking__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-strong);
+  animation: thinking-wave 1.2s ease-in-out infinite;
+}
+.chat-thinking__dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.chat-thinking__dot:nth-child(3) {
+  animation-delay: 0.32s;
 }
 
-@keyframes thinking-spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* Label shimmers so even the word reads as alive, not just blinking. */
+.chat-thinking__label {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    var(--muted) 35%,
+    var(--text-strong) 50%,
+    var(--muted) 65%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-shimmer 1.8s linear infinite;
 }
 
-@keyframes thinking-pulse {
+@keyframes thinking-wave {
   0%,
+  60%,
   100% {
+    transform: translateY(0);
     opacity: 0.45;
   }
-  50% {
+  30% {
+    transform: translateY(-5px);
     opacity: 1;
   }
 }
 
+@keyframes thinking-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .chat-thinking__icon,
-  .chat-thinking span {
+  .chat-thinking__dot,
+  .chat-thinking__label {
     animation: none;
+  }
+  .chat-thinking__label {
+    -webkit-text-fill-color: var(--muted);
   }
 }
 
@@ -2910,6 +2940,69 @@ a.ref__title {
 .badge-icon--danger {
   background: rgba(242, 140, 168, 0.14);
   color: var(--danger);
+}
+
+/* Confirmation dialog (discreet modal) ---------------------------------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  animation: dialog-fade 0.12s ease-out;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  animation: dialog-in 0.14s ease-out;
+}
+
+.dialog__body {
+  display: flex;
+  gap: 10px;
+  text-align: left;
+}
+
+.dialog__body .row__stack {
+  gap: 6px;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Insights info-bar actions + last-utterances balloon ------------------- */
