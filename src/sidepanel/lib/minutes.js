@@ -131,6 +131,30 @@ export function groupSessions(records, query, tag, now = Date.now()) {
   return { visible, groups: [...groups] };
 }
 
+// The compact archive the context-recall subagent reads: one digest per saved session that has
+// minutes, newest first, excluding `exceptId` (the live huddle). Pure — no DOM, no AI — so it is
+// unit-tested in Node and fed straight to insights.js recallContext().
+export function sessionDigests(history, exceptId = null) {
+  return (history ?? [])
+    .map((entry) => entry.minutes)
+    .filter((m) => m && m.huddleId !== exceptId)
+    .sort((a, b) => b.meta.startedAt - a.meta.startedAt)
+    .map((m) => ({
+      id: m.huddleId,
+      title: m.data.title,
+      startedAt: m.meta.startedAt,
+      when: formatDateTime(m.meta.startedAt),
+      participants: m.meta.participants,
+      category: m.data.classification.category,
+      tags: m.data.tags,
+      summary: m.data.summary,
+      key_points: m.data.key_points,
+      next_steps: m.data.next_steps.map((s) =>
+        s.owner || s.due ? `${s.text} (${[s.owner, s.due].filter(Boolean).join(', ')})` : s.text,
+      ),
+    }));
+}
+
 // The insights summary posted to Slack / copied. `detect` toggles which sections appear.
 export function insightsAsText(data, detect) {
   const list = (title, items) => (items.length ? [`*${title}*`, ...items.map((item) => `• ${item}`), ''] : []);

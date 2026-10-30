@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fileStamp, formatTranscript } from './lib/format.js';
 import { logsAsText } from './lib/logs.js';
-import { insightsAsText, minutesAsText, minutesMeta } from './lib/minutes.js';
+import { insightsAsText, minutesAsText, minutesMeta, sessionDigests } from './lib/minutes.js';
 import { parseTranscript } from './lib/transcript.js';
 import * as drive from './drive.js';
-import { analyze, askMeeting, generateMinutes, titleChat } from './insights.js';
+import { analyze, askMeeting, generateMinutes, recallContext, titleChat } from './insights.js';
 import { hasKeyForModel } from './lib/models.js';
 import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS = {
   language: 'Português',
   freq: 30,
   userName: '',
-  detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true },
+  detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true, context: true },
   saveHistory: true,
   autoMinutes: true,
   captionSource: 'auto',
@@ -120,6 +120,10 @@ export function App() {
   const [driveConnecting, setDriveConnecting] = useState(false);
   const [done, setDone] = useState(() => new Set());
   const [acked, setAcked] = useState(() => new Set());
+  // Context-recall cards: one per look-back question detected live, with the subagent's answer.
+  const [contextCards, setContextCards] = useState([]);
+  const [contextDismissed, setContextDismissed] = useState(() => new Set());
+  const contextSeen = useRef(new Set());
 
   // --- Live analysis / minutes control (refs) + their render-visible mirror ---
   const analysisCtl = useRef({ running: false, lastRunAt: 0, lastKey: '' });
@@ -143,11 +147,20 @@ export function App() {
     return records.sort((a, b) => b.meta.startedAt - a.meta.startedAt);
   }, [history, currentMinutes]);
 
+  // What the context-recall subagent reads: digests of past saved sessions, minus the live one.
+  const pastSessions = useMemo(() => sessionDigests(history, huddle?.id), [history, huddle?.id]);
+
   const speakerCount = useMemo(() => new Set(utterances.map((u) => u.speaker)).size, [utterances]);
 
   const flash = useCallback((text) => {
     toast(text);
   }, []);
+
+  // Erros da análise aparecem como toast embaixo, não no info bar. O efeito só
+  // dispara quando a mensagem muda, então o loop automático não repete o mesmo erro.
+  useEffect(() => {
+    if (analysisError) flash(analysisError);
+  }, [analysisError, flash]);
 
   // --- Boot: load stored state, subscribe to storage changes ---
   useEffect(() => {
@@ -265,7 +278,7 @@ export function App() {
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, tab };
+  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
@@ -796,6 +809,43 @@ export function App() {
     [history, flash],
   );
 
+  // --- Context recall: a look-back question in the live transcript ("o que decidimos na reunião
+  // passada sobre X?") triggers the recall subagent over past session summaries; the answer shows
+  // as a context suggestion in Insights. Cards reset when the huddle changes. ---
+  useEffect(() => {
+    contextSeen.current = new Set();
+    setContextCards([]);
+    setContextDismissed(new Set());
+  }, [huddle?.id]);
+
+  useEffect(() => {
+    if (!settings.detect.context || !hasKeyForModel(settings) || !pastSessions.length) return;
+    const queries = currentInsights?.data?.context_queries ?? [];
+    for (const q of queries) {
+      const key = q.text.trim().toLowerCase();
+      if (!key || contextSeen.current.has(key) || contextDismissed.has(key)) continue;
+      contextSeen.current.add(key);
+      setContextCards((prev) => [...prev, { key, query: q.text, about: q.about, line: q.line, status: 'loading', at: Date.now() }]);
+      logEvent('info', `Buscando contexto em ${pastSessions.length} sessões: "${q.text}"`);
+      recallContext({ settings, sessions: pastSessions, query: q.text })
+        .then((result) => {
+          logEvent('info', result.found ? `Contexto encontrado em ${result.sources.length} sessão(ões)` : 'Nenhuma sessão passada respondeu à pergunta');
+          setContextCards((prev) => prev.map((c) => (c.key === key ? { ...c, status: result.found ? 'done' : 'empty', result } : c)));
+        })
+        .catch((error) => {
+          logEvent('error', `Falha na busca de contexto: ${error.message}`);
+          setContextCards((prev) => prev.map((c) => (c.key === key ? { ...c, status: 'error', error: error.message } : c)));
+        });
+    }
+  }, [currentInsights, pastSessions, settings, contextDismissed]);
+
+  const dismissContext = useCallback((key) => {
+    setContextDismissed((prev) => new Set(prev).add(key));
+    setContextCards((prev) => prev.filter((c) => c.key !== key));
+  }, []);
+
+  const openContextSource = useCallback((id) => loadSession({ huddleId: id }), [loadSession]);
+
   // Removes a saved session from the archive. If it is the session currently loaded (and not
   // a live huddle), it is also unloaded from the app. Returns to the list afterwards.
   const deleteSession = useCallback(
@@ -903,6 +953,7 @@ export function App() {
         utterances: latest.current.utterances,
         history: histTurns,
         question,
+        sessions: latest.current.pastSessions,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
       });
       appendMessage(chat.id, { role: 'assistant', text: answer });
@@ -1074,11 +1125,14 @@ export function App() {
           now={now}
           acked={acked}
           done={done}
+          contextCards={contextCards}
           topicExpanded={topicExpanded}
           onToggleTopic={() => setTopicExpanded((v) => !v)}
           onAcceptAlert={acceptAlert}
           onEditAlert={editAlert}
           onToggleDone={toggleDone}
+          onDismissContext={dismissContext}
+          onOpenContextSource={openContextSource}
           onOpenSettings={openSettings}
         />
       );

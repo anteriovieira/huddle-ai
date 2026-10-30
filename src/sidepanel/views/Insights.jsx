@@ -151,6 +151,57 @@ function AlertsSection({ alerts, acked, utterances, onAccept, onEdit }) {
   );
 }
 
+// Context suggestions: answers the recall subagent pulled from past meetings when someone in
+// the live huddle asks a look-back question. Each card is dismissible and links to its sources.
+function ContextSuggestions({ cards, onDismiss, onOpenSource }) {
+  if (!cards.length) return null;
+  return (
+    <section className="section" aria-label="Contexto de reuniões passadas">
+      <h3 className="section__title">
+        Contexto de reuniões passadas<span className="count">{String(cards.length)}</span>
+      </h3>
+      {cards.map((card) => (
+        <article key={card.key} className="alert alert--indigo context">
+          <div className="alert__head">
+            <span className="badge-icon badge-icon--indigo">
+              <Icon name="history" />
+            </span>
+            <span className="alert__title">{card.about || 'Contexto anterior'}</span>
+            <button className="context__close" type="button" aria-label="Dispensar" onClick={() => onDismiss(card.key)}>
+              <Icon name="close" />
+            </button>
+          </div>
+          <p className="context__q muted small">{card.query}</p>
+          {card.status === 'loading' && <p className="context__status muted small">Procurando nas atas anteriores…</p>}
+          {card.status === 'error' && <p className="context__status muted small">{`Não consegui buscar: ${card.error}`}</p>}
+          {card.status === 'empty' && <p className="context__status muted small">Nenhuma reunião passada registrou isso.</p>}
+          {card.status === 'done' && card.result && (
+            <>
+              <p className="alert__text">{card.result.answer}</p>
+              {card.result.sources.length > 0 && (
+                <div className="context__sources">
+                  {card.result.sources.map((src, i) => (
+                    <button
+                      key={`${src.id}:${i}`}
+                      type="button"
+                      className="chip chip--indigo context__src"
+                      title={src.quote}
+                      onClick={() => onOpenSource(src.id)}
+                    >
+                      <Icon name="history" />
+                      {src.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </article>
+      ))}
+    </section>
+  );
+}
+
 function TopicTimeline({ topics, active, utterances }) {
   const lastIndex = topics.length - 1;
   return (
@@ -218,11 +269,14 @@ export function InsightsView({
   now,
   acked,
   done,
+  contextCards,
   topicExpanded,
   onToggleTopic,
   onAcceptAlert,
   onEditAlert,
   onToggleDone,
+  onDismissContext,
+  onOpenContextSource,
   onOpenSettings,
 }) {
   if (!current) {
@@ -253,6 +307,9 @@ export function InsightsView({
           onAccept={onAcceptAlert}
           onEdit={onEditAlert}
         />
+      )}
+      {settings.detect.context && (
+        <ContextSuggestions cards={contextCards ?? []} onDismiss={onDismissContext} onOpenSource={onOpenContextSource} />
       )}
       <TopicCard
         data={data}

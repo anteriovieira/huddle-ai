@@ -17,6 +17,8 @@
   --yellow-bg: #3a2a12;
   --purple: #c799d6;
   --purple-bg: #33213a;
+  --indigo: #8e9bf0;
+  --indigo-bg: #23264a;
   --danger: #f28ca8;
   --radius: 6px;
   color-scheme: dark;
@@ -513,6 +515,11 @@ select {
 .badge-icon--purple {
   background: var(--purple-bg);
   color: var(--purple);
+}
+
+.badge-icon--indigo {
+  background: var(--indigo-bg);
+  color: var(--indigo);
 }
 
 /* Captions */
@@ -1636,6 +1643,11 @@ select {
   color: var(--purple);
 }
 
+.chip--indigo {
+  background: var(--indigo-bg);
+  color: var(--indigo);
+}
+
 .ata-item__meta {
   display: flex;
   align-items: center;
@@ -2065,6 +2077,59 @@ select {
 
 .button--accept:hover:not(:disabled) {
   background: var(--button-hover);
+}
+
+/* Sugestão de contexto: puxa respostas de reuniões passadas durante a reunião ao vivo. */
+.alert--indigo {
+  border-color: var(--indigo-bg);
+  border-left: 3px solid var(--indigo);
+}
+
+.context__close {
+  margin-left: auto;
+  display: flex;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.context__close:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.context__q {
+  margin: 0;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.context__status {
+  margin: 0;
+}
+
+.context__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.context__src {
+  gap: 4px;
+  border: 0;
+  cursor: pointer;
+}
+
+.context__src:hover {
+  filter: brightness(1.15);
+}
+
+.context__src .icon {
+  width: 13px;
+  height: 13px;
 }
 
 /* Tópico atual */

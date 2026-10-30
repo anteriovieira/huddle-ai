@@ -10,6 +10,7 @@ import {
   minutesAsText,
   minutesMeta,
   modelLabel,
+  sessionDigests,
   sourceFromTitle,
   tagCounts,
 } from '../src/sidepanel/lib/minutes.js';
@@ -198,6 +199,39 @@ test('minutesAsText renders Slack mrkdwn with bullets', () => {
   assert.match(slack, /^\*Ata: Planejamento do Q4\*/);
   assert.match(slack, /• Entregar billing \(Lucas, sex, 31\/10\)/);
   assert.doesNotMatch(slack, /- \[ \]/);
+});
+
+test('sessionDigests compacts saved minutes, newest first, excluding the live huddle', () => {
+  const older = {
+    ...sampleMinutes,
+    huddleId: 'h-old',
+    meta: { ...sampleMinutes.meta, startedAt: Date.parse('2026-10-20T10:00:00Z') },
+  };
+  const history = [
+    { huddle: { id: 'h1' }, minutes: sampleMinutes },
+    { huddle: { id: 'h-old' }, minutes: older },
+    { huddle: { id: 'h-none' }, minutes: null },
+  ];
+  const digests = sessionDigests(history, 'h1');
+  // Live huddle (h1) and the entry without minutes are excluded.
+  assert.deepEqual(
+    digests.map((d) => d.id),
+    ['h-old'],
+  );
+  const d = digests[0];
+  assert.equal(d.title, 'Planejamento do Q4');
+  assert.deepEqual(d.participants, ['Ana', 'Lucas']);
+  assert.deepEqual(d.key_points, ['Lucas toca billing']);
+  // next_steps flatten owner/due into the line.
+  assert.deepEqual(d.next_steps, ['Entregar billing (Lucas, sex, 31/10)']);
+});
+
+test('sessionDigests handles empty history and sorts newest first', () => {
+  assert.deepEqual(sessionDigests(undefined), []);
+  const a = { ...sampleMinutes, huddleId: 'a', meta: { ...sampleMinutes.meta, startedAt: 1000 } };
+  const b = { ...sampleMinutes, huddleId: 'b', meta: { ...sampleMinutes.meta, startedAt: 2000 } };
+  const ids = sessionDigests([{ minutes: a }, { minutes: b }]).map((d) => d.id);
+  assert.deepEqual(ids, ['b', 'a']);
 });
 
 test('matchesQuery matches across fields, all words required', () => {

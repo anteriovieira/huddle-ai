@@ -181,14 +181,6 @@ export function InfoBar({
         onToggleTicker={onToggleTicker}
       />
     );
-    if (analysis.error) {
-      return (
-        <div className="info info--row info--error" role="status">
-          <span className="info__text">{analysis.error}</span>
-          {actions}
-        </div>
-      );
-    }
     return (
       <div className="info info--row">
         <span className="info__text" role={analysis.running ? 'status' : undefined}>
