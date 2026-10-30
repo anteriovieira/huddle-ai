@@ -1,14 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { APICallError, generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { formatClock, formatTranscript } from './lib/format.js';
-import { MINUTES_CATEGORIES, MODELS } from './lib/models.js';
+import { apiKeyFor, MINUTES_CATEGORIES, MODELS, PROVIDERS, providerOf } from './lib/models.js';
 
 export { MINUTES_CATEGORIES, MODELS, formatClock, formatTranscript };
-
-// Models that support server-side refusal fallbacks ("default" mode).
-const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5']);
-const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
 const InsightsSchema = z.object({
   topic: z.object({ title: z.string(), summary: z.string() }),
@@ -61,13 +59,18 @@ const KIND_FIELDS = {
   replies: 'replies',
 };
 
-function client(apiKey) {
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-}
-
-function fallbackOptions(model) {
-  if (!FALLBACK_MODELS.has(model)) return [{}, undefined];
-  return [{ fallbacks: 'default' }, { headers: { 'anthropic-beta': FALLBACK_BETA } }];
+// Cria o LanguageModel do AI SDK para o provider do modelo selecionado, com a chave certa.
+// Anthropic precisa do header de acesso direto do browser (equivale ao antigo dangerouslyAllowBrowser).
+function languageModel(settings) {
+  const provider = providerOf(settings);
+  const apiKey = apiKeyFor(settings);
+  if (!apiKey) throw new Error(`Configure a chave da API ${PROVIDERS[provider].label} nas configurações.`);
+  if (provider === 'openai') return createOpenAI({ apiKey })(settings.model);
+  if (provider === 'google') return createGoogleGenerativeAI({ apiKey })(settings.model);
+  return createAnthropic({
+    apiKey,
+    headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
+  })(settings.model);
 }
 
 function insightsSystem(settings) {
@@ -101,36 +104,28 @@ function insightsSystem(settings) {
 }
 
 function describeError(error) {
-  if (error instanceof Anthropic.AuthenticationError) return 'Chave da API inválida. Confira nas configurações.';
-  if (error instanceof Anthropic.PermissionDeniedError) return 'A chave não tem acesso a este modelo.';
-  if (error instanceof Anthropic.RateLimitError) return 'Limite de uso da API atingido. Tentando de novo em seguida.';
-  if (error instanceof Anthropic.APIConnectionError) return 'Sem conexão com a API da Anthropic.';
-  if (error instanceof Anthropic.APIError) return `Erro da API (${error.status ?? '?'}): ${error.message}`;
+  const isApiError = APICallError.isInstance?.(error) || error?.name === 'APICallError';
+  if (isApiError) {
+    const status = error.statusCode;
+    if (status === 401 || status === 403) return 'Chave da API inválida ou sem acesso a este modelo. Confira nas configurações.';
+    if (status === 429) return 'Limite de uso da API atingido. Tente de novo em seguida.';
+    if (status) return `Erro da API (${status}): ${error.message}`;
+    return 'Sem conexão com a API. Verifique a rede.';
+  }
+  if (/fetch failed|failed to fetch|networkerror/i.test(error?.message ?? '')) return 'Sem conexão com a API. Verifique a rede.';
   return error?.message ?? String(error);
 }
 
 export async function analyze({ settings, utterances, previous }) {
-  const [extraBody, requestOptions] = fallbackOptions(settings.model);
   try {
-    const response = await client(settings.apiKey).messages.parse(
-      {
-        model: settings.model,
-        max_tokens: 8000,
-        system: insightsSystem(settings),
-        messages: [
-          {
-            role: 'user',
-            content: `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>\n\n<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
-          },
-        ],
-        output_config: { effort: 'low', format: zodOutputFormat(InsightsSchema) },
-        ...extraBody,
-      },
-      requestOptions,
-    );
-    if (response.stop_reason === 'refusal') throw new Error('O modelo recusou analisar este trecho.');
-    if (!response.parsed_output) throw new Error('A resposta do modelo veio incompleta.');
-    return response.parsed_output;
+    const { object } = await generateObject({
+      model: languageModel(settings),
+      schema: InsightsSchema,
+      system: insightsSystem(settings),
+      maxOutputTokens: 8000,
+      prompt: `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>\n\n<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
+    });
+    return object;
   } catch (error) {
     throw new Error(describeError(error));
   }
@@ -140,7 +135,6 @@ export async function analyze({ settings, utterances, previous }) {
 // ([{ role: 'user'|'assistant', text }]); `question` is the new user message.
 // Streams the answer: `onText(delta)` is called with each chunk as it arrives.
 export async function askMeeting({ settings, utterances, history, question, onText }) {
-  const [extraBody, requestOptions] = fallbackOptions(settings.model);
   const system = [
     'You answer questions about a live Slack huddle for someone watching a narrow browser side panel. Everything you know about the meeting is in the transcript below, built from auto-generated captions.',
     'Captions come from speech recognition: expect missing punctuation, misheard words and sentences split across lines. Infer what people meant, but never invent facts, owners or dates nobody said. When the transcript does not cover the question, say so plainly instead of guessing.',
@@ -153,18 +147,18 @@ export async function askMeeting({ settings, utterances, history, question, onTe
     { role: 'user', content: question },
   ];
   try {
-    const stream = client(settings.apiKey).messages.stream(
-      { model: settings.model, max_tokens: 1024, system, messages, ...extraBody },
-      requestOptions,
-    );
-    if (onText) stream.on('text', (delta) => onText(delta));
-    const final = await stream.finalMessage();
-    if (final.stop_reason === 'refusal') throw new Error('O modelo recusou responder a esta pergunta.');
-    const text = final.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('')
-      .trim();
+    const result = streamText({
+      model: languageModel(settings),
+      system,
+      messages,
+      maxOutputTokens: 1024,
+    });
+    let text = '';
+    for await (const delta of result.textStream) {
+      text += delta;
+      onText?.(delta);
+    }
+    text = text.trim();
     if (!text) throw new Error('A resposta do modelo veio vazia.');
     return text;
   } catch (error) {
@@ -176,16 +170,13 @@ export async function askMeeting({ settings, utterances, history, question, onTe
 // the caller can log it; returns null only when the model gives nothing usable.
 export async function titleChat({ settings, question }) {
   try {
-    const response = await client(settings.apiKey).messages.create({
-      model: settings.model,
-      max_tokens: 32,
+    const { text: raw } = await generateText({
+      model: languageModel(settings),
+      maxOutputTokens: 64,
       system: `Create a very short title, 2 to 4 words, in ${settings.language}, naming what this question to a meeting assistant is about. Reply with the title only: no quotes, no trailing punctuation, no prefix.`,
-      messages: [{ role: 'user', content: question }],
+      prompt: question,
     });
-    const text = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('')
+    const text = raw
       .replace(/["'“”]/g, '')
       .replace(/[.!?…]+$/, '')
       .replace(/\s+/g, ' ')
@@ -235,30 +226,17 @@ function formatMeetingDate(timestamp) {
 }
 
 export async function generateMinutes({ settings, meta, utterances }) {
-  const [extraBody, requestOptions] = fallbackOptions(settings.model);
   try {
-    const response = await client(settings.apiKey).messages.parse(
-      {
-        model: settings.model,
-        max_tokens: 16000,
-        system: minutesSystem(settings),
-        messages: [
-          {
-            role: 'user',
-            content: [
-              `<meeting>\nTítulo: ${meta.title ?? 'Huddle'}\nInício: ${formatMeetingDate(meta.startedAt)}\nParticipantes que falaram: ${meta.participants.join(', ')}\n</meeting>`,
-              `<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
-            ].join('\n\n'),
-          },
-        ],
-        output_config: { effort: 'medium', format: zodOutputFormat(MinutesSchema) },
-        ...extraBody,
-      },
-      requestOptions,
-    );
-    if (response.stop_reason === 'refusal') throw new Error('O modelo recusou escrever a ata deste huddle.');
-    if (!response.parsed_output) throw new Error('A resposta do modelo veio incompleta.');
-    const data = response.parsed_output;
+    const { object: data } = await generateObject({
+      model: languageModel(settings),
+      schema: MinutesSchema,
+      system: minutesSystem(settings),
+      maxOutputTokens: 16000,
+      prompt: [
+        `<meeting>\nTítulo: ${meta.title ?? 'Huddle'}\nInício: ${formatMeetingDate(meta.startedAt)}\nParticipantes que falaram: ${meta.participants.join(', ')}\n</meeting>`,
+        `<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
+      ].join('\n\n'),
+    });
     data.classification.confidence = Math.min(100, Math.max(0, data.classification.confidence));
     data.classification.category =
       MINUTES_CATEGORIES.find((c) => c.toLowerCase() === data.classification.category.trim().toLowerCase()) ?? 'Outro';

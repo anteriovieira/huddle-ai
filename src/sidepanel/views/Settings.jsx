@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MODELS } from '../lib/models.js';
+import { MODELS, PROVIDERS, PROVIDER_IDS, providerOf, hasKeyForModel } from '../lib/models.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Field, Select, Toggle } from '../ui/primitives.jsx';
 
@@ -31,12 +31,30 @@ export function SettingsView({
   }));
   const set = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
   const setDetect = (key, value) => setDraft((d) => ({ ...d, detect: { ...d.detect, [key]: value } }));
+  const setKey = (provider, value) => setDraft((d) => ({ ...d, apiKeys: { ...d.apiKeys, [provider]: value } }));
+
+  const CUSTOM_MODEL = '__custom__';
+  const modelIsKnown = MODELS.some((m) => m.id === draft.model);
+  const needProvider = providerOf(draft);
+  const missingKey = !hasKeyForModel(draft);
+  const onModelChange = (value) => {
+    if (value === CUSTOM_MODEL) {
+      setDraft((d) => ({ ...d, model: '', modelProvider: d.modelProvider || PROVIDER_IDS[0] }));
+    } else {
+      setDraft((d) => ({ ...d, model: value, modelProvider: '' }));
+    }
+  };
 
   const submit = (e) => {
     e.preventDefault();
     onSave({
-      apiKey: draft.apiKey.trim(),
-      model: draft.model,
+      apiKeys: {
+        anthropic: draft.apiKeys.anthropic.trim(),
+        openai: draft.apiKeys.openai.trim(),
+        google: draft.apiKeys.google.trim(),
+      },
+      model: draft.model.trim(),
+      modelProvider: draft.modelProvider,
       language: draft.language,
       freq: Number(draft.freq),
       userName: draft.userName.trim(),
@@ -59,23 +77,61 @@ export function SettingsView({
         <form className="settings" id="settings-form" onSubmit={submit}>
           <section className="stack">
             <h2 className="section__title">Inteligência</h2>
+            <p className="muted small">
+              As chaves ficam só neste navegador (chrome.storage.local). Preencha a do provider do modelo escolhido.
+            </p>
+            {PROVIDER_IDS.map((p) => (
+              <Field key={p} label={`Chave da API ${PROVIDERS[p].label}`} htmlFor={`key-${p}`}>
+                <input
+                  id={`key-${p}`}
+                  type="password"
+                  value={draft.apiKeys[p]}
+                  autoComplete="off"
+                  placeholder={PROVIDERS[p].keyPlaceholder}
+                  onChange={(e) => setKey(p, e.target.value)}
+                />
+              </Field>
+            ))}
             <Field
-              label="Chave da API Anthropic"
-              htmlFor="apiKey"
-              hint="Fica só neste navegador (chrome.storage.local)."
+              label="Modelo"
+              htmlFor="model"
+              hint={missingKey ? `Falta a chave da API ${PROVIDERS[needProvider].label} para este modelo.` : undefined}
             >
-              <input
-                id="apiKey"
-                type="password"
-                value={draft.apiKey}
-                autoComplete="off"
-                placeholder="sk-ant-…"
-                onChange={(e) => set('apiKey', e.target.value)}
-              />
+              <select id="model" value={modelIsKnown ? draft.model : CUSTOM_MODEL} onChange={(e) => onModelChange(e.target.value)}>
+                {PROVIDER_IDS.map((p) => (
+                  <optgroup key={p} label={PROVIDERS[p].label}>
+                    {MODELS.filter((m) => m.provider === p).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+                <option value={CUSTOM_MODEL}>Personalizado…</option>
+              </select>
             </Field>
-            <Field label="Modelo" htmlFor="model">
-              <Select id="model" options={MODELS.map((m) => [m.id, m.label])} value={draft.model} onChange={(v) => set('model', v)} />
-            </Field>
+            {!modelIsKnown && (
+              <div className="field-row">
+                <Field label="Provider" htmlFor="modelProvider">
+                  <Select
+                    id="modelProvider"
+                    options={PROVIDER_IDS.map((p) => [p, PROVIDERS[p].label])}
+                    value={draft.modelProvider || PROVIDER_IDS[0]}
+                    onChange={(v) => set('modelProvider', v)}
+                  />
+                </Field>
+                <Field label="ID do modelo" htmlFor="customModel">
+                  <input
+                    id="customModel"
+                    type="text"
+                    value={draft.model}
+                    autoComplete="off"
+                    placeholder="ex.: gpt-5.5"
+                    onChange={(e) => set('model', e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
             <div className="field-row">
               <Field label="Idioma" htmlFor="language">
                 <Select id="language" options={LANGUAGES.map((l) => [l, l])} value={draft.language} onChange={(v) => set('language', v)} />

@@ -1,5 +1,6 @@
 import { formatClock } from '../lib/format.js';
 import { ago } from '../lib/format.js';
+import { hasKeyForModel } from '../lib/models.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Avatar, IconRow, Section } from '../ui/primitives.jsx';
 
@@ -225,10 +226,10 @@ export function InsightsView({
   onOpenSettings,
 }) {
   if (!current) {
-    if (!settings.apiKey) {
+    if (!hasKeyForModel(settings)) {
       return (
         <div className="empty">
-          <p>Configure sua chave da API Anthropic para gerar os insights.</p>
+          <p>Configure a chave da API do modelo escolhido para gerar os insights.</p>
           <button className="button button--primary" type="button" onClick={onOpenSettings}>
             Configurar chave
           </button>

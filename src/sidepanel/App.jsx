@@ -5,6 +5,7 @@ import { insightsAsText, minutesAsText, minutesMeta } from './lib/minutes.js';
 import { parseTranscript } from './lib/transcript.js';
 import * as drive from './drive.js';
 import { analyze, askMeeting, generateMinutes, titleChat } from './insights.js';
+import { hasKeyForModel } from './lib/models.js';
 import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
 import { CaptionsPanel } from './views/Captions.jsx';
@@ -21,8 +22,10 @@ import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
 
 const DEFAULT_SETTINGS = {
-  apiKey: '',
+  apiKeys: { anthropic: '', openai: '', google: '' },
   model: 'claude-haiku-5-5',
+  // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
+  modelProvider: '',
   language: 'Português',
   freq: 30,
   userName: '',
@@ -31,6 +34,10 @@ const DEFAULT_SETTINGS = {
   autoMinutes: true,
   captionSource: 'auto',
 };
+// Migração one-time: leva instalações já existentes para o modelo padrão atual
+// (Haiku) uma única vez. Depois disso o usuário fica livre para escolher.
+// Guardada fora de `settings` porque Settings.submit só persiste campos conhecidos.
+const MODEL_MIGRATION = 1;
 const MIN_UTTERANCES_FOR_MINUTES = 3;
 const EMPTY_STATE = { huddle: null, utterances: [] };
 
@@ -148,7 +155,7 @@ export function App() {
     let mounted = true;
     (async () => {
       const session = await chromeApi.storage.session.get(['state', 'insights', 'minutes', 'logs', 'chats']);
-      const local = await chromeApi.storage.local.get(['settings', 'history']);
+      const local = await chromeApi.storage.local.get(['settings', 'history', 'modelMigration']);
       if (!mounted) return;
       if (session.state) setExtState(session.state);
       setInsights(session.insights ?? null);
@@ -159,11 +166,27 @@ export function App() {
         setActiveChatId(session.chats.list[0]?.id ?? null);
       }
       setHistory(local.history ?? []);
-      setSettings({
+      let merged = {
         ...DEFAULT_SETTINGS,
         ...local.settings,
+        apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...local.settings?.apiKeys },
         detect: { ...DEFAULT_SETTINGS.detect, ...local.settings?.detect },
-      });
+      };
+      let migrated = false;
+      // Chave antiga (campo único `apiKey`) passa a ser a chave Anthropic.
+      if (local.settings?.apiKey && !merged.apiKeys.anthropic) {
+        merged = { ...merged, apiKeys: { ...merged.apiKeys, anthropic: local.settings.apiKey } };
+        migrated = true;
+      }
+      delete merged.apiKey;
+      if (local.modelMigration !== MODEL_MIGRATION) {
+        merged = { ...merged, model: DEFAULT_SETTINGS.model };
+        migrated = true;
+      }
+      if (migrated) {
+        await chromeApi.storage.local.set({ settings: merged, modelMigration: MODEL_MIGRATION });
+      }
+      setSettings(merged);
       booted.current = true;
     })();
 
@@ -179,6 +202,7 @@ export function App() {
           setSettings({
             ...DEFAULT_SETTINGS,
             ...changes.settings.newValue,
+            apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...changes.settings.newValue?.apiKeys },
             detect: { ...DEFAULT_SETTINGS.detect, ...changes.settings.newValue?.detect },
           });
         }
@@ -253,7 +277,7 @@ export function App() {
   const maybeAnalyze = useCallback(async () => {
     const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
     const ctl = analysisCtl.current;
-    if (ctl.running || !h?.active || !s.apiKey || !u.length) return;
+    if (ctl.running || !h?.active || !hasKeyForModel(s) || !u.length) return;
     const key = transcriptKey();
     if (key === ctl.lastKey) return;
     if (Date.now() - ctl.lastRunAt < s.freq * 1000) return;
@@ -289,7 +313,7 @@ export function App() {
   const analyzeNow = useCallback(async () => {
     const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
     const ctl = analysisCtl.current;
-    if (ctl.running || !h || !s.apiKey || !u.length) return;
+    if (ctl.running || !h || !hasKeyForModel(s) || !u.length) return;
     ctl.running = true;
     ctl.lastRunAt = Date.now();
     setAnalysisRunning(true);
@@ -328,7 +352,7 @@ export function App() {
 
   const runMinutes = useCallback(async () => {
     const { huddle: h, utterances: u, settings: s } = latest.current;
-    if (minutesCtl.current.running || !h || !s.apiKey) return;
+    if (minutesCtl.current.running || !h || !hasKeyForModel(s)) return;
     minutesCtl.current.running = true;
     minutesCtl.current.startedAt = Date.now();
     setMinutesRunning(true);
@@ -360,7 +384,7 @@ export function App() {
 
   const maybeGenerateMinutes = useCallback(() => {
     const { huddle: h, utterances: u, settings: s, currentMinutes: cm } = latest.current;
-    if (!h || h.active || h.loaded || !s.autoMinutes || !s.apiKey) return;
+    if (!h || h.active || h.loaded || !s.autoMinutes || !hasKeyForModel(s)) return;
     if (minutesCtl.current.running || cm || minutesCtl.current.failedFor === h.id) return;
     if (u.length < MIN_UTTERANCES_FOR_MINUTES) return;
     runMinutes();
@@ -661,7 +685,7 @@ export function App() {
   const analyzeOnce = useCallback(
     async (huddleId) => {
       const s = latest.current.settings;
-      if (!s.apiKey || analysisCtl.current.running) return;
+      if (!hasKeyForModel(s) || analysisCtl.current.running) return;
       analysisCtl.current.running = true;
       setAnalysisRunning(true);
       setAnalysisError(null);
@@ -718,7 +742,7 @@ export function App() {
       setImportOpen(false);
       setTab('insights');
       logEvent('info', `Transcrição importada: ${utt.length} falas, ${new Set(utt.map((u) => u.speaker)).size} participantes`);
-      if (!latest.current.settings.apiKey) {
+      if (!hasKeyForModel(latest.current.settings)) {
         flash('Transcrição importada. Adicione a chave da API para gerar a ata e os insights.');
         return;
       }
@@ -856,8 +880,8 @@ export function App() {
     if (!chat) return;
     const question = (chatDrafts[chat.id] ?? '').trim();
     if (!question) return;
-    if (!settings.apiKey) {
-      flash('Adicione sua chave da API nas configurações para conversar com a reunião.');
+    if (!hasKeyForModel(settings)) {
+      flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
       return;
     }
     if (chatBusy.has(chat.id)) return;
@@ -893,7 +917,7 @@ export function App() {
       });
       setChatStream(null);
     }
-  }, [chats, activeChatId, chatDrafts, settings.apiKey, chatBusy, appendMessage, setDraft, nameChat, flash]);
+  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, nameChat, flash]);
 
   // --- Derived view helpers ---
   const ataProps = (record) => ({
@@ -947,7 +971,7 @@ export function App() {
     );
   }
   if (importOpen) {
-    return <ImportView error={importError} hasKey={!!settings.apiKey} onSubmit={importSession} onCancel={() => setImportOpen(false)} />;
+    return <ImportView error={importError} hasKey={hasKeyForModel(settings)} onSubmit={importSession} onCancel={() => setImportOpen(false)} />;
   }
   if (viewingAta) {
     return (
@@ -1073,8 +1097,8 @@ export function App() {
         autoMinutes={settings.autoMinutes}
         utterances={utterances.length}
         participants={speakerCount}
-        hasKey={!!settings.apiKey}
-        canGenerate={!!settings.apiKey && utterances.length >= MIN_UTTERANCES_FOR_MINUTES}
+        hasKey={hasKeyForModel(settings)}
+        canGenerate={hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES}
         onToggleAuto={setAutoMinutes}
         onGenerate={runMinutes}
         onOpenList={openAtas}

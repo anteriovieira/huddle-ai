@@ -64,7 +64,7 @@ const insightsCurrent = {
 };
 
 const settings = {
-  apiKey: 'sk-ant-x',
+  apiKeys: { anthropic: 'sk-ant-x' },
   detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, references: true, acronyms: true },
 };
 
@@ -98,7 +98,7 @@ test('InsightsView prompts for an API key when missing', () => {
   const html = render(
     h(InsightsView, {
       current: null,
-      settings: { apiKey: '', detect: settings.detect },
+      settings: { apiKeys: {}, detect: settings.detect },
       huddle: { active: true, startedAt: 0 },
       utterances: [],
       now: Date.now(),
@@ -211,7 +211,7 @@ test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => 
       null,
       h(InfoBar, {
         tab: 'insights',
-        settings: { apiKey: 'sk-ant-x', freq: 30 },
+        settings: { apiKeys: { anthropic: 'sk-ant-x' }, freq: 30 },
         analysis: { running: false, error: null },
         huddle: { active: true },
         utteranceCount: 3,

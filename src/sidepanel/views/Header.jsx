@@ -1,4 +1,5 @@
 import { formatClock } from '../lib/format.js';
+import { hasKeyForModel } from '../lib/models.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
 import { AtaInfo } from './Ata.jsx';
@@ -157,10 +158,10 @@ export function InfoBar({
   onOpenAtas,
 }) {
   if (tab === 'insights') {
-    if (!settings.apiKey) {
+    if (!hasKeyForModel(settings)) {
       return (
         <div className="info">
-          Adicione sua chave da API para gerar insights.{' '}
+          Adicione a chave da API do modelo escolhido para gerar insights.{' '}
           <button className="link" type="button" onClick={onOpenSettings}>
             Configurar
           </button>
