@@ -51,11 +51,7 @@ export function SettingsView({
   const submit = (e) => {
     e.preventDefault();
     onSave({
-      apiKeys: {
-        anthropic: draft.apiKeys.anthropic.trim(),
-        openai: draft.apiKeys.openai.trim(),
-        google: draft.apiKeys.google.trim(),
-      },
+      apiKeys: Object.fromEntries(PROVIDER_IDS.map((p) => [p, (draft.apiKeys[p] ?? '').trim()])),
       model: draft.model.trim(),
       modelProvider: draft.modelProvider,
       language: draft.language,
