@@ -28,3 +28,7 @@ export async function generateMinutes() {
 export async function recallContext() {
   return { found: false, answer: '', sources: [] };
 }
+
+export async function recallContextBatch({ queries = [] } = {}) {
+  return queries.map(() => ({ found: false, answer: '', sources: [] }));
+}

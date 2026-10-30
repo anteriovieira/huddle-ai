@@ -10,6 +10,7 @@ import {
   minutesAsText,
   minutesMeta,
   modelLabel,
+  selectSessions,
   sessionDigests,
   sourceFromTitle,
   tagCounts,
@@ -233,6 +234,48 @@ test('sessionDigests handles empty history and sorts newest first', () => {
   const b = { ...sampleMinutes, huddleId: 'b', meta: { ...sampleMinutes.meta, startedAt: 2000 } };
   const ids = sessionDigests([{ minutes: a }, { minutes: b }]).map((d) => d.id);
   assert.deepEqual(ids, ['b', 'a']);
+});
+
+const digest = (id, startedAt, over) => ({
+  id,
+  title: 'Huddle',
+  startedAt,
+  when: '',
+  participants: [],
+  category: 'Outro',
+  tags: [],
+  summary: '',
+  key_points: [],
+  next_steps: [],
+  ...over,
+});
+
+test('selectSessions returns everything when the archive fits under the limit', () => {
+  const list = [digest('a', 3), digest('b', 2), digest('c', 1)];
+  assert.equal(selectSessions(list, 'anything', { limit: 6 }), list);
+});
+
+test('selectSessions ranks by keyword and caps at the limit', () => {
+  const list = [
+    digest('billing', 5, { title: 'Planejamento de billing', tags: ['billing', 'q4'] }),
+    digest('vendas', 4, { title: 'Pipeline de vendas', summary: 'Metas do trimestre.' }),
+    digest('infra', 3, { title: 'Migração de infra', key_points: ['billing citado de passagem'] }),
+    digest('rh', 2, { title: 'Contratações', tags: ['rh'] }),
+    digest('design', 1, { title: 'Review de design' }),
+  ];
+  const picked = selectSessions(list, 'o que decidimos sobre billing?', { limit: 2 });
+  assert.deepEqual(picked.map((s) => s.id), ['billing', 'infra']); // strong (title+tag) before weak (points)
+  assert.equal(picked.length, 2);
+});
+
+test('selectSessions falls back to most-recent when the query has no usable words', () => {
+  const list = [digest('a', 3), digest('b', 2), digest('c', 1)];
+  assert.deepEqual(selectSessions(list, 'liste as reuniões passadas', { limit: 2 }).map((s) => s.id), ['a', 'b']);
+});
+
+test('selectSessions falls back to most-recent when nothing matches', () => {
+  const list = [digest('a', 3, { title: 'Alinhamento' }), digest('b', 2, { title: 'Daily' }), digest('c', 1, { title: 'Retro' })];
+  assert.deepEqual(selectSessions(list, 'orçamento marciano', { limit: 2 }).map((s) => s.id), ['a', 'b']);
 });
 
 test('normalizeInsights fills every field from an empty/partial object', () => {

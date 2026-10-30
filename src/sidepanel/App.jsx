@@ -4,7 +4,7 @@ import { logsAsText } from './lib/logs.js';
 import { insightsAsText, minutesAsText, minutesMeta, sessionDigests } from './lib/minutes.js';
 import { parseTranscript } from './lib/transcript.js';
 import * as drive from './drive.js';
-import { analyze, askMeeting, generateMinutes, recallContext, titleChat } from './insights.js';
+import { analyze, askMeeting, generateMinutes, recallContextBatch, titleChat } from './insights.js';
 import { hasKeyForModel } from './lib/models.js';
 import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
@@ -287,10 +287,14 @@ export function App() {
     return `${h?.id}:${u.length}:${u.at(-1)?.text.length ?? 0}`;
   }, []);
 
-  // Insights parciais (streaming): atualiza o painel ao vivo, com throttle, sem persistir em
-  // storage (o registro final é que persiste). Só aplica se ainda for o huddle da análise.
+  // Insights parciais (streaming): preenche o painel ao vivo só no PRIMEIRO resultado de um huddle
+  // (vazio → cheio). Depois que já há uma análise completa na tela, os parciais são ignorados e a
+  // próxima análise troca de uma vez só (atômica) — assim o painel não "recarrega" enquanto o
+  // usuário lê. Throttle de 120ms e nunca persiste (o registro final é que persiste).
   const partialAt = useRef(0);
+  const completedHuddle = useRef(null);
   const applyPartial = useCallback((huddleId, data) => {
+    if (completedHuddle.current === huddleId) return; // refresh: espera o resultado final
     const t = Date.now();
     if (t - partialAt.current < 120) return;
     partialAt.current = t;
@@ -330,6 +334,7 @@ export function App() {
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
+      completedHuddle.current = h.id; // a partir daqui, próximas análises trocam de uma vez só
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
       if (ctrl.signal.aborted) return; // análise descartada (huddle mudou/encerrou)
@@ -373,6 +378,7 @@ export function App() {
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
+      completedHuddle.current = h.id;
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
       if (ctrl.signal.aborted) return;
@@ -746,6 +752,7 @@ export function App() {
         if (latest.current.huddle?.id !== huddleId) return;
         const record = { huddleId, updatedAt: Date.now(), data };
         setInsights(record);
+        completedHuddle.current = huddleId;
         await chromeApi?.storage.session.set({ insights: record });
         await saveInsightsToHistory(huddleId, data);
       } catch (error) {
@@ -855,6 +862,7 @@ export function App() {
   // as a context suggestion in Insights. Cards reset when the huddle changes. ---
   useEffect(() => {
     analysisCtl.current.ctrl?.abort(); // descarta análise em voo da sessão anterior
+    completedHuddle.current = null; // novo huddle volta a usar streaming no primeiro preenchimento
     contextSeen.current = new Set();
     setContextCards([]);
     setContextDismissed(new Set());
@@ -866,22 +874,39 @@ export function App() {
   useEffect(() => {
     if (!settings.detect.context || !hasKeyForModel(settings) || !pastSessions.length) return;
     const queries = currentInsights?.data?.context_queries ?? [];
+    // All look-back questions new this cycle. They are answered in ONE recallContextBatch call
+    // instead of one recallContext call per question, so a cycle that surfaces several of them
+    // pays a single round-trip. contextSeen/contextDismissed still gate each key to fire once.
+    const fresh = [];
     for (const q of queries) {
       const key = q.text.trim().toLowerCase();
       if (!key || contextSeen.current.has(key) || contextDismissed.has(key)) continue;
       contextSeen.current.add(key);
-      setContextCards((prev) => [...prev, { key, query: q.text, about: q.about, line: q.line, status: 'loading', at: Date.now() }]);
-      logEvent('info', `Buscando contexto em ${pastSessions.length} sessões: "${q.text}"`);
-      recallContext({ settings, sessions: pastSessions, query: q.text })
-        .then((result) => {
-          logEvent('info', result.found ? `Contexto encontrado em ${result.sources.length} sessão(ões)` : 'Nenhuma sessão passada respondeu à pergunta');
-          setContextCards((prev) => prev.map((c) => (c.key === key ? { ...c, status: result.found ? 'done' : 'empty', result } : c)));
-        })
-        .catch((error) => {
-          logEvent('error', `Falha na busca de contexto: ${error.message}`);
-          setContextCards((prev) => prev.map((c) => (c.key === key ? { ...c, status: 'error', error: error.message } : c)));
-        });
+      fresh.push({ key, query: q.text, about: q.about, line: q.line });
     }
+    if (!fresh.length) return;
+    setContextCards((prev) => [...prev, ...fresh.map((f) => ({ ...f, status: 'loading', at: Date.now() }))]);
+    const sessions = pastSessions;
+    logEvent('info', `Buscando contexto em ${sessions.length} sessões: ${fresh.length} pergunta(s)`);
+    recallContextBatch({ settings, sessions, queries: fresh.map((f) => f.query) })
+      .then((results) => {
+        const hits = results.filter((r) => r.found).length;
+        logEvent('info', `Contexto: ${hits} de ${fresh.length} pergunta(s) respondida(s)`);
+        setContextCards((prev) =>
+          prev.map((c) => {
+            const i = fresh.findIndex((f) => f.key === c.key);
+            if (i < 0 || c.status !== 'loading') return c;
+            const r = results[i] ?? { found: false, answer: '', sources: [] };
+            if (r.error) return { ...c, status: 'error', error: r.error };
+            return { ...c, status: r.found ? 'done' : 'empty', result: r };
+          }),
+        );
+      })
+      .catch((error) => {
+        logEvent('error', `Falha na busca de contexto: ${error.message}`);
+        const keys = new Set(fresh.map((f) => f.key));
+        setContextCards((prev) => prev.map((c) => (keys.has(c.key) && c.status === 'loading' ? { ...c, status: 'error', error: error.message } : c)));
+      });
   }, [currentInsights, pastSessions, settings, contextDismissed]);
 
   const dismissContext = useCallback((key) => {
@@ -1142,6 +1167,7 @@ export function App() {
     settings,
     analysis: { running: analysisRunning, error: analysisError },
     huddle,
+    now,
     utteranceCount: utterances.length,
     currentMinutes,
     minutesRunning,

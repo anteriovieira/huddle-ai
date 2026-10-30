@@ -155,6 +155,52 @@ export function sessionDigests(history, exceptId = null) {
     }));
 }
 
+// Words too common to carry recall signal (pt/en). Dropped before scoring so "o que decidimos
+// na reunião passada sobre billing" ranks on "decidimos"/"reuniao"/"billing", not on "o"/"que".
+const RECALL_STOPWORDS = new Set([
+  'que', 'qual', 'quais', 'para', 'por', 'com', 'sem', 'sobre', 'como', 'quando', 'onde', 'quem',
+  'dos', 'das', 'nos', 'nas', 'uma', 'uns', 'umas', 'ao', 'aos', 'na', 'no', 'em', 'de', 'da', 'do',
+  'reuniao', 'reuniões', 'reunioes', 'passada', 'passado', 'ultima', 'ultimo', 'anterior', 'vez',
+  'the', 'and', 'for', 'was', 'were', 'what', 'which', 'did', 'does', 'our', 'last', 'time', 'about',
+  'meeting', 'meetings',
+]);
+
+// Query/haystack words: lowercased, accent-stripped, 3+ letters, minus stopwords. Pure.
+function recallTokens(text) {
+  return (text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !RECALL_STOPWORDS.has(w));
+}
+
+// Ranks session digests by how well they match a recall query and returns the top `limit`, so the
+// recall subagent reads only the meetings that might answer the question instead of the whole
+// archive. Title/category/tags count triple; summary/participants/points/steps count once. Pure
+// and Node-tested. When the archive already fits under `limit`, or the query has no usable words
+// (e.g. "liste as reuniões passadas"), or nothing matches, it falls back to the most recent
+// `limit` — `sessions` is sessionDigests() output, already newest-first.
+export function selectSessions(sessions, query, { limit = 6 } = {}) {
+  const list = sessions ?? [];
+  if (list.length <= limit) return list;
+  const tokens = [...new Set(recallTokens(query))];
+  if (!tokens.length) return list.slice(0, limit);
+  const scored = list.map((s) => {
+    const strong = new Set(recallTokens([s.title, s.category, (s.tags ?? []).join(' ')].join(' ')));
+    const weak = new Set(
+      recallTokens([s.summary, (s.participants ?? []).join(' '), (s.key_points ?? []).join(' '), (s.next_steps ?? []).join(' ')].join(' ')),
+    );
+    let score = 0;
+    for (const t of tokens) score += strong.has(t) ? 3 : weak.has(t) ? 1 : 0;
+    return { s, score };
+  });
+  const matched = scored.filter((x) => x.score > 0);
+  if (!matched.length) return list.slice(0, limit);
+  matched.sort((a, b) => b.score - a.score || (b.s.startedAt ?? 0) - (a.s.startedAt ?? 0));
+  return matched.slice(0, limit).map((x) => x.s);
+}
+
 // The insights summary posted to Slack / copied. `detect` toggles which sections appear.
 export function insightsAsText(data, detect) {
   const list = (title, items) => (items.length ? [`*${title}*`, ...items.map((item) => `• ${item}`), ''] : []);
