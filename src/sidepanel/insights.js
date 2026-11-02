@@ -263,7 +263,7 @@ export async function askMeeting({ settings, utterances, history, question, sess
       model: languageModel(settings),
       instructions: cachedInstructions(settings, system),
       messages,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 4000,
     });
     let text = '';
     for await (const delta of result.textStream) {
