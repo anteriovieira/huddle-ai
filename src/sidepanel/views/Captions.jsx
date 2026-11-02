@@ -12,11 +12,16 @@ export function CaptionsPanel({ utterances, huddle, marks }) {
   const scrollRef = useRef(null);
   const [follow, setFollow] = useState(true);
 
+  // A última fala cresce em texto (streaming) sem mudar a contagem; acompanhar só o length deixaria
+  // o texto novo passar do fim visível e ficar atrás do badge "Seguindo ao vivo". Reagir também ao
+  // tamanho da última fala mantém a linha corrente sempre no fim (acima do badge, graças ao padding).
+  const lastTextLen = utterances.at(-1)?.text.length ?? 0;
+
   useLayoutEffect(() => {
     if (!follow) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [utterances.length, follow]);
+  }, [utterances.length, lastTextLen, follow]);
 
   const onScroll = (event) => {
     const el = event.currentTarget;

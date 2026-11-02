@@ -141,6 +141,7 @@ export function InfoBar({
   settings,
   analysis,
   huddle,
+  now,
   utteranceCount,
   currentMinutes,
   minutesRunning,
@@ -231,5 +232,14 @@ export function InfoBar({
       </div>
     );
   }
-  return <AtaInfo onRegenerate={onRegenerate} onOpenList={onOpenAtas} busy={minutesRunning} />;
+  return (
+    <AtaInfo
+      onRegenerate={onRegenerate}
+      onOpenList={onOpenAtas}
+      busy={minutesRunning}
+      minutes={currentMinutes}
+      autoMinutes={settings.autoMinutes}
+      now={now}
+    />
+  );
 }

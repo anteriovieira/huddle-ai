@@ -81,6 +81,15 @@ function seedChat(huddleId) {
   return { id: `c-${huddleId ?? 'none'}-1`, title: 'Chat 1', messages: [] };
 }
 
+// End timestamp of an imported session. Anchors to the chosen day (yyyy-mm-dd) at the current
+// clock time; falls back to now for an empty or invalid date.
+function sessionTimestamp(date) {
+  const now = new Date();
+  const [y, m, d] = (date || '').split('-').map(Number);
+  if (!y || !m || !d) return now.getTime();
+  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
+}
+
 export function App() {
   // --- Extension state (mirrors chrome.storage) ---
   const [extState, setExtState] = useState(EMPTY_STATE);
@@ -769,13 +778,13 @@ export function App() {
   );
 
   const importSession = useCallback(
-    async ({ title, text }) => {
+    async ({ title, date, text }) => {
       const utt = parseTranscript(text);
       if (utt.length === 0) {
         setImportError('Cole a transcrição no campo de texto para importar.');
         return;
       }
-      const ts = Date.now();
+      const ts = sessionTimestamp(date);
       const span = utt.at(-1).at || (utt.length - 1) * 1000;
       const hud = {
         id: `import-${ts.toString(36)}`,

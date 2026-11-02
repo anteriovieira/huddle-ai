@@ -2,12 +2,19 @@ import { useState } from 'react';
 import { Icon } from '../ui/Icon.jsx';
 import { Field } from '../ui/primitives.jsx';
 
+function todayStr() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
 export function ImportView({ error, hasKey, onSubmit, onCancel }) {
   const [title, setTitle] = useState('');
+  const [date, setDate] = useState(todayStr);
   const [text, setText] = useState('');
   const submit = (e) => {
     e.preventDefault();
-    onSubmit({ title: title.trim(), text });
+    onSubmit({ title: title.trim(), date, text });
   };
   return (
     <>
@@ -31,6 +38,15 @@ export function ImportView({ error, hasKey, onSubmit, onCancel }) {
               placeholder="Ex.: Planejamento Q4"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+          </Field>
+          <Field label="Data da sessão" htmlFor="import-date">
+            <input
+              id="import-date"
+              type="date"
+              max={todayStr()}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
             />
           </Field>
           <Field label="Transcrição" htmlFor="import-text">

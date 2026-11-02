@@ -114,11 +114,11 @@ function AlertsSection({ alerts, acked, utterances, onAccept, onEdit }) {
       <h3 className="section__title">
         Alertas pra você<span className="count">{String(pending.length)}</span>
       </h3>
-      {pending.map((alert, index) => {
+      {pending.map((alert) => {
         const meta = ALERT_META[alert.kind];
         const at = utterances[alert.line - 1];
         return (
-          <article key={`${alert.kind}:${alert.text}:${index}`} className={`alert alert--${meta.tone}`}>
+          <article key={`${alert.kind}:${alert.text}`} className={`alert alert--${meta.tone}`}>
             <div className="alert__head">
               <span className={`badge-icon badge-icon--${meta.tone}`}>
                 <Icon name={meta.icon} />
@@ -321,8 +321,8 @@ export function InsightsView({
         onToggle={onToggleTopic}
       />
       <Section title="Pontos levantados">
-        {data.points.map((text, i) => (
-          <IconRow key={i} name="bulb" tone="blue">
+        {data.points.map((text) => (
+          <IconRow key={text} name="bulb" tone="blue">
             {text}
           </IconRow>
         ))}
@@ -331,8 +331,8 @@ export function InsightsView({
         <Section title="Ações" count={data.actions.length}>
           {data.actions.length > 0 && (
             <ul className="action-list">
-              {data.actions.map((action, i) => (
-                <ActionItem key={i} action={action} checked={done.has(action.text)} onToggle={onToggleDone} />
+              {data.actions.map((action) => (
+                <ActionItem key={action.text} action={action} checked={done.has(action.text)} onToggle={onToggleDone} />
               ))}
             </ul>
           )}
@@ -340,8 +340,8 @@ export function InsightsView({
       )}
       {settings.detect.decisions && (
         <Section title="Decisões" count={data.decisions.length}>
-          {data.decisions.map((text, i) => (
-            <IconRow key={i} name="check" tone="green">
+          {data.decisions.map((text) => (
+            <IconRow key={text} name="check" tone="green">
               {text}
             </IconRow>
           ))}
@@ -349,8 +349,8 @@ export function InsightsView({
       )}
       {settings.detect.questions && (
         <Section title="Em aberto">
-          {data.open_questions.map((text, i) => (
-            <IconRow key={i} name="question" tone="yellow">
+          {data.open_questions.map((text) => (
+            <IconRow key={text} name="question" tone="yellow">
               {text}
             </IconRow>
           ))}
@@ -358,8 +358,8 @@ export function InsightsView({
       )}
       {settings.detect.suggestions && (
         <Section title="Sugestões para você">
-          {data.suggestions.map((text, i) => (
-            <IconRow key={i} name="spark" tone="purple">
+          {data.suggestions.map((text) => (
+            <IconRow key={text} name="spark" tone="purple">
               {text}
             </IconRow>
           ))}
@@ -367,8 +367,8 @@ export function InsightsView({
       )}
       {settings.detect.replies && (
         <Section title="Respostas sugeridas" count={(data.replies ?? []).length}>
-          {(data.replies ?? []).map((text, i) => (
-            <IconRow key={i} name="chat" tone="blue">
+          {(data.replies ?? []).map((text) => (
+            <IconRow key={text} name="chat" tone="blue">
               {text}
             </IconRow>
           ))}
@@ -376,15 +376,15 @@ export function InsightsView({
       )}
       {settings.detect.references && (
         <Section title="Referências mencionadas" count={(data.references ?? []).length}>
-          {(data.references ?? []).map((ref, i) => (
-            <ReferenceRow key={i} ref={ref} />
+          {(data.references ?? []).map((ref) => (
+            <ReferenceRow key={ref.title} ref={ref} />
           ))}
         </Section>
       )}
       {settings.detect.acronyms && (
         <Section title="Siglas" count={(data.acronyms ?? []).length}>
-          {(data.acronyms ?? []).map((item, i) => (
-            <AcronymRow key={i} item={item} />
+          {(data.acronyms ?? []).map((item) => (
+            <AcronymRow key={item.term} item={item} />
           ))}
         </Section>
       )}

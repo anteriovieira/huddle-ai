@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ago, formatDateTime, formatDuration } from '../lib/format.js';
 import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minutes.js';
 import { Icon } from '../ui/Icon.jsx';
@@ -22,6 +23,10 @@ function Heading({ children }) {
 export function AtaContent({ record, done, onCopy, onToggleStep }) {
   const { meta, data } = record;
   const tone = CATEGORY_TONES[data.classification.category];
+  // A classificação começa colapsada: o chip e a confiança ficam sempre visíveis, e o usuário
+  // expande para ver o que a sustentou (descrição dos temas + sinais da transcrição).
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const hasDetails = Boolean(data.classification.description) || data.signals.length > 0;
   return (
     <div className="stack ata">
       <section className="stack stack--compact" aria-label="Informações da reunião">
@@ -66,7 +71,28 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
             />
           </div>
         </div>
-        <p className="muted small card__body">{data.classification.description}</p>
+        {detailsOpen && hasDetails && (
+          <div className="stack stack--compact">
+            {data.classification.description && <p className="muted small card__body">{data.classification.description}</p>}
+            {data.signals.length > 0 && (
+              <div className="stack stack--compact" aria-label="Sinais de classificação">
+                <span className="muted small strong">Sinais de classificação</span>
+                <p className="muted small">Trechos da transcrição que classificam a reunião:</p>
+                <ul className="bullets bullets--plain">
+                  {data.signals.map((text, i) => (
+                    <li key={i}>{text}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        {hasDetails && (
+          <button className="topic__toggle" type="button" aria-expanded={String(detailsOpen)} onClick={() => setDetailsOpen((v) => !v)}>
+            <Icon name={detailsOpen ? 'collapse' : 'expand'} />
+            {detailsOpen ? 'Ocultar detalhes' : 'Ver o que levou a essa classificação'}
+          </button>
+        )}
       </section>
 
       {data.tags.length > 0 && (
@@ -77,18 +103,6 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
               <Chip key={tag}>{tag}</Chip>
             ))}
           </div>
-        </section>
-      )}
-
-      {data.signals.length > 0 && (
-        <section className="stack stack--compact" aria-label="Sinais de classificação">
-          <Heading>Sinais de classificação</Heading>
-          <p className="muted small">Trechos da transcrição que classificam a reunião:</p>
-          <ul className="bullets bullets--plain">
-            {data.signals.map((text, i) => (
-              <li key={i}>{text}</li>
-            ))}
-          </ul>
         </section>
       )}
 
@@ -140,10 +154,23 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
   );
 }
 
-export function AtaInfo({ onRegenerate, onOpenList, busy }) {
+export function AtaInfo({ onRegenerate, onOpenList, busy, minutes, autoMinutes, now }) {
+  let text;
+  if (busy) {
+    text = 'Gerando a ata…';
+  } else if (minutes) {
+    const model = modelLabel(minutes.model);
+    text = `Ata gerada ${ago(minutes.generatedAt, now)}${model ? ` · ${model}` : ''}.`;
+  } else if (autoMinutes) {
+    text = 'A ata é gerada automaticamente quando o huddle termina.';
+  } else {
+    text = 'Gere a ata do huddle quando quiser.';
+  }
   return (
     <div className="info info--row">
-      <span className="info__text" />
+      <span className="info__text" role={busy ? 'status' : undefined}>
+        {text}
+      </span>
       <div className="info__actions">
         {onRegenerate && (
           <Tooltip label={busy ? 'Gerando…' : 'Gerar ata'}>
