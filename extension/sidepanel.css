@@ -329,27 +329,6 @@ select {
   margin-top: auto;
 }
 
-.captions-copy {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.captions-copy:hover {
-  color: var(--text-strong);
-}
-
 /* Colunas lado a lado (painel expandido) */
 
 .panes {
@@ -1752,12 +1731,19 @@ select {
   height: 14px;
 }
 
+/* A facet is a full-width footer strip: flush to the card's side and bottom edges (its negative
+   side margins cancel the card padding), separated from the text above only by a top gap + rule. */
 .q-facet {
-  margin-top: 8px;
-  padding: 8px 10px;
+  margin: 8px -12px 0;
+  padding: 8px 12px;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.q-facet:last-child {
+  margin-bottom: -10px;
+  border-radius: 0 0 7px 7px;
 }
 
 .q-bar {
@@ -1812,14 +1798,15 @@ select {
   justify-content: center;
   width: 28px;
   height: 24px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
 }
 
 .q-copy:hover {
+  background: var(--surface-hover);
   color: var(--text-strong);
 }
 

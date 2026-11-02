@@ -866,6 +866,21 @@ export function App() {
     [history, flash],
   );
 
+  // Volta para a página principal (o estado em que a extensão abre): descarrega a sessão que estava
+  // sendo vista e fecha os overlays. Um huddle ao vivo volta a se preencher sozinho na próxima fala.
+  const goHome = useCallback(async () => {
+    setChatOpen(false);
+    setViewingAta(null);
+    setAtasOpen(false);
+    setImportOpen(false);
+    setExtState(EMPTY_STATE);
+    setInsights(null);
+    setMinutes(null);
+    await chromeApi?.storage.session.set({ state: EMPTY_STATE });
+    await chromeApi?.storage.session.remove(['insights', 'minutes']);
+    setTab('insights');
+  }, []);
+
   // --- Context recall: a look-back question in the live transcript ("o que decidimos na reunião
   // passada sobre X?") triggers the recall subagent over past session summaries; the answer shows
   // as a context suggestion in Insights. Cards reset when the huddle changes. ---
@@ -1190,6 +1205,7 @@ export function App() {
     onToggleTicker: () => setTickerHidden((v) => !v),
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
+    onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
     onRegenerate: runMinutes,
     onOpenAtas: openAtas,
   };
@@ -1338,6 +1354,7 @@ export function App() {
         version={version()}
         chatOpen={chatOpen}
         now={now}
+        onHome={huddle?.loaded ? goHome : undefined}
         onOpenAtas={openAtas}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}

@@ -12,6 +12,7 @@ export function Header({
   onOpenLogs,
   onOpenSettings,
   now,
+  onHome,
   onOpenAtas,
 }) {
   return (
@@ -30,6 +31,13 @@ export function Header({
         ) : (
           <span className="pill">Encerrado</span>
         ))}
+      {onHome && (
+        <Tooltip label="Página principal" side="bottom">
+          <button className="icon-button" type="button" aria-label="Página principal" onClick={onHome}>
+            <Icon name="home" />
+          </button>
+        </Tooltip>
+      )}
       {onOpenAtas && (
         <Tooltip label="Sessões anteriores" side="bottom">
           <button className="icon-button" type="button" aria-label="Sessões anteriores" onClick={onOpenAtas}>
@@ -155,6 +163,7 @@ export function InfoBar({
   onToggleTicker,
   onOpenSettings,
   onDownloadTranscript,
+  onCopyCaptions,
   onRegenerate,
   onOpenAtas,
 }) {
@@ -224,11 +233,24 @@ export function InfoBar({
             `Lendo legendas do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
           )}
         </span>
-        <Tooltip label="Baixar transcrição">
-          <button className="icon-button" type="button" aria-label="Baixar transcrição" onClick={onDownloadTranscript}>
-            <Icon name="download" />
-          </button>
-        </Tooltip>
+        <div className="info__actions">
+          <Tooltip label="Copiar legendas">
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Copiar legendas"
+              disabled={!count}
+              onClick={onCopyCaptions}
+            >
+              <Icon name="copy" />
+            </button>
+          </Tooltip>
+          <Tooltip label="Baixar transcrição">
+            <button className="icon-button" type="button" aria-label="Baixar transcrição" disabled={!count} onClick={onDownloadTranscript}>
+              <Icon name="download" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     );
   }

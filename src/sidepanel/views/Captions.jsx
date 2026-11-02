@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { formatClock, formatTranscript } from '../lib/format.js';
-import { Icon } from '../ui/Icon.jsx';
+import { formatClock } from '../lib/format.js';
 import { Avatar } from '../ui/primitives.jsx';
 
 const MARK_LABELS = { action: 'Ação', decision: 'Decisão', question: 'Pergunta' };
@@ -12,19 +11,6 @@ const MARK_LABELS = { action: 'Ação', decision: 'Decisão', question: 'Pergunt
 export function CaptionsPanel({ utterances, huddle, marks }) {
   const scrollRef = useRef(null);
   const [follow, setFollow] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef(null);
-
-  const copyCaptions = async () => {
-    try {
-      await navigator.clipboard.writeText(formatTranscript(utterances));
-      setCopied(true);
-      clearTimeout(copyTimer.current);
-      copyTimer.current = setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard indisponível (foco/permissão): ignora silenciosamente.
-    }
-  };
 
   // A última fala cresce em texto (streaming) sem mudar a contagem; acompanhar só o length deixaria
   // o texto novo passar do fim visível e ficar atrás do badge "Seguindo ao vivo". Reagir também ao
@@ -51,17 +37,6 @@ export function CaptionsPanel({ utterances, huddle, marks }) {
 
   return (
     <div className="captions-pane">
-      {utterances.length > 0 && (
-        <button
-          className="captions-copy"
-          type="button"
-          onClick={copyCaptions}
-          title={copied ? 'Copiado' : 'Copiar legendas'}
-          aria-label={copied ? 'Legendas copiadas' : 'Copiar legendas'}
-        >
-          <Icon name={copied ? 'check' : 'copy'} />
-        </button>
-      )}
       <div className="captions-scroll" ref={scrollRef} onScroll={onScroll}>
         <CaptionsView utterances={utterances} huddle={huddle} marks={marks} />
       </div>
