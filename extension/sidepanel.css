@@ -329,6 +329,27 @@ select {
   margin-top: auto;
 }
 
+.captions-copy {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.captions-copy:hover {
+  color: var(--text-strong);
+}
+
 /* Colunas lado a lado (painel expandido) */
 
 .panes {
