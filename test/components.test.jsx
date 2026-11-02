@@ -53,8 +53,9 @@ const insightsCurrent = {
     points: ['ponto importante'],
     actions: [{ text: 'fazer X', owner: 'Ana' }],
     decisions: ['decidimos Y'],
-    open_questions: ['e o Z?'],
-    suggestions: [],
+    open_questions: [{ text: 'e o Z?', line: 2, answer: 'o Z fica pra sexta' }],
+    suggestions: ['perguntar sobre o suporte'],
+    replies: [{ text: 'Pode ser na sexta mesmo.', re_line: 2 }],
     references: [{ kind: 'book', title: 'Clean Code', by: 'Martin', description: 'livro' }],
     acronyms: [{ term: 'API', meaning: 'interface' }],
     alerts: [{ kind: 'mention', text: 'Ana citou você', from: 'Ana', line: 1 }],
@@ -65,7 +66,7 @@ const insightsCurrent = {
 
 const settings = {
   apiKeys: { anthropic: 'sk-ant-x' },
-  detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, references: true, acronyms: true },
+  detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, replies: true, references: true, acronyms: true },
 };
 
 test('InsightsView renders topic, sections and alerts from data', () => {
@@ -92,6 +93,11 @@ test('InsightsView renders topic, sections and alerts from data', () => {
   assert.match(html, /decidimos Y/);
   assert.match(html, /Alertas pra você/);
   assert.match(html, /Clean Code/);
+  assert.match(html, /Perguntas/);
+  assert.match(html, /e o Z\?/);
+  assert.match(html, /o Z fica pra sexta/);
+  assert.match(html, /Pode ser na sexta mesmo\./);
+  assert.match(html, /perguntar sobre o suporte/);
 });
 
 test('InsightsView prompts for an API key when missing', () => {

@@ -7,6 +7,33 @@
 const strings = (x) => (Array.isArray(x) ? x.filter((s) => typeof s === 'string') : []);
 const int = (x, fallback) => (Number.isInteger(x) ? x : fallback);
 
+// Open questions carry an optional in-call answer and the transcript line they were asked on.
+// A plain string (older stored insights, or a model that still emits strings) is lifted to the
+// object shape so the UI can render one shape.
+const questions = (x) =>
+  Array.isArray(x)
+    ? x
+        .map((q) => {
+          if (typeof q === 'string') return { text: q, line: 0, answer: '' };
+          if (q && typeof q.text === 'string')
+            return { text: q.text, line: int(q.line, 0), answer: typeof q.answer === 'string' ? q.answer : '' };
+          return null;
+        })
+        .filter(Boolean)
+    : [];
+
+// Suggested replies carry re_line: the transcript # of the question/moment they answer (0 = general).
+const replies = (x) =>
+  Array.isArray(x)
+    ? x
+        .map((r) => {
+          if (typeof r === 'string') return { text: r, re_line: 0 };
+          if (r && typeof r.text === 'string') return { text: r.text, re_line: int(r.re_line, 0) };
+          return null;
+        })
+        .filter(Boolean)
+    : [];
+
 export function normalizeInsights(data) {
   const d = data ?? {};
   return {
@@ -21,9 +48,9 @@ export function normalizeInsights(data) {
       ? d.actions.filter((a) => a && typeof a.text === 'string').map((a) => ({ text: a.text, owner: a.owner ?? '' }))
       : [],
     decisions: strings(d.decisions),
-    open_questions: strings(d.open_questions),
+    open_questions: questions(d.open_questions),
     suggestions: strings(d.suggestions),
-    replies: strings(d.replies),
+    replies: replies(d.replies),
     alerts: Array.isArray(d.alerts)
       ? d.alerts
           .filter((a) => a && typeof a.text === 'string' && ['mention', 'action', 'question'].includes(a.kind))

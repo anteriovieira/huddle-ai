@@ -211,7 +211,15 @@ export function insightsAsText(data, detect) {
     ...list('Pontos levantados', data.points),
     ...(detect.actions ? list('Ações', data.actions.map((a) => (a.owner ? `${a.text} (${a.owner})` : a.text))) : []),
     ...(detect.decisions ? list('Decisões', data.decisions) : []),
-    ...(detect.questions ? list('Em aberto', data.open_questions) : []),
+    ...(detect.questions
+      ? list(
+          'Em aberto',
+          data.open_questions.map((q) => {
+            if (typeof q === 'string') return q;
+            return q.answer ? `${q.text} → ${q.answer}` : q.text;
+          }),
+        )
+      : []),
     ...(detect.references
       ? list('Referências', (data.references ?? []).map((r) => [r.title, r.by, r.description].filter(Boolean).join(' — ')))
       : []),

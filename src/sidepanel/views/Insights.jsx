@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { formatClock } from '../lib/format.js';
 import { ago } from '../lib/format.js';
 import { hasKeyForModel } from '../lib/models.js';
@@ -151,54 +152,194 @@ function AlertsSection({ alerts, acked, utterances, onAccept, onEdit }) {
   );
 }
 
-// Context suggestions: answers the recall subagent pulled from past meetings when someone in
-// the live huddle asks a look-back question. Each card is dismissible and links to its sources.
-function ContextSuggestions({ cards, onDismiss, onOpenSource }) {
-  if (!cards.length) return null;
+// Icon-only clipboard button that confirms with a check for a beat (same pattern as the captions
+// copy). Self-contained so each reply/suggestion card carries its own, with no handler threaded in.
+// `label` is both the accessible name and the hover tooltip.
+function CopyButton({ text, label = 'Copiar' }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef(null);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Área de transferência indisponível (foco/permissão): ignora silenciosamente.
+    }
+  };
+  const name = copied ? 'Copiado' : label;
   return (
-    <section className="section" aria-label="Contexto de reuniões passadas">
-      <h3 className="section__title">
-        Contexto de reuniões passadas<span className="count">{String(cards.length)}</span>
-      </h3>
-      {cards.map((card) => (
-        <article key={card.key} className="alert alert--indigo context">
-          <div className="alert__head">
-            <span className="badge-icon badge-icon--indigo">
+    <button type="button" className="q-copy" title={name} aria-label={name} onClick={copy}>
+      <Icon name={copied ? 'check' : 'copy'} />
+    </button>
+  );
+}
+
+// A top-level question card made only of a labelled bar with a copy action and one line of text —
+// shared by the orphan-reply and the proposal cards, which differ only in accent, icon and labels.
+function CopyCard({ variant, icon, label, text, copyLabel }) {
+  return (
+    <div className={`q-card q-card--${variant}`}>
+      <div className="q-bar">
+        <span className={`q-state q-state--${variant}`}>
+          <Icon name={icon} /> {label}
+        </span>
+        <CopyButton text={text} label={copyLabel} />
+      </div>
+      <p className="q-card__text">{text}</p>
+    </div>
+  );
+}
+
+// The past-meeting answer tied to a question. Mirrors the old ContextSuggestions statuses so a
+// failed or empty recall is still visible (and, as an orphan card, still dismissable) rather than
+// vanishing: loading and error/empty show a quiet line; a hit shows the answer and its sources.
+function MemoryFacet({ card, onOpenSource }) {
+  if (!card) return null;
+  if (card.status === 'loading') return <p className="q-memory-status muted small">Procurando nas atas anteriores…</p>;
+  if (card.status === 'error') return <p className="q-memory-status muted small">{`Não consegui buscar: ${card.error}`}</p>;
+  if (card.status !== 'done' || !card.result?.found)
+    return <p className="q-memory-status muted small">Nenhuma reunião passada registrou isso.</p>;
+  return (
+    <div className="q-facet q-facet--memory">
+      <span className="q-facet__label q-facet__label--memory">
+        <Icon name="history" /> de uma reunião anterior
+      </span>
+      <p className="q-facet__text">{card.result.answer}</p>
+      {card.result.sources.length > 0 && (
+        <div className="q-sources">
+          {card.result.sources.map((src, i) => (
+            <button
+              key={`${src.id}:${i}`}
+              type="button"
+              className="chip chip--indigo"
+              title={src.quote}
+              onClick={() => onOpenSource(src.id)}
+            >
               <Icon name="history" />
-            </span>
-            <span className="alert__title">{card.about || 'Contexto anterior'}</span>
-            <button className="context__close" type="button" aria-label="Dispensar" onClick={() => onDismiss(card.key)}>
-              <Icon name="close" />
+              {src.title}
             </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const Q_STATE_LABEL = {
+  reply: 'Você pode responder',
+  answered: 'Respondida na call',
+  memory: 'Talvez já decidido',
+  open: 'Em aberto',
+};
+
+// One question, carrying whatever the meeting knows about it: an answer said in the call, a
+// ready-to-paste reply, and/or a past-meeting match. The dominant facet sets the state accent.
+// `memory` is only ever a loading or a resolved hit (empty/error recalls surface as orphan cards).
+function QuestionCard({ question, reply, memory, utterances, onOpenSource }) {
+  const at = question.line ? utterances[question.line - 1] : null;
+  const showAnswer = Boolean(question.answer);
+  const memoryDone = memory && memory.status === 'done' && memory.result?.found;
+  const state = reply ? 'reply' : showAnswer ? 'answered' : memoryDone ? 'memory' : 'open';
+  return (
+    <div className={`q-card q-card--${state}`}>
+      <div className="q-card__head">
+        <span className={`q-state q-state--${state}`}>{Q_STATE_LABEL[state]}</span>
+        {at && <span className="muted small">{formatClock(at.at)}</span>}
+      </div>
+      <p className="q-card__text">{question.text}</p>
+      {showAnswer && (
+        <div className="q-facet q-facet--answer">
+          <span className="q-facet__label q-facet__label--answer">
+            <Icon name="check" /> resposta dita na call
+          </span>
+          <p className="q-facet__text">{question.answer}</p>
+        </div>
+      )}
+      {reply && (
+        <div className="q-facet q-facet--reply">
+          <div className="q-bar">
+            <span className="q-facet__label q-facet__label--reply">
+              <Icon name="chat" /> resposta pronta pra colar
+            </span>
+            <CopyButton text={reply.text} label="Copiar resposta" />
           </div>
-          <p className="context__q muted small">{card.query}</p>
-          {card.status === 'loading' && <p className="context__status muted small">Procurando nas atas anteriores…</p>}
-          {card.status === 'error' && <p className="context__status muted small">{`Não consegui buscar: ${card.error}`}</p>}
-          {card.status === 'empty' && <p className="context__status muted small">Nenhuma reunião passada registrou isso.</p>}
-          {card.status === 'done' && card.result && (
-            <>
-              <p className="alert__text">{card.result.answer}</p>
-              {card.result.sources.length > 0 && (
-                <div className="context__sources">
-                  {card.result.sources.map((src, i) => (
-                    <button
-                      key={`${src.id}:${i}`}
-                      type="button"
-                      className="chip chip--indigo context__src"
-                      title={src.quote}
-                      onClick={() => onOpenSource(src.id)}
-                    >
-                      <Icon name="history" />
-                      {src.title}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </article>
-      ))}
-    </section>
+          <p className="q-facet__text">{reply.text}</p>
+        </div>
+      )}
+      {memory && <MemoryFacet card={memory} onOpenSource={onOpenSource} />}
+    </div>
+  );
+}
+
+// The merged "Perguntas" section: every open question with its answer/reply/memory woven in, then
+// look-backs with no matching question, orphan replies, and things the user could raise.
+function QuestionsSection({ data, utterances, detect, contextCards, onOpenSource, onDismissContext }) {
+  const questions = detect.questions ? data.open_questions ?? [] : [];
+  const replies = detect.replies ? data.replies ?? [] : [];
+  const suggestions = detect.suggestions ? data.suggestions ?? [] : [];
+  const cards = detect.context ? contextCards ?? [] : [];
+
+  // A question shows its past-meeting match inline only while loading or when it resolved to a hit.
+  // Every other card (empty, error, or one that matches no question) renders as an orphan below, so
+  // it stays visible and keeps its dismiss button.
+  const embedded = new Map();
+  for (const c of cards) {
+    if (!c.line || embedded.has(c.line)) continue;
+    if (c.status === 'loading' || (c.status === 'done' && c.result?.found)) embedded.set(c.line, c);
+  }
+  const embeddedCards = new Set(embedded.values());
+  const orphanMemory = cards.filter((c) => !embeddedCards.has(c));
+
+  const usedReply = new Set();
+  const replyFor = (line) => {
+    if (!line) return null;
+    const r = replies.find((rep) => rep.re_line === line && !usedReply.has(rep));
+    if (r) usedReply.add(r);
+    return r;
+  };
+
+  const questionCards = questions.map((q, i) => (
+    <QuestionCard
+      key={`q:${q.line}:${i}`}
+      question={q}
+      reply={replyFor(q.line)}
+      memory={embedded.get(q.line)}
+      utterances={utterances}
+      onOpenSource={onOpenSource}
+    />
+  ));
+
+  const orphanReplies = replies.filter((r) => !usedReply.has(r));
+
+  const total = questionCards.length + orphanMemory.length + orphanReplies.length + suggestions.length;
+  if (!total) return null;
+
+  return (
+    <Section title="Perguntas" count={total}>
+      <div className="q-list">
+        {questionCards}
+        {orphanMemory.map((c) => (
+          <div key={`m:${c.key}`} className="q-card q-card--memory">
+            <div className="q-card__head">
+              <span className="q-state q-state--memory">De reuniões passadas</span>
+              <button className="q-card__close" type="button" aria-label="Dispensar" onClick={() => onDismissContext(c.key)}>
+                <Icon name="close" />
+              </button>
+            </div>
+            <p className="q-card__text">{c.about || c.query}</p>
+            <MemoryFacet card={c} onOpenSource={onOpenSource} />
+          </div>
+        ))}
+        {orphanReplies.map((r, i) => (
+          <CopyCard key={`r:${i}`} variant="reply" icon="chat" label="Resposta sugerida" text={r.text} copyLabel="Copiar resposta" />
+        ))}
+        {suggestions.map((text) => (
+          <CopyCard key={`s:${text}`} variant="proposable" icon="spark" label="Você poderia levantar" text={text} copyLabel="Copiar pergunta" />
+        ))}
+      </div>
+    </Section>
   );
 }
 
@@ -308,9 +449,6 @@ export function InsightsView({
           onEdit={onEditAlert}
         />
       )}
-      {settings.detect.context && (
-        <ContextSuggestions cards={contextCards ?? []} onDismiss={onDismissContext} onOpenSource={onOpenContextSource} />
-      )}
       <TopicCard
         data={data}
         updatedAt={current.updatedAt}
@@ -319,6 +457,14 @@ export function InsightsView({
         now={now}
         expanded={topicExpanded}
         onToggle={onToggleTopic}
+      />
+      <QuestionsSection
+        data={data}
+        utterances={utterances}
+        detect={settings.detect}
+        contextCards={contextCards}
+        onOpenSource={onOpenContextSource}
+        onDismissContext={onDismissContext}
       />
       <Section title="Pontos levantados">
         {data.points.map((text) => (
@@ -342,33 +488,6 @@ export function InsightsView({
         <Section title="Decisões" count={data.decisions.length}>
           {data.decisions.map((text) => (
             <IconRow key={text} name="check" tone="green">
-              {text}
-            </IconRow>
-          ))}
-        </Section>
-      )}
-      {settings.detect.questions && (
-        <Section title="Em aberto">
-          {data.open_questions.map((text) => (
-            <IconRow key={text} name="question" tone="yellow">
-              {text}
-            </IconRow>
-          ))}
-        </Section>
-      )}
-      {settings.detect.suggestions && (
-        <Section title="Sugestões para você">
-          {data.suggestions.map((text) => (
-            <IconRow key={text} name="spark" tone="purple">
-              {text}
-            </IconRow>
-          ))}
-        </Section>
-      )}
-      {settings.detect.replies && (
-        <Section title="Respostas sugeridas" count={(data.replies ?? []).length}>
-          {(data.replies ?? []).map((text) => (
-            <IconRow key={text} name="chat" tone="blue">
               {text}
             </IconRow>
           ))}

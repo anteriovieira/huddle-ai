@@ -306,6 +306,27 @@ test('normalizeInsights drops half-built streaming entries', () => {
   assert.deepEqual(d.marks, [{ line: 2, kind: 'action' }]);
 });
 
+test('normalizeInsights parses question and reply objects, with string back-compat', () => {
+  const d = normalizeInsights({
+    open_questions: [
+      { text: 'Como medimos o piloto?', line: 12, answer: 'Pelos times que ativam.' },
+      { text: 'sem linha nem resposta' },
+      'pergunta antiga em string',
+      { answer: 'sem texto' },
+    ],
+    replies: [{ text: 'Posso na sexta.', re_line: 12 }, 'reply antiga', { re_line: 3 }],
+  });
+  assert.deepEqual(d.open_questions, [
+    { text: 'Como medimos o piloto?', line: 12, answer: 'Pelos times que ativam.' },
+    { text: 'sem linha nem resposta', line: 0, answer: '' },
+    { text: 'pergunta antiga em string', line: 0, answer: '' },
+  ]);
+  assert.deepEqual(d.replies, [
+    { text: 'Posso na sexta.', re_line: 12 },
+    { text: 'reply antiga', re_line: 0 },
+  ]);
+});
+
 test('matchesQuery matches across fields, all words required', () => {
   assert.equal(matchesQuery(sampleMinutes, ''), true);
   assert.equal(matchesQuery(sampleMinutes, 'billing q4'), true);
@@ -342,6 +363,12 @@ test('insightsAsText respects detect toggles', () => {
   assert.match(full, /\*Tópico\*/);
   assert.match(full, /• fazer X \(Ana\)/);
   assert.match(full, /• decidimos Y/);
+  assert.match(full, /• e o Z\?/);
+  const withAnswer = insightsAsText(
+    { ...data, open_questions: [{ text: 'e o Z?', line: 4, answer: 'Z fica pra sexta.' }] },
+    { actions: true, decisions: true, questions: true, references: true, acronyms: true },
+  );
+  assert.match(withAnswer, /• e o Z\? → Z fica pra sexta\./);
   const minimal = insightsAsText(data, { actions: false, decisions: false, questions: false, references: false, acronyms: false });
   assert.doesNotMatch(minimal, /Ações/);
   assert.doesNotMatch(minimal, /Decisões/);
