@@ -16,7 +16,7 @@ import {
   tagCounts,
 } from '../src/sidepanel/lib/minutes.js';
 import { logEntryAsText, logsAsText } from '../src/sidepanel/lib/logs.js';
-import { normalizeInsights } from '../src/sidepanel/lib/insights-data.js';
+import { mergeInsights, normalizeInsights } from '../src/sidepanel/lib/insights-data.js';
 
 test('formatClock renders mm:ss and h:mm:ss', () => {
   assert.equal(formatClock(0), '00:00');
@@ -298,8 +298,8 @@ test('normalizeInsights drops half-built streaming entries', () => {
     marks: [{ line: 2, kind: 'action' }, { line: 'x', kind: 'action' }],
   });
   assert.equal(d.topic.summary, '');
-  assert.deepEqual(d.points, ['ok']);
-  assert.deepEqual(d.actions, [{ text: 'fazer', owner: 'Ana' }]);
+  assert.deepEqual(d.points, [{ text: 'ok', line: 0 }]);
+  assert.deepEqual(d.actions, [{ text: 'fazer', owner: 'Ana', line: 0 }]);
   assert.equal(d.alerts.length, 1);
   assert.equal(d.context_queries.length, 1);
   assert.equal(d.context_queries[0].line, 0);
@@ -325,6 +325,103 @@ test('normalizeInsights parses question and reply objects, with string back-comp
     { text: 'Posso na sexta.', re_line: 12 },
     { text: 'reply antiga', re_line: 0 },
   ]);
+});
+
+test('normalizeInsights parses decisions and action lines, with string back-compat', () => {
+  const d = normalizeInsights({
+    decisions: [{ text: 'cobrança por uso', line: 20 }, 'decisão antiga', { line: 5 }],
+    actions: [{ text: 'enviar escopo', owner: 'Ana', line: 7 }, { text: 'sem linha' }],
+  });
+  assert.deepEqual(d.decisions, [
+    { text: 'cobrança por uso', line: 20 },
+    { text: 'decisão antiga', line: 0 },
+  ]);
+  assert.deepEqual(d.actions, [
+    { text: 'enviar escopo', owner: 'Ana', line: 7 },
+    { text: 'sem linha', owner: '', line: 0 },
+  ]);
+});
+
+test('mergeInsights returns the incoming object when there is no previous', () => {
+  const next = { points: ['a'], actions: [{ text: 'fazer', owner: 'Ana', line: 3 }] };
+  assert.deepEqual(mergeInsights(null, next), normalizeInsights(next));
+});
+
+test('mergeInsights keeps a reworded item frozen so its seen/done key survives', () => {
+  const prev = {
+    points: [{ text: 'Precisamos migrar o billing', line: 5 }],
+    actions: [{ text: 'Enviar o escopo', owner: 'Ana', line: 7 }],
+    decisions: [{ text: 'Cobrança por uso', line: 10 }],
+  };
+  // Same items, reworded by the model but on the same transcript lines.
+  const next = {
+    points: [{ text: 'Vamos migrar o billing esse mês', line: 5 }],
+    actions: [{ text: 'Mandar o escopo para o cliente', owner: 'Ana', line: 7 }],
+    decisions: [{ text: 'Vamos cobrar por uso', line: 10 }],
+  };
+  const merged = mergeInsights(prev, next);
+  assert.deepEqual(merged.points, [{ text: 'Precisamos migrar o billing', line: 5 }]); // frozen
+  assert.equal(merged.actions.length, 1);
+  assert.equal(merged.actions[0].text, 'Enviar o escopo'); // original text frozen
+  assert.equal(merged.decisions.length, 1);
+  assert.equal(merged.decisions[0].text, 'Cobrança por uso');
+});
+
+test('mergeInsights appends genuinely new items without touching the old ones', () => {
+  const prev = { points: [{ text: 'ponto 1', line: 3 }], open_questions: [{ text: 'e o Z?', line: 4, answer: '' }] };
+  const next = {
+    points: [{ text: 'ponto 1 reescrito', line: 3 }, { text: 'ponto 2 novo', line: 8 }],
+    open_questions: [{ text: 'e o Z?', line: 4, answer: '' }, { text: 'e o W?', line: 9, answer: '' }],
+  };
+  const merged = mergeInsights(prev, next);
+  assert.deepEqual(merged.points, [{ text: 'ponto 1', line: 3 }, { text: 'ponto 2 novo', line: 8 }]);
+  assert.deepEqual(merged.open_questions.map((q) => q.text), ['e o Z?', 'e o W?']);
+});
+
+test('mergeInsights collapses a reworded point that shares its transcript line', () => {
+  // points now carry a line, so a reworded point on the SAME line is matched and kept frozen
+  // (no duplicate). A point with no line (line 0) can still only be matched by its text.
+  const prev = { points: [{ text: 'Precisamos migrar o billing', line: 5 }] };
+  const reworded = mergeInsights(prev, { points: [{ text: 'Vamos ter que migrar o billing', line: 5 }] });
+  assert.deepEqual(reworded.points, [{ text: 'Precisamos migrar o billing', line: 5 }]);
+  const prev0 = { points: [{ text: 'ponto solto', line: 0 }] };
+  const same = mergeInsights(prev0, { points: [{ text: 'ponto solto.', line: 0 }] });
+  assert.deepEqual(same.points, [{ text: 'ponto solto', line: 0 }]); // casing/punctuation ignored
+});
+
+test('mergeInsights never drops an item the model stopped emitting', () => {
+  const prev = { points: [{ text: 'a', line: 1 }, { text: 'b', line: 2 }] };
+  const next = { points: [{ text: 'a', line: 1 }] }; // model dropped "b"
+  assert.deepEqual(mergeInsights(prev, next).points.map((p) => p.text), ['a', 'b']);
+});
+
+test('mergeInsights fills an open question answer that arrives in a later cycle', () => {
+  const prev = { open_questions: [{ text: 'Como medimos?', line: 5, answer: '' }] };
+  const next = { open_questions: [{ text: 'Como medimos de novo?', line: 5, answer: 'Pelos ativos.' }] };
+  const merged = mergeInsights(prev, next);
+  assert.equal(merged.open_questions.length, 1);
+  assert.equal(merged.open_questions[0].text, 'Como medimos?'); // text still frozen
+  assert.equal(merged.open_questions[0].answer, 'Pelos ativos.'); // answer enriched
+});
+
+test('mergeInsights takes the incoming topic, agenda, focus and marks (they move with the call)', () => {
+  const prev = {
+    topic: { title: 'Velho', summary: 'resumo velho' },
+    agenda: { items: ['a'], current: 0 },
+    focus: { on_agenda: true, since_line: 0 },
+    marks: [{ line: 2, kind: 'action' }],
+  };
+  const next = {
+    topic: { title: 'Novo', summary: 'resumo novo' },
+    agenda: { items: ['a', 'b'], current: 1 },
+    focus: { on_agenda: false, since_line: 12 },
+    marks: [{ line: 2, kind: 'action' }, { line: 8, kind: 'decision' }],
+  };
+  const merged = mergeInsights(prev, next);
+  assert.deepEqual(merged.topic, { title: 'Novo', summary: 'resumo novo' });
+  assert.deepEqual(merged.agenda, { items: ['a', 'b'], current: 1 });
+  assert.deepEqual(merged.focus, { on_agenda: false, since_line: 12 });
+  assert.deepEqual(merged.marks, [{ line: 2, kind: 'action' }, { line: 8, kind: 'decision' }]);
 });
 
 test('matchesQuery matches across fields, all words required', () => {

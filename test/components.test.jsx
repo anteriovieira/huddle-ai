@@ -95,9 +95,11 @@ test('InsightsView renders topic, sections and alerts from data', () => {
   assert.match(html, /Clean Code/);
   assert.match(html, /Perguntas/);
   assert.match(html, /e o Z\?/);
-  assert.match(html, /o Z fica pra sexta/);
-  assert.match(html, /Pode ser na sexta mesmo\./);
+  assert.match(html, /Você pode responder/);
   assert.match(html, /perguntar sobre o suporte/);
+  // Cards com corpo abrem colapsados: a resposta e a reply só aparecem ao expandir.
+  assert.doesNotMatch(html, /o Z fica pra sexta/);
+  assert.doesNotMatch(html, /Pode ser na sexta mesmo\./);
 });
 
 test('InsightsView prompts for an API key when missing', () => {

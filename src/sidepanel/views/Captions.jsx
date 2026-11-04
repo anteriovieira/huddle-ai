@@ -1,14 +1,19 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { formatClock } from '../lib/format.js';
+import { Icon } from '../ui/Icon.jsx';
 import { Avatar } from '../ui/primitives.jsx';
 
-const MARK_LABELS = { action: 'Ação', decision: 'Decisão', question: 'Pergunta' };
+const MARK_META = {
+  action: { label: 'Ação', icon: 'bolt' },
+  decision: { label: 'Decisão', icon: 'check' },
+  question: { label: 'Pergunta', icon: 'question' },
+};
 
 // Área rolável das legendas com acompanhamento ao vivo: enquanto o scroll está
 // no fim, novas falas rolam junto; ao subir, o auto-scroll pausa e aparece o
 // botão para voltar ao vivo. Funciona em qualquer largura (1, 2 ou 3 colunas),
 // porque é dona do próprio contêiner de scroll.
-export function CaptionsPanel({ utterances, huddle, marks }) {
+export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI }) {
   const scrollRef = useRef(null);
   const [follow, setFollow] = useState(true);
 
@@ -38,7 +43,7 @@ export function CaptionsPanel({ utterances, huddle, marks }) {
   return (
     <div className="captions-pane">
       <div className="captions-scroll" ref={scrollRef} onScroll={onScroll}>
-        <CaptionsView utterances={utterances} huddle={huddle} marks={marks} />
+        <CaptionsView utterances={utterances} huddle={huddle} marks={marks} onMarkClick={onMarkClick} onAskAI={onAskAI} />
       </div>
       {huddle.active && utterances.length > 0 && (
         <button
@@ -55,7 +60,7 @@ export function CaptionsPanel({ utterances, huddle, marks }) {
   );
 }
 
-export function CaptionsView({ utterances, huddle, marks }) {
+export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI }) {
   if (!utterances.length) {
     return (
       <div className="captions-empty">
@@ -91,8 +96,35 @@ export function CaptionsView({ utterances, huddle, marks }) {
                 <span className={live ? 'accent small strong' : 'muted small'}>{live ? 'agora' : formatClock(u.at)}</span>
               </div>
               <p className="caption__text">{u.text}</p>
-              {mark && <span className={`tag tag--${mark}`}>{`${MARK_LABELS[mark]} detectada`}</span>}
+              {mark &&
+                (onMarkClick ? (
+                  <button
+                    type="button"
+                    className={`tag tag--${mark} tag--btn`}
+                    title={`Ver ${MARK_META[mark].label.toLowerCase()}`}
+                    onClick={() => onMarkClick(index + 1, mark)}
+                  >
+                    <Icon name={MARK_META[mark].icon} />
+                    {`${MARK_META[mark].label} detectada`}
+                  </button>
+                ) : (
+                  <span className={`tag tag--${mark}`}>
+                    <Icon name={MARK_META[mark].icon} />
+                    {`${MARK_META[mark].label} detectada`}
+                  </span>
+                ))}
             </div>
+            {onAskAI && (
+              <button
+                type="button"
+                className="caption__ask"
+                title="Pedir mais contexto à IA"
+                aria-label="Pedir mais contexto à IA sobre esta fala"
+                onClick={() => onAskAI(`${u.speaker}: ${u.text}`)}
+              >
+                <Icon name="sparkles" />
+              </button>
+            )}
           </li>
         );
       })}

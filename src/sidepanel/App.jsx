@@ -17,6 +17,7 @@ import { InsightsView } from './views/Insights.jsx';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
+import { MarkDialog } from './ui/ConfirmDialog.jsx';
 import { toast } from 'sonner';
 import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
@@ -71,6 +72,14 @@ function download(filename, text, type = 'text/plain') {
 let chatSeq = 0;
 // Creates a chat with a fresh unique id. Call this in event handlers (not inside a setState
 // updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
+// "Give me more details about this item" in each language the settings offer, so the chat question
+// matches the user's chosen language (the answer language is enforced in the chat prompt too).
+const ASK_DETAIL_PROMPT = {
+  Português: (text) => `Me dê mais detalhes sobre isto, com base na reunião: "${text}"`,
+  English: (text) => `Give me more details about this, based on the meeting: "${text}"`,
+  Español: (text) => `Dame más detalles sobre esto, con base en la reunión: "${text}"`,
+};
+
 function newChat(index = 1) {
   return { id: `c${Date.now().toString(36)}${chatSeq++}`, title: `Chat ${index}`, messages: [] };
 }
@@ -129,6 +138,11 @@ export function App() {
   const [driveConnecting, setDriveConnecting] = useState(false);
   const [done, setDone] = useState(() => new Set());
   const [acked, setAcked] = useState(() => new Set());
+  // Insight cards the user marked as seen (hidden from the list), and whether to show them anyway.
+  const [seen, setSeen] = useState(() => new Set());
+  const [showAllSeen, setShowAllSeen] = useState(false);
+  // The insight item shown when a caption badge is clicked (what was decided/asked/assigned).
+  const [markDialog, setMarkDialog] = useState(null);
   // Context-recall cards: one per look-back question detected live, with the subagent's answer.
   const [contextCards, setContextCards] = useState([]);
   const [contextDismissed, setContextDismissed] = useState(() => new Set());
@@ -576,6 +590,66 @@ export function App() {
       else next.delete(key);
       return next;
     });
+  }, []);
+
+  const markSeen = useCallback(
+    (key) =>
+      setSeen((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
+  // Mark every key of a section as seen at once (additive — never unmarks), so "marcar todos"
+  // also covers cards not currently visible.
+  const markAllSeen = useCallback(
+    (keys) =>
+      setSeen((prev) => {
+        const next = new Set(prev);
+        for (const k of keys) next.add(k);
+        return next;
+      }),
+    [],
+  );
+  const toggleShowAllSeen = useCallback(() => setShowAllSeen((v) => !v), []);
+
+  // Resolve a caption badge (transcript line + kind) to the matching insight item and open it in a
+  // dialog. Decisions/actions/questions carry their line; falls back to the caption text if none.
+  const onMarkClick = useCallback((line, kind) => {
+    const data = latest.current.currentInsights?.data;
+    // Prefer the AI-generated insight item of this kind: the one on the exact line, else the one on
+    // the nearest line, else the first of its kind — so the dialog shows the insight text, not the
+    // raw caption. Only when no item of this kind exists do we fall back to the spoken line.
+    const pick = (items) => {
+      if (!items.length) return null;
+      const withLine = items.filter((x) => x.line > 0);
+      if (!withLine.length) return items[0];
+      return (
+        withLine.find((x) => x.line === line) ??
+        withLine.reduce((best, x) => (Math.abs(x.line - line) < Math.abs(best.line - line) ? x : best))
+      );
+    };
+    let item = null;
+    if (data && kind === 'question') {
+      const q = pick(data.open_questions ?? []);
+      if (q) item = { label: 'Pergunta', icon: 'question', tone: 'yellow', text: q.answer ? `${q.text}\n\n${q.answer}` : q.text, key: q.text };
+    } else if (data && kind === 'decision') {
+      const d = pick((data.decisions ?? []).map((x) => (typeof x === 'string' ? { text: x, line: 0 } : x)));
+      if (d) item = { label: 'Decisão', icon: 'check', tone: 'green', text: d.text, key: d.text };
+    } else if (data && kind === 'action') {
+      const a = pick(data.actions ?? []);
+      if (a) item = { label: 'Ação', icon: 'bolt', tone: 'green', text: a.text, owner: a.owner || '', key: a.text };
+    }
+    if (!item) {
+      const labels = { action: 'Ação', decision: 'Decisão', question: 'Pergunta' };
+      const icons = { action: 'bolt', decision: 'check', question: 'question' };
+      const tones = { action: 'green', decision: 'green', question: 'yellow' };
+      const text = latest.current.utterances[line - 1]?.text ?? '';
+      item = { label: labels[kind] ?? 'Detectado', icon: icons[kind] ?? 'bulb', tone: tones[kind] ?? 'blue', text, key: text };
+    }
+    setMarkDialog(item);
   }, []);
 
   // --- Downloads ---
@@ -1065,6 +1139,55 @@ export function App() {
     }
   }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, nameChat, flash]);
 
+  // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
+  // decision, action, question, reference…). Posts the question and streams the answer right away.
+  const askAboutInsight = useCallback(
+    async (topic) => {
+      const text = String(topic ?? '').trim();
+      if (!text) return;
+      setChatOpen(true);
+      if (!hasKeyForModel(latest.current.settings)) {
+        flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
+        return;
+      }
+      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.Português;
+      const question = build(text);
+      const chat = newChat();
+      setChats((prev) => ({
+        ...prev,
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [{ role: 'user', text: question }] }],
+      }));
+      setActiveChatId(chat.id);
+      setChatBusy((b) => new Set(b).add(chat.id));
+      setChatStream({ chatId: chat.id, text: '' });
+      nameChat(chat.id, question);
+      logEvent('info', `Detalhar insight no chat (${latest.current.utterances.length} falas)`);
+      try {
+        const answer = await askMeeting({
+          settings: latest.current.settings,
+          utterances: latest.current.utterances,
+          history: [],
+          question,
+          sessions: latest.current.pastSessions,
+          onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+          log: logEvent,
+        });
+        appendMessage(chat.id, { role: 'assistant', text: answer });
+      } catch (error) {
+        appendMessage(chat.id, { role: 'error', text: error.message });
+        logEvent('error', `Falha no chat: ${error.message}`);
+      } finally {
+        setChatBusy((b) => {
+          const next = new Set(b);
+          next.delete(chat.id);
+          return next;
+        });
+        setChatStream(null);
+      }
+    },
+    [appendMessage, nameChat, flash],
+  );
+
   // --- Derived view helpers ---
   const ataProps = (record) => ({
     done,
@@ -1182,6 +1305,22 @@ export function App() {
   const recentUtterances = utterances.slice(-3);
   const canCopySummary = !!currentInsights;
   const canPostSummary = !!currentInsights && !!huddle.active;
+  // How many of the insight cards currently shown have been marked as seen (so the "ver todos"
+  // toggle can show a count of what is hidden). Plain compute — this runs below the early returns,
+  // so it must not be a hook.
+  const seenKeys = currentInsights
+    ? [
+        ...(currentInsights.data.points ?? []).map((p) => (typeof p === 'string' ? p : p.text)),
+        ...(currentInsights.data.decisions ?? []).map((d) => (typeof d === 'string' ? d : d.text)),
+        ...(currentInsights.data.open_questions ?? []).map((q) => q.text),
+        ...(currentInsights.data.actions ?? []).map((a) => a.text),
+        ...(currentInsights.data.replies ?? []).map((r) => r.text),
+        ...(currentInsights.data.suggestions ?? []),
+        ...(currentInsights.data.references ?? []).map((r) => r.title),
+        ...(currentInsights.data.acronyms ?? []).map((a) => a.term),
+      ]
+    : [];
+  const hiddenSeen = seenKeys.filter((k) => seen.has(k)).length;
   const copySummary = () => currentInsights && copyToClipboard(insightsAsText(currentInsights.data, settings.detect));
   const postSummary = () => currentInsights && postToThread(insightsAsText(currentInsights.data, settings.detect));
 
@@ -1203,6 +1342,9 @@ export function App() {
     tickerHidden,
     hasRecent: recentUtterances.length > 0,
     onToggleTicker: () => setTickerHidden((v) => !v),
+    showAllSeen,
+    hiddenSeen,
+    onToggleShowAll: toggleShowAllSeen,
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
     onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
@@ -1231,11 +1373,16 @@ export function App() {
           onDismissContext={dismissContext}
           onOpenContextSource={openContextSource}
           onOpenSettings={openSettings}
+          onAskAI={askAboutInsight}
+          seen={seen}
+          showAllSeen={showAllSeen}
+          onMarkSeen={markSeen}
+          onMarkAllSeen={markAllSeen}
         />
       );
     }
     if (section === 'captions') {
-      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />;
+      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
     }
     return minutesRunning ? (
       <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} />
@@ -1297,7 +1444,7 @@ export function App() {
     <section className="pane" key={section}>
       <InfoBar tab={section} {...infoBarProps} />
       {section === 'captions' ? (
-        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
       ) : (
         <div className="pane__body">{panelContent(section)}</div>
       )}
@@ -1314,7 +1461,7 @@ export function App() {
         <Tabs tab={tab} onSelect={onSelectTab} />
         <InfoBar tab={tab} {...infoBarProps} />
         {tab === 'captions' ? (
-          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
         ) : (
           <main className={`main main--${tab}`} id="main">
             {panelContent(tab)}
@@ -1378,6 +1525,23 @@ export function App() {
           onCloseDock={toggleChat}
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
+        />
+      )}
+      {markDialog && (
+        <MarkDialog
+          label={markDialog.label}
+          icon={markDialog.icon}
+          tone={markDialog.tone}
+          text={markDialog.text}
+          owner={markDialog.owner}
+          seenOn={seen.has(markDialog.key)}
+          onAsk={() => {
+            askAboutInsight(markDialog.key);
+            setMarkDialog(null);
+          }}
+          onCopy={() => copyToClipboard(markDialog.text)}
+          onSeen={() => markSeen(markDialog.key)}
+          onClose={() => setMarkDialog(null)}
         />
       )}
     </>

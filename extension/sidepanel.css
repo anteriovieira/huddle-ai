@@ -447,6 +447,45 @@ select {
   color: var(--text-strong);
 }
 
+/* Insights section headers: a rule above and below, aligned to the card content width (not bled to
+   the panel edges) so the left and right gutters match despite the scrollbar on the right. */
+.stack--insights .section__title {
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* "Marcar todos": a quiet ghost action at the end of an insights section header. */
+.section__mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.section__mark:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.section__mark .icon {
+  width: 13px;
+  height: 13px;
+}
+
 .count {
   margin-left: 6px;
   font-weight: 400;
@@ -577,6 +616,43 @@ select {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+/* AI icon at the far right of a caption — hidden until the row is hovered or the button is focused;
+   opens the chat asking for more context about that line. */
+.caption__ask {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.caption:hover .caption__ask,
+.caption__ask:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.caption__ask:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.caption__ask .icon {
+  width: 14px;
+  height: 14px;
 }
 
 .caption__meta {
@@ -597,11 +673,39 @@ select {
 
 .tag {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
+}
+
+.tag .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* A clickable caption badge: resets button chrome, keeps the tag look, dims slightly on hover. */
+.tag--btn {
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag--btn:hover {
+  filter: brightness(1.12);
+}
+
+.mark-dialog__text {
+  color: var(--text-strong);
+  font-size: 15px;
+  line-height: 1.46;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .tag--action {
@@ -610,8 +714,8 @@ select {
 }
 
 .tag--decision {
-  background: var(--blue-bg);
-  color: var(--blue);
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .tag--question {
@@ -688,91 +792,7 @@ select {
   min-width: 0;
 }
 
-/* Lista de ações (action items) */
-
-.action-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.action-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-}
-
-.action-item__check {
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin: 1px 0 0;
-  border: 1.5px solid var(--border-strong);
-  border-radius: 5px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.action-item__check:hover {
-  border-color: var(--muted);
-}
-
-.action-item__check:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
-}
-
-.action-item__check:checked {
-  background: var(--green);
-  border-color: var(--green);
-}
-
-.action-item__check:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 4px;
-  height: 9px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.action-item__body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.action-item__title {
-  color: var(--text-strong);
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.action-item--done .action-item__title {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
-.action-item__meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+/* Dono e prazo de uma ação */
 
 .owner {
   display: inline-flex;
@@ -1671,7 +1691,7 @@ select {
 
 .q-card__head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 4px;
@@ -1710,7 +1730,40 @@ select {
   color: var(--purple);
 }
 
+.q-card__textbtn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-strong);
+  text-align: left;
+  cursor: pointer;
+}
+
+.q-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.q-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.q-chev {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
 .q-card__text {
+  display: block;
   margin: 0;
   font-size: 13px;
   line-height: 1.4;
@@ -1840,6 +1893,86 @@ select {
 
 .q-memory-status {
   margin: 8px 0 0;
+}
+
+/* Point / decision cards: a leading tone icon, the text, and a copy action, in the question style. */
+.q-card--row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.q-card--row .q-card__text {
+  flex: 1;
+}
+
+.q-row__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.q-row__icon .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.q-row__icon--blue {
+  color: var(--blue);
+}
+
+.q-row__icon--green {
+  color: var(--green);
+}
+
+.q-row__icon--purple {
+  color: var(--purple);
+}
+
+.q-row__icon--yellow {
+  color: var(--yellow);
+}
+
+.q-row__stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.q-row__title {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+/* Action cards: a check button marks done in place of a checkbox. */
+.q-state--action {
+  color: var(--green);
+}
+
+.q-check--done {
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+/* A card marked as seen shows a filled green circle-check (an empty circle otherwise). */
+.q-seen--on {
+  color: var(--green);
+}
+
+.q-card--done .q-card__text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.q-action__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .ata-item__meta {
@@ -2813,28 +2946,17 @@ a.ref__title {
 
 /* Timeline de tópicos */
 
-.topic__toggle {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  padding: 4px 0;
+/* Clicking the topic title/summary toggles the discussed-topics timeline. */
+.topic__head {
+  display: block;
+  width: 100%;
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-}
-
-.topic__toggle:hover {
-  color: var(--text-strong);
-}
-
-.topic__toggle .icon {
-  width: 14px;
-  height: 14px;
 }
 
 .timeline {

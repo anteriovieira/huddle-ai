@@ -107,9 +107,25 @@ function SummaryActions({
   tickerHidden,
   hasRecent,
   onToggleTicker,
+  showAllSeen,
+  hiddenSeen,
+  onToggleShowAll,
 }) {
   return (
     <div className="info__actions">
+      {(showAllSeen || hiddenSeen > 0) && (
+        <Tooltip label={showAllSeen ? 'Ocultar os vistos' : `Ver todos (${hiddenSeen} vistos)`}>
+          <button
+            className={showAllSeen ? 'icon-button icon-button--on' : 'icon-button'}
+            type="button"
+            aria-label={showAllSeen ? 'Ocultar os cards vistos' : 'Ver todos os cards, incluindo os vistos'}
+            aria-pressed={String(showAllSeen)}
+            onClick={onToggleShowAll}
+          >
+            <Icon name="layers" />
+          </button>
+        </Tooltip>
+      )}
       {onAnalyzeNow && (
         <Tooltip label={analyzing ? 'Analisando…' : 'Analisar agora'}>
           <button className="icon-button" type="button" aria-label="Analisar agora" disabled={analyzing} onClick={onAnalyzeNow}>
@@ -166,6 +182,9 @@ export function InfoBar({
   onCopyCaptions,
   onRegenerate,
   onOpenAtas,
+  showAllSeen,
+  hiddenSeen,
+  onToggleShowAll,
 }) {
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
@@ -189,6 +208,9 @@ export function InfoBar({
         tickerHidden={tickerHidden}
         hasRecent={hasRecent}
         onToggleTicker={onToggleTicker}
+        showAllSeen={showAllSeen}
+        hiddenSeen={hiddenSeen}
+        onToggleShowAll={onToggleShowAll}
       />
     );
     return (

@@ -11,15 +11,19 @@ export function Avatar({ name, size = 'md' }) {
   );
 }
 
-// A titled section with an optional count badge. Renders nothing when there are no children.
-export function Section({ title, count, children, ariaLabel }) {
+// A titled section with an optional count badge, plus an optional `action` rendered at the end of
+// the header (e.g. "marcar todos"). Renders nothing when there are no children.
+export function Section({ title, count, children, ariaLabel, action }) {
   const items = [].concat(children).filter(Boolean);
   if (!items.length) return null;
   return (
     <section className="section" aria-label={ariaLabel ?? title}>
       <h3 className="section__title">
-        {title}
-        {count != null && <span className="count">{String(count)}</span>}
+        <span className="section__label">
+          {title}
+          {count != null && <span className="count">{String(count)}</span>}
+        </span>
+        {action}
       </h3>
       {children}
     </section>

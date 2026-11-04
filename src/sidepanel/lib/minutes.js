@@ -208,9 +208,9 @@ export function insightsAsText(data, detect) {
     `*${data.topic.title}*`,
     data.topic.summary,
     '',
-    ...list('Pontos levantados', data.points),
+    ...list('Pontos levantados', data.points.map((p) => (typeof p === 'string' ? p : p.text))),
     ...(detect.actions ? list('Ações', data.actions.map((a) => (a.owner ? `${a.text} (${a.owner})` : a.text))) : []),
-    ...(detect.decisions ? list('Decisões', data.decisions) : []),
+    ...(detect.decisions ? list('Decisões', data.decisions.map((d) => (typeof d === 'string' ? d : d.text))) : []),
     ...(detect.questions
       ? list(
           'Em aberto',
