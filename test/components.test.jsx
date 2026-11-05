@@ -221,7 +221,7 @@ test('Header has the sessions button and no insights copy/post actions', () => {
   assert.doesNotMatch(html, /Postar no thread/);
 });
 
-test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => {
+test('InfoBar shows copy and the ticker toggle on the insights tab, but not thread-post', () => {
   const html = render(
     h(
       TooltipProvider,
@@ -249,8 +249,32 @@ test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => 
     ),
   );
   assert.match(html, /aria-label="Copiar resumo"/);
-  assert.match(html, /aria-label="Postar no thread"/);
+  assert.doesNotMatch(html, /aria-label="Postar no thread"/); // posting the thread lives on the Ata info bar
   assert.match(html, /aria-label="Ocultar últimas falas"/);
+});
+
+test('InfoBar shows thread-post on the ata tab', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InfoBar, {
+        tab: 'ata',
+        settings: { apiKeys: { anthropic: 'sk-ant-x' }, autoMinutes: true },
+        analysis: { running: false, error: null },
+        huddle: { active: true },
+        utteranceCount: 3,
+        currentMinutes: null,
+        minutesRunning: false,
+        canPostMinutes: true,
+        onPostMinutes() {},
+        now: Date.now(),
+        onOpenAtas() {},
+        onRegenerate() {},
+      }),
+    ),
+  );
+  assert.match(html, /aria-label="Postar no thread"/);
 });
 
 test('AtasList renders Slack-like rows: title, icon, avatars and a kebab menu', () => {

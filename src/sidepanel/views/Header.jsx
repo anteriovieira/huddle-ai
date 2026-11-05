@@ -176,11 +176,6 @@ function SummaryActions({
           <Icon name="copy" />
         </button>
       </Tooltip>
-      <Tooltip label="Postar no thread">
-        <button className="icon-button" type="button" aria-label="Postar no thread" disabled={!canPostSummary} onClick={onPostSummary}>
-          <Icon name="plane" />
-        </button>
-      </Tooltip>
       {hasRecent && (
         <Tooltip label={tickerHidden ? 'Mostrar últimas falas' : 'Ocultar últimas falas'}>
           <button
@@ -190,7 +185,7 @@ function SummaryActions({
             aria-pressed={String(!tickerHidden)}
             onClick={onToggleTicker}
           >
-            <Icon name={tickerHidden ? 'eye-off' : 'eye'} />
+            <Icon name="subtitles" />
           </button>
         </Tooltip>
       )}
@@ -214,6 +209,8 @@ export function InfoBar({
   canPostSummary,
   onCopySummary,
   onPostSummary,
+  canPostMinutes,
+  onPostMinutes,
   onAnalyzeNow,
   tickerHidden,
   hasRecent,
@@ -240,6 +237,9 @@ export function InfoBar({
         </div>
       );
     }
+    // A análise automática só roda num huddle ao vivo. Fora disso (sessão carregada/importada/
+    // encerrada) não faz sentido mostrar pausa nem contagem regressiva.
+    const live = Boolean(huddle?.active);
     const actions = (
       <SummaryActions
         canCopySummary={canCopySummary}
@@ -248,8 +248,8 @@ export function InfoBar({
         onPostSummary={onPostSummary}
         onAnalyzeNow={onAnalyzeNow}
         analyzing={analysis.running}
-        paused={analysisPaused}
-        onTogglePause={onTogglePause}
+        paused={live ? analysisPaused : false}
+        onTogglePause={live ? onTogglePause : undefined}
         deckMode={deckMode}
         onToggleDeck={onToggleDeck}
         tickerHidden={tickerHidden}
@@ -261,23 +261,18 @@ export function InfoBar({
       />
     );
     // Conta quanto falta para a próxima análise automática: lastRunAt + intervalo − agora.
-    const remainingMs = analysisLastRunAt ? analysisLastRunAt + settings.freq * 1000 - now : 0;
-    const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+    const remaining = Math.max(0, Math.ceil((analysisLastRunAt + settings.freq * 1000 - now) / 1000));
     let status;
-    if (analysis.running) status = 'Analisando as últimas falas…';
-    else if (analysisPaused) status = 'Análise automática pausada. Use “Analisar agora”.';
-    else if (!analysisLastRunAt) status = `Analisando legendas a cada ${settings.freq} s.`;
-    else if (remaining > 0) status = `Próxima análise em ${remaining} s.`;
+    if (!live) status = 'Insights desta sessão.';
+    else if (analysis.running) status = 'Analisando…';
+    else if (analysisPaused) status = 'Análise pausada.';
+    else if (!analysisLastRunAt) status = `Analisando a cada ${settings.freq}s.`;
+    else if (remaining > 0) status = `Próxima análise em ${remaining}s.`;
     else status = 'Analisando na próxima fala…';
     return (
       <div className="info info--row">
         <span className="info__text" role={analysis.running ? 'status' : undefined}>
-          {status}{' '}
-          {!analysis.running && (
-            <button className="link" type="button" onClick={onOpenSettings}>
-              Alterar
-            </button>
-          )}
+          {status}
         </span>
         {actions}
       </div>
@@ -332,6 +327,8 @@ export function InfoBar({
     <AtaInfo
       onRegenerate={onRegenerate}
       onOpenList={onOpenAtas}
+      onPost={onPostMinutes}
+      canPost={canPostMinutes}
       busy={minutesRunning}
       minutes={currentMinutes}
       autoMinutes={settings.autoMinutes}

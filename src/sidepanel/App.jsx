@@ -1370,6 +1370,8 @@ export function App() {
     canPostSummary,
     onCopySummary: copySummary,
     onPostSummary: postSummary,
+    canPostMinutes: !!currentMinutes && !!huddle?.active,
+    onPostMinutes: () => currentMinutes && postToThread(minutesAsText(currentMinutes, 'slack')),
     onAnalyzeNow: analyzeNow,
     tickerHidden,
     hasRecent: recentUtterances.length > 0,

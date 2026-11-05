@@ -198,7 +198,7 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
   );
 }
 
-export function AtaInfo({ onRegenerate, onOpenList, busy, minutes, autoMinutes, now }) {
+export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minutes, autoMinutes, now }) {
   let text;
   if (busy) {
     text = 'Gerando a ata…';
@@ -220,6 +220,13 @@ export function AtaInfo({ onRegenerate, onOpenList, busy, minutes, autoMinutes, 
           <Tooltip label={busy ? 'Gerando…' : 'Gerar ata'}>
             <button className="icon-button" type="button" aria-label="Gerar ata" disabled={busy} onClick={onRegenerate}>
               <Icon name="sparkles" />
+            </button>
+          </Tooltip>
+        )}
+        {onPost && (
+          <Tooltip label="Postar no thread">
+            <button className="icon-button" type="button" aria-label="Postar no thread" disabled={!canPost} onClick={onPost}>
+              <Icon name="plane" />
             </button>
           </Tooltip>
         )}
@@ -261,9 +268,6 @@ export function AtaFooter({ record, onCopy, canPost, onPost, onDownload, uploade
       <div className="buttons">
         <button className="button button--primary" type="button" onClick={onCopy}>
           Copiar ata
-        </button>
-        <button className="button" type="button" disabled={!canPost} onClick={onPost}>
-          Postar no thread
         </button>
         <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} />
         <Tooltip label="Baixar ata em Markdown (.md)">
