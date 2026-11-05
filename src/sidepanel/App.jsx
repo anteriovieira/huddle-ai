@@ -364,6 +364,7 @@ export function App() {
         settings: s,
         utterances: u,
         previous: ci?.data,
+        sinceLine: ctl.lastCount ?? 0,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -373,6 +374,7 @@ export function App() {
         decisoes: data.decisions.length,
       });
       ctl.lastKey = key;
+      ctl.lastCount = u.length; // próxima análise manda só o que vier depois daqui
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
@@ -408,6 +410,7 @@ export function App() {
         settings: s,
         utterances: u,
         previous: ci?.data,
+        sinceLine: ctl.lastCount ?? 0,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -417,6 +420,7 @@ export function App() {
         decisoes: data.decisions.length,
       });
       ctl.lastKey = transcriptKey();
+      ctl.lastCount = u.length;
       ctl.lastRunAt = Date.now(); // reinicia o intervalo a partir de agora
       setAnalysisLastRunAt(ctl.lastRunAt);
       setAnalysisError(null);
@@ -744,6 +748,7 @@ export function App() {
   const saveSettings = useCallback(async (next) => {
     setSettings(next);
     analysisCtl.current.lastKey = '';
+    analysisCtl.current.lastCount = 0; // settings mudaram: reanalisa a transcrição inteira
     minutesCtl.current.failedFor = null;
     setAnalysisError(null);
     await chromeApi?.storage.local.set({ settings: next });
@@ -857,6 +862,7 @@ export function App() {
         const record = { huddleId, updatedAt: Date.now(), data };
         setInsights(record);
         completedHuddle.current = huddleId;
+        analysisCtl.current.lastCount = latest.current.utterances.length;
         await chromeApi?.storage.session.set({ insights: record });
         await saveInsightsToHistory(huddleId, data);
       } catch (error) {
@@ -982,6 +988,7 @@ export function App() {
   useEffect(() => {
     analysisCtl.current.ctrl?.abort(); // descarta análise em voo da sessão anterior
     completedHuddle.current = null; // novo huddle volta a usar streaming no primeiro preenchimento
+    analysisCtl.current.lastCount = 0; // novo huddle: próxima análise manda a transcrição inteira
     contextSeen.current = new Set();
     setContextCards([]);
     setContextDismissed(new Set());

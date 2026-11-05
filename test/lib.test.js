@@ -34,6 +34,16 @@ test('formatTranscript numbers lines with clock, speaker and text', () => {
   assert.equal(out, '#1 [00:00] Ana: oi\n#2 [00:05] Lucas: tudo bem');
 });
 
+test('formatTranscript windows from an index keeping absolute line numbers', () => {
+  const utt = [
+    { speaker: 'Ana', text: 'oi', at: 0 },
+    { speaker: 'Lucas', text: 'tudo bem', at: 5000 },
+    { speaker: 'Bia', text: 'vamos', at: 9000 },
+  ];
+  assert.equal(formatTranscript(utt, 2), '#3 [00:09] Bia: vamos');
+  assert.equal(formatTranscript(utt, 0), formatTranscript(utt));
+});
+
 test('formatDuration rounds to minutes and hours', () => {
   assert.equal(formatDuration(30 * 1000), '1 min');
   assert.equal(formatDuration(5 * 60 * 1000), '5 min');

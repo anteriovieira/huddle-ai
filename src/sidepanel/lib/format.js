@@ -11,9 +11,15 @@ export function formatClock(ms) {
   return hours ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
 }
 
-// Numbered transcript the model reads: "#1 [00:03] Ana: olá".
-export function formatTranscript(utterances) {
-  return utterances.map((u, i) => `#${i + 1} [${formatClock(u.at)}] ${u.speaker}: ${u.text}`).join('\n');
+// Numbered transcript the model reads: "#1 [00:03] Ana: olá". `fromIndex` renders only from that
+// 0-based line onward (for incremental analysis) while keeping absolute line numbers (#), so marks
+// and the insight line references stay stable across cycles. Default 0 renders the whole transcript.
+export function formatTranscript(utterances, fromIndex = 0) {
+  const from = Math.max(0, fromIndex);
+  return utterances
+    .slice(from)
+    .map((u, k) => `#${from + k + 1} [${formatClock(u.at)}] ${u.speaker}: ${u.text}`)
+    .join('\n');
 }
 
 // A relative "há 12s / há 3 min / há 2 h" string. `now` is injectable for tests.

@@ -206,6 +206,7 @@ function insightsSystem(settings) {
       : 'context_queries: moments where someone asks about something from a PAST meeting or earlier context that this transcript does not contain — a decision made before, a number or figure quoted previously, what was agreed last time ("o que decidimos na reunião passada sobre X", "alguém lembra o número que trouxemos semana passada?"). text is the question rewritten as a clear standalone query that could be answered from past meeting minutes; about is a few words naming the subject; line is the transcript # where it was asked. Only genuine look-backs to earlier meetings, never questions this meeting can answer on its own. When a question you also listed in open_questions is such a look-back, include it here too with the SAME line number, so its past-meeting answer can be shown on that question. Return an empty list when there are none.',
     disabled.length ? `Return ${disabled.join(', ')} as empty lists; the user turned them off.` : '',
     settings.detect?.alerts === false ? 'Return alerts as an empty list; the user turned personal alerts off.' : '',
+    'The transcript may arrive as <transcript_window> instead of the full <transcript>: that means only the NEW lines since your last run are included (with their original line numbers), and every earlier line is already reflected in <previous_insights>. Treat the earlier lines as still present; do not drop items just because their line is not in the window.',
     'You also get your previous insights in <previous_insights>: the complete set of items you have already surfaced in this meeting, each list item carrying the transcript line it came from. These items are already shown to the user and some may already be marked as seen, so they are FIXED. For every list (points, actions, decisions, open_questions, suggestions, replies, references, acronyms, alerts), carry each previous item forward EXACTLY as given — same text and same line — and only append items that are genuinely new. Do not reword, merge, split, reorder, renumber or drop an item that is already there; if a point, action, decision or question you would write restates one already in <previous_insights>, do not create it again — it is already covered. The only change you may make to an existing item is filling an open_question\'s answer when the transcript now answers it (keep that question\'s text and line unchanged). The sole exceptions are topic, topics, agenda and focus, which track the current state of the discussion and should reflect the latest lines.',
   ]
     .filter(Boolean)
@@ -240,13 +241,30 @@ function describeError(error) {
 // popping after the full blocking call. `onPartial(data)` receives each cumulative partial, already
 // normalized to a safe shape. `abortSignal` lets the caller cancel a stale run (e.g. the huddle
 // ended) without paying for the rest. Returns the final, normalized object.
-export async function analyze({ settings, utterances, previous, onPartial, abortSignal }) {
+// Overlap de falas já analisadas reenviadas antes das novas, para o modelo não perder a emenda
+// entre um ciclo e o próximo quando o envio é incremental.
+const ANALYZE_OVERLAP = 6;
+
+export async function analyze({ settings, utterances, previous, sinceLine = 0, onPartial, abortSignal }) {
   try {
+    // Envio incremental: quando já há uma análise anterior, manda só as falas novas (mais um
+    // pequeno overlap), com a numeração absoluta preservada. As falas anteriores já estão
+    // resumidas em <previous_insights>, que o prompt manda carregar adiante. Na primeira análise
+    // (sem `previous`) manda a transcrição inteira.
+    const from = previous ? Math.max(0, Math.min(sinceLine, utterances.length) - ANALYZE_OVERLAP) : 0;
+    const windowed = from > 0;
+    const transcript = formatTranscript(utterances, from);
+    const prompt = [
+      `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>`,
+      windowed
+        ? `<transcript_window from="#${from + 1}" total="${utterances.length}">\nAs falas anteriores a #${from + 1} já estão refletidas em <previous_insights>; aqui vão apenas as falas novas (a partir de #${from + 1}), com a numeração original.\n${transcript}\n</transcript_window>`
+        : `<transcript>\n${transcript}\n</transcript>`,
+    ].join('\n\n');
     const last = await streamStructured({
       settings,
       schema: InsightsSchema,
       system: insightsSystem(settings),
-      prompt: `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>\n\n<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
+      prompt,
       maxOutputTokens: 8000,
       abortSignal,
       onPartial: (partial) => onPartial?.(normalizeInsights(partial)),
