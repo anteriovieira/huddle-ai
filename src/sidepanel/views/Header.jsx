@@ -159,7 +159,7 @@ function SummaryActions({
             aria-pressed={String(showAllSeen)}
             onClick={onToggleShowAll}
           >
-            <Icon name="layers" />
+            <Icon name="check-double" />
           </button>
         </Tooltip>
       )}
