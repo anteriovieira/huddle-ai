@@ -125,12 +125,13 @@ function SummaryActions({
   return (
     <div className="info__actions">
       {onToggleDeck && (
-        <Tooltip label={deckMode ? 'Ver cards em lista' : 'Empilhar cards (deck)'}>
+        <Tooltip label={showAllSeen ? 'Deck indisponível com “ver todos” ligado' : deckMode ? 'Ver cards em lista' : 'Empilhar cards (deck)'}>
           <button
-            className={deckMode ? 'icon-button icon-button--on' : 'icon-button'}
+            className={deckMode && !showAllSeen ? 'icon-button icon-button--on' : 'icon-button'}
             type="button"
             aria-label={deckMode ? 'Ver cards em lista' : 'Empilhar cards em deck'}
-            aria-pressed={String(Boolean(deckMode))}
+            aria-pressed={String(Boolean(deckMode && !showAllSeen))}
+            disabled={showAllSeen}
             onClick={onToggleDeck}
           >
             <Icon name="deck" />

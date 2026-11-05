@@ -1412,7 +1412,7 @@ export function App() {
           showAllSeen={showAllSeen}
           onMarkSeen={markSeen}
           onMarkAllSeen={markAllSeen}
-          deck={deckMode}
+          deck={deckMode && !showAllSeen}
         />
       );
     }
