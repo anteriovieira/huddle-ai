@@ -339,6 +339,19 @@ select {
   margin-top: auto;
 }
 
+/* Lista virtualizada: contêiner em bloco (sem ancoragem flex no fim) e falas posicionadas de forma
+   absoluta dentro de uma <ol> com a altura total calculada. */
+.captions-scroll--virtual {
+  display: block;
+}
+
+.captions--virtual {
+  position: relative;
+  display: block;
+  gap: 0;
+  width: 100%;
+}
+
 /* Colunas lado a lado (painel expandido) */
 
 .panes {
