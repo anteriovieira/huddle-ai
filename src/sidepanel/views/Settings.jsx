@@ -10,6 +10,11 @@ const CAPTION_SOURCES = [
   ['overlay', 'Legendas sobre os vídeos'],
 ];
 const FREQUENCIES = [15, 30, 60];
+const VERBOSITY_OPTS = [
+  ['curto', 'Curto'],
+  ['normal', 'Normal'],
+  ['detalhado', 'Detalhado'],
+];
 
 export function SettingsView({
   settings,
@@ -56,6 +61,7 @@ export function SettingsView({
       model: draft.model.trim(),
       modelProvider: draft.modelProvider,
       language: draft.language,
+      verbosity: draft.verbosity,
       freq: Number(draft.freq),
       userName: draft.userName.trim(),
       captionSource: draft.captionSource,
@@ -188,6 +194,26 @@ export function SettingsView({
                 </div>
               </Field>
             </div>
+            <Field
+              label="Tamanho das respostas"
+              htmlFor="verbosity"
+              hint="Curto deixa insights e respostas enxutos, pra ler rápido na reunião. Detalhado permite mais contexto."
+            >
+              <div className="segmented" role="radiogroup" aria-label="Tamanho das respostas">
+                {VERBOSITY_OPTS.map(([value, label]) => (
+                  <label key={value} className="segmented__opt">
+                    <input
+                      type="radio"
+                      name="verbosity"
+                      value={value}
+                      checked={draft.verbosity === value}
+                      onChange={() => set('verbosity', value)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
             <Field
               label="Seu nome no huddle"
               htmlFor="userName"

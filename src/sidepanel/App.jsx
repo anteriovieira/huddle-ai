@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS = {
   // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
   modelProvider: '',
   language: 'Português',
+  // Tamanho das respostas do modelo: 'curto' | 'normal' | 'detalhado' (ver insights.js VERBOSITY).
+  verbosity: 'normal',
   freq: 30,
   userName: '',
   detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true, context: true },
@@ -75,9 +77,9 @@ let chatSeq = 0;
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
 const ASK_DETAIL_PROMPT = {
-  Português: (text) => `Me dê mais detalhes sobre isto, com base na reunião: "${text}"`,
-  English: (text) => `Give me more details about this, based on the meeting: "${text}"`,
-  Español: (text) => `Dame más detalles sobre esto, con base en la reunión: "${text}"`,
+  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
+  English: (text) => `Briefly explain this in 1-2 sentences, based on the meeting: "${text}"`,
+  Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
 };
 
 function newChat(index = 1) {
@@ -109,6 +111,9 @@ export function App() {
   const [logs, setLogs] = useState([]);
   const [chats, setChats] = useState({ huddleId: null, list: [] });
   const [slackOpen, setSlackOpen] = useState(false);
+  // A aba em foco na janela é o Slack? Quando não é (e existe uma aba do Slack), o cabeçalho
+  // mostra um botão para voltar ao Slack.
+  const [onSlackTab, setOnSlackTab] = useState(true);
   const [slackReloadTabId, setSlackReloadTabId] = useState(null);
   const [driveState, setDriveState] = useState({ connected: false, email: null });
   const [now, setNow] = useState(Date.now());
@@ -153,6 +158,10 @@ export function App() {
   const minutesCtl = useRef({ running: false, startedAt: 0, failedFor: null });
   const [analysisRunning, setAnalysisRunning] = useState(false);
   const [analysisError, setAnalysisError] = useState(null);
+  // Momento da última análise disparada (espelho visível de analysisCtl.lastRunAt), para a InfoBar
+  // mostrar a contagem regressiva até a próxima. Pausa do loop automático (análise só sob demanda).
+  const [analysisLastRunAt, setAnalysisLastRunAt] = useState(0);
+  const [analysisPaused, setAnalysisPaused] = useState(false);
   const [minutesRunning, setMinutesRunning] = useState(false);
   const [minutesStartedAt, setMinutesStartedAt] = useState(0);
   const [minutesError, setMinutesError] = useState(null);
@@ -297,11 +306,17 @@ export function App() {
     const nextStale = extStateRef.current.huddle?.active ? null : staleTab;
     setSlackOpen(next);
     setSlackReloadTabId(nextStale);
+    try {
+      const [active] = await chromeApi.tabs.query({ active: true, currentWindow: true });
+      setOnSlackTab(/^https:\/\/app\.slack\.com\//.test(active?.url ?? ''));
+    } catch {
+      setOnSlackTab(true);
+    }
   }, []);
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab };
+  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
@@ -326,15 +341,16 @@ export function App() {
   }, []);
 
   const maybeAnalyze = useCallback(async () => {
-    const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
+    const { huddle: h, utterances: u, settings: s, currentInsights: ci, analysisPaused: paused } = latest.current;
     const ctl = analysisCtl.current;
-    if (ctl.running || !h?.active || !hasKeyForModel(s) || !u.length) return;
+    if (paused || ctl.running || !h?.active || !hasKeyForModel(s) || !u.length) return;
     const key = transcriptKey();
     if (key === ctl.lastKey) return;
     if (Date.now() - ctl.lastRunAt < s.freq * 1000) return;
 
     ctl.running = true;
     ctl.lastRunAt = Date.now();
+    setAnalysisLastRunAt(ctl.lastRunAt);
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
@@ -378,6 +394,7 @@ export function App() {
     if (ctl.running || !h || !hasKeyForModel(s) || !u.length) return;
     ctl.running = true;
     ctl.lastRunAt = Date.now();
+    setAnalysisLastRunAt(ctl.lastRunAt);
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas agora com ${s.model}`);
     const startedAt = Date.now();
@@ -398,6 +415,7 @@ export function App() {
       });
       ctl.lastKey = transcriptKey();
       ctl.lastRunAt = Date.now(); // reinicia o intervalo a partir de agora
+      setAnalysisLastRunAt(ctl.lastRunAt);
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
@@ -1282,6 +1300,7 @@ export function App() {
           version={version()}
           chatOpen={false}
           now={now}
+          onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
           onOpenAtas={openAtas}
           onToggleChat={toggleChat}
           onOpenLogs={openLogs}
@@ -1329,6 +1348,9 @@ export function App() {
   const infoBarProps = {
     settings,
     analysis: { running: analysisRunning, error: analysisError },
+    analysisPaused,
+    analysisLastRunAt,
+    onTogglePause: () => setAnalysisPaused((v) => !v),
     huddle,
     now,
     utteranceCount: utterances.length,
@@ -1502,6 +1524,7 @@ export function App() {
         chatOpen={chatOpen}
         now={now}
         onHome={huddle?.loaded ? goHome : undefined}
+        onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
         onOpenAtas={openAtas}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}

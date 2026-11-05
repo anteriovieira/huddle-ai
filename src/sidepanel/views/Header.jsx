@@ -14,6 +14,7 @@ export function Header({
   now,
   onHome,
   onOpenAtas,
+  onReturnToSlack,
 }) {
   return (
     <header className="header">
@@ -31,6 +32,12 @@ export function Header({
         ) : (
           <span className="pill">Encerrado</span>
         ))}
+      {onReturnToSlack && (
+        <button className="button button--small header__slack" type="button" onClick={onReturnToSlack}>
+          <Icon name="enter" />
+          Voltar ao Slack
+        </button>
+      )}
       {onHome && (
         <Tooltip label="Página principal" side="bottom">
           <button className="icon-button" type="button" aria-label="Página principal" onClick={onHome}>
@@ -104,6 +111,8 @@ function SummaryActions({
   onPostSummary,
   onAnalyzeNow,
   analyzing,
+  paused,
+  onTogglePause,
   tickerHidden,
   hasRecent,
   onToggleTicker,
@@ -113,6 +122,19 @@ function SummaryActions({
 }) {
   return (
     <div className="info__actions">
+      {onTogglePause && (
+        <Tooltip label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}>
+          <button
+            className={paused ? 'icon-button icon-button--on' : 'icon-button'}
+            type="button"
+            aria-label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}
+            aria-pressed={String(Boolean(paused))}
+            onClick={onTogglePause}
+          >
+            <Icon name={paused ? 'play' : 'pause'} />
+          </button>
+        </Tooltip>
+      )}
       {(showAllSeen || hiddenSeen > 0) && (
         <Tooltip label={showAllSeen ? 'Ocultar os vistos' : `Ver todos (${hiddenSeen} vistos)`}>
           <button
@@ -164,6 +186,9 @@ export function InfoBar({
   tab,
   settings,
   analysis,
+  analysisPaused,
+  analysisLastRunAt,
+  onTogglePause,
   huddle,
   now,
   utteranceCount,
@@ -205,6 +230,8 @@ export function InfoBar({
         onPostSummary={onPostSummary}
         onAnalyzeNow={onAnalyzeNow}
         analyzing={analysis.running}
+        paused={analysisPaused}
+        onTogglePause={onTogglePause}
         tickerHidden={tickerHidden}
         hasRecent={hasRecent}
         onToggleTicker={onToggleTicker}
@@ -213,18 +240,23 @@ export function InfoBar({
         onToggleShowAll={onToggleShowAll}
       />
     );
+    // Conta quanto falta para a próxima análise automática: lastRunAt + intervalo − agora.
+    const remainingMs = analysisLastRunAt ? analysisLastRunAt + settings.freq * 1000 - now : 0;
+    const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+    let status;
+    if (analysis.running) status = 'Analisando as últimas falas…';
+    else if (analysisPaused) status = 'Análise automática pausada. Use “Analisar agora”.';
+    else if (!analysisLastRunAt) status = `Analisando legendas a cada ${settings.freq} s.`;
+    else if (remaining > 0) status = `Próxima análise em ${remaining} s.`;
+    else status = 'Analisando na próxima fala…';
     return (
       <div className="info info--row">
         <span className="info__text" role={analysis.running ? 'status' : undefined}>
-          {analysis.running ? (
-            'Analisando as últimas falas…'
-          ) : (
-            <>
-              {`Analisando legendas a cada ${settings.freq} s. `}
-              <button className="link" type="button" onClick={onOpenSettings}>
-                Alterar
-              </button>
-            </>
+          {status}{' '}
+          {!analysis.running && (
+            <button className="link" type="button" onClick={onOpenSettings}>
+              Alterar
+            </button>
           )}
         </span>
         {actions}

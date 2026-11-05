@@ -181,6 +181,16 @@ select {
   font-size: 17px;
 }
 
+.header__slack {
+  white-space: nowrap;
+  gap: 5px;
+}
+
+.header__slack .icon {
+  width: 15px;
+  height: 15px;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
