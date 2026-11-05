@@ -15,6 +15,21 @@ function dueTone(due) {
 
 const DRIFT_THRESHOLD_MS = 90 * 1000;
 
+// Tempo relativo ("há 4 min") de um card a partir da fala que o originou (seu `line`). O timestamp
+// absoluto da fala é huddle.startedAt + u.at. Retorna null quando o card não tem linha (ex.: sugestões).
+function cardAgo(line, utterances, huddle, now) {
+  if (!line) return null;
+  const u = utterances[line - 1];
+  if (!u) return null;
+  return ago((huddle?.startedAt ?? 0) + u.at, now);
+}
+
+// Ordena cards do mais recente para o mais antigo pela linha da transcrição (linhas só crescem, então
+// linha maior = mais recente). Cards sem linha vão para o fim, mantendo a ordem relativa entre si.
+function recentFirst(items) {
+  return [...items].sort((a, b) => (b.line || 0) - (a.line || 0));
+}
+
 const ALERT_META = {
   mention: { tone: 'purple', icon: 'at', title: 'Te mencionaram', tag: 'menção' },
   action: { tone: 'green', icon: 'check', title: 'Ação atribuída a você', tag: 'ação' },
@@ -166,9 +181,9 @@ function AskButton({ topic, onAsk }) {
   );
 }
 
-// Marks this card as seen, which hides it from the list until the user shows all again. An empty
-// circle means unseen; once marked it fills with a green check, so when "ver todos" is on the user
-// can tell which cards were already seen. Clicking again unmarks it.
+// Marks this card as seen, which hides it from the list until the user shows all again. Estilo
+// WhatsApp: um único check significa não visto; dois checks (azul) significa visto. Clicar de novo
+// desmarca.
 function SeenButton({ topic, onSeen, seen }) {
   if (!onSeen) return null;
   const on = Boolean(seen?.has(topic));
@@ -181,7 +196,7 @@ function SeenButton({ topic, onSeen, seen }) {
       aria-pressed={String(on)}
       onClick={() => onSeen(topic)}
     >
-      <Icon name={on ? 'seen' : 'circle'} />
+      <Icon name={on ? 'check-double' : 'check'} />
     </button>
   );
 }
@@ -201,7 +216,7 @@ function MarkAllButton({ keys, onMarkAll, seen }) {
       aria-label="Marcar todos como vistos"
       onClick={() => onMarkAll(keys)}
     >
-      <Icon name="seen" />
+      <Icon name="check-double" />
       Marcar todos
     </button>
   );
@@ -209,7 +224,7 @@ function MarkAllButton({ keys, onMarkAll, seen }) {
 
 // A top-level question card made only of a labelled bar with its actions and one line of text —
 // shared by the orphan-reply and the proposal cards, which differ only in accent, icon and labels.
-function CopyCard({ variant, icon, label, text, copyLabel, onAsk, onSeen, seen }) {
+function CopyCard({ variant, icon, label, text, time, copyLabel, onAsk, onSeen, seen }) {
   return (
     <div className={`q-card q-card--${variant}`}>
       <div className="q-bar">
@@ -217,6 +232,7 @@ function CopyCard({ variant, icon, label, text, copyLabel, onAsk, onSeen, seen }
           <Icon name={icon} /> {label}
         </span>
         <span className="q-actions">
+          {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={text} onAsk={onAsk} />
           <CopyButton text={text} label={copyLabel} />
           <SeenButton topic={text} onSeen={onSeen} seen={seen} />
@@ -272,9 +288,8 @@ const Q_STATE_LABEL = {
 // One question, carrying whatever the meeting knows about it: an answer said in the call, a
 // ready-to-paste reply, and/or a past-meeting match. The dominant facet sets the state accent.
 // `memory` is only ever a loading or a resolved hit (empty/error recalls surface as orphan cards).
-function QuestionCard({ question, reply, memory, utterances, onOpenSource, onAsk, onSeen, seen }) {
+function QuestionCard({ question, reply, memory, time, utterances, onOpenSource, onAsk, onSeen, seen }) {
   const [expanded, setExpanded] = useState(false);
-  const at = question.line ? utterances[question.line - 1] : null;
   const showAnswer = Boolean(question.answer);
   const memoryDone = memory && memory.status === 'done' && memory.result?.found;
   const state = reply ? 'reply' : showAnswer ? 'answered' : memoryDone ? 'memory' : 'open';
@@ -288,7 +303,7 @@ function QuestionCard({ question, reply, memory, utterances, onOpenSource, onAsk
       <div className="q-card__head">
         <span className={`q-state q-state--${state}`}>{Q_STATE_LABEL[state]}</span>
         <span className="q-card__meta">
-          {at && <span className="muted small">{formatClock(at.at)}</span>}
+          {time && <span className="muted small">{time}</span>}
           <AskButton topic={question.text} onAsk={onAsk} />
           <SeenButton topic={question.text} onSeen={onSeen} seen={seen} />
           {hasBody && (
@@ -342,9 +357,9 @@ function QuestionCard({ question, reply, memory, utterances, onOpenSource, onAsk
 
 // The merged "Perguntas" section: every open question with its answer/reply/memory woven in, then
 // look-backs with no matching question, orphan replies, and things the user could raise.
-function QuestionsSection({ data, utterances, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen }) {
+function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen }) {
   const hidden = (key) => !showAllSeen && seen?.has(key);
-  const questions = (detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text));
+  const questions = recentFirst((detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text)));
   const replies = detect.replies ? data.replies ?? [] : [];
   const suggestions = (detect.suggestions ? data.suggestions ?? [] : []).filter((text) => !hidden(text));
   const cards = detect.context ? contextCards ?? [] : [];
@@ -374,6 +389,7 @@ function QuestionsSection({ data, utterances, detect, contextCards, onOpenSource
       question={q}
       reply={replyFor(q.line)}
       memory={embedded.get(q.line)}
+      time={cardAgo(q.line, utterances, huddle, now)}
       utterances={utterances}
       onOpenSource={onOpenSource}
       onAsk={onAsk}
@@ -429,7 +445,7 @@ function QuestionsSection({ data, utterances, detect, contextCards, onOpenSource
 }
 
 // A short list item (point, decision) in the same card style as the questions, with a copy action.
-function RowCard({ icon, tone, text, copyLabel, onAsk, onSeen, seen }) {
+function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen }) {
   return (
     <div className="q-card q-card--row">
       <span className={`q-row__icon q-row__icon--${tone}`}>
@@ -437,6 +453,7 @@ function RowCard({ icon, tone, text, copyLabel, onAsk, onSeen, seen }) {
       </span>
       <p className="q-card__text">{text}</p>
       <span className="q-actions">
+        {time && <span className="q-time muted small">{time}</span>}
         <AskButton topic={text} onAsk={onAsk} />
         <CopyButton text={text} label={copyLabel} />
         <SeenButton topic={text} onSeen={onSeen} seen={seen} />
@@ -447,7 +464,7 @@ function RowCard({ icon, tone, text, copyLabel, onAsk, onSeen, seen }) {
 
 // An action in the card style. A check button marks it done — replacing the old checkbox — and the
 // owner/due sit below; a done action dims and strikes through.
-function ActionCard({ action, checked, onToggle, onAsk, onSeen, seen }) {
+function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen }) {
   return (
     <div className={checked ? 'q-card q-card--action q-card--done' : 'q-card q-card--action'}>
       <div className="q-bar">
@@ -455,6 +472,7 @@ function ActionCard({ action, checked, onToggle, onAsk, onSeen, seen }) {
           <Icon name="bolt" /> Ação
         </span>
         <span className="q-actions">
+          {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={action.text} onAsk={onAsk} />
           <SeenButton topic={action.text} onSeen={onSeen} seen={seen} />
           <button
@@ -465,7 +483,7 @@ function ActionCard({ action, checked, onToggle, onAsk, onSeen, seen }) {
             title={checked ? 'Feita' : 'Marcar como feita'}
             onClick={() => onToggle(action.text, !checked)}
           >
-            <Icon name="check" />
+            <Icon name={checked ? 'seen' : 'circle'} />
           </button>
         </span>
       </div>
@@ -626,6 +644,8 @@ export function InsightsView({
       <QuestionsSection
         data={data}
         utterances={utterances}
+        huddle={huddle}
+        now={now}
         detect={settings.detect}
         contextCards={contextCards}
         onOpenSource={onOpenContextSource}
@@ -641,12 +661,11 @@ export function InsightsView({
         count={data.points.length}
         action={<MarkAllButton keys={data.points.map((p) => (typeof p === 'string' ? p : p.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
       >
-        {data.points
-          .map((p) => (typeof p === 'string' ? { text: p } : p))
-          .filter((p) => !hiddenCard(p.text))
-          .map((p) => (
-            <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
-          ))}
+        {recentFirst(
+          data.points.map((p) => (typeof p === 'string' ? { text: p, line: 0 } : p)).filter((p) => !hiddenCard(p.text)),
+        ).map((p) => (
+          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={cardAgo(p.line, utterances, huddle, now)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+        ))}
       </Section>
       {settings.detect.actions && (
         <Section
@@ -654,8 +673,8 @@ export function InsightsView({
           count={data.actions.length}
           action={<MarkAllButton keys={data.actions.map((a) => a.text)} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
-          {data.actions.filter((action) => !hiddenCard(action.text)).map((action) => (
-            <ActionCard key={action.text} action={action} checked={done.has(action.text)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {recentFirst(data.actions.filter((action) => !hiddenCard(action.text))).map((action) => (
+            <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={cardAgo(action.line, utterances, huddle, now)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
           ))}
         </Section>
       )}
@@ -665,8 +684,10 @@ export function InsightsView({
           count={data.decisions.length}
           action={<MarkAllButton keys={data.decisions.map((d) => (typeof d === 'string' ? d : d.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
-          {data.decisions.map((d) => (typeof d === 'string' ? d : d.text)).filter((text) => !hiddenCard(text)).map((text) => (
-            <RowCard key={text} icon="check" tone="green" text={text} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {recentFirst(
+            data.decisions.map((d) => (typeof d === 'string' ? { text: d, line: 0 } : d)).filter((d) => !hiddenCard(d.text)),
+          ).map((d) => (
+            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={cardAgo(d.line, utterances, huddle, now)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
           ))}
         </Section>
       )}

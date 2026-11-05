@@ -1854,6 +1854,13 @@ select {
   color: var(--text);
 }
 
+.q-time {
+  flex-shrink: 0;
+  align-self: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .q-copy {
   flex-shrink: 0;
   display: inline-flex;
@@ -1967,9 +1974,9 @@ select {
   background: var(--green-bg);
 }
 
-/* A card marked as seen shows a filled green circle-check (an empty circle otherwise). */
+/* Visto: dois checks azuis estilo WhatsApp (um único check quando não visto). */
 .q-seen--on {
-  color: var(--green);
+  color: var(--blue);
 }
 
 .q-card--done .q-card__text {

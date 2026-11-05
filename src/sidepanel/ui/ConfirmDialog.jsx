@@ -53,7 +53,7 @@ export function MarkDialog({ label, icon, tone = 'blue', text, owner, seenOn, on
                 aria-pressed={String(Boolean(seenOn))}
                 onClick={onSeen}
               >
-                <Icon name={seenOn ? 'seen' : 'circle'} />
+                <Icon name={seenOn ? 'check-double' : 'check'} />
               </button>
             </Tooltip>
           </div>
