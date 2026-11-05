@@ -24,10 +24,10 @@ function cardAgo(line, utterances, huddle, now) {
   return ago((huddle?.startedAt ?? 0) + u.at, now);
 }
 
-// Ordena cards do mais recente para o mais antigo pela linha da transcrição (linhas só crescem, então
-// linha maior = mais recente). Cards sem linha vão para o fim, mantendo a ordem relativa entre si.
-function recentFirst(items) {
-  return [...items].sort((a, b) => (b.line || 0) - (a.line || 0));
+// Ordena cards do mais antigo para o mais recente pela linha da transcrição (linhas só crescem, então
+// linha menor = mais antigo). Cards sem linha ficam no início, mantendo a ordem relativa entre si.
+function oldestFirst(items) {
+  return [...items].sort((a, b) => (a.line || 0) - (b.line || 0));
 }
 
 const ALERT_META = {
@@ -359,7 +359,7 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
 // look-backs with no matching question, orphan replies, and things the user could raise.
 function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen, deck }) {
   const hidden = (key) => !showAllSeen && seen?.has(key);
-  const questions = recentFirst((detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text)));
+  const questions = oldestFirst((detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text)));
   const replies = detect.replies ? data.replies ?? [] : [];
   const suggestions = (detect.suggestions ? data.suggestions ?? [] : []).filter((text) => !hidden(text));
   const cards = detect.context ? contextCards ?? [] : [];
@@ -666,7 +666,7 @@ export function InsightsView({
         deck={deck}
         action={<MarkAllButton keys={data.points.map((p) => (typeof p === 'string' ? p : p.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
       >
-        {recentFirst(
+        {oldestFirst(
           data.points.map((p) => (typeof p === 'string' ? { text: p, line: 0 } : p)).filter((p) => !hiddenCard(p.text)),
         ).map((p) => (
           <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={cardAgo(p.line, utterances, huddle, now)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
@@ -679,7 +679,7 @@ export function InsightsView({
           deck={deck}
           action={<MarkAllButton keys={data.actions.map((a) => a.text)} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
-          {recentFirst(data.actions.filter((action) => !hiddenCard(action.text))).map((action) => (
+          {oldestFirst(data.actions.filter((action) => !hiddenCard(action.text))).map((action) => (
             <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={cardAgo(action.line, utterances, huddle, now)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
           ))}
         </Section>
@@ -691,7 +691,7 @@ export function InsightsView({
           deck={deck}
           action={<MarkAllButton keys={data.decisions.map((d) => (typeof d === 'string' ? d : d.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
-          {recentFirst(
+          {oldestFirst(
             data.decisions.map((d) => (typeof d === 'string' ? { text: d, line: 0 } : d)).filter((d) => !hiddenCard(d.text)),
           ).map((d) => (
             <RowCard key={d.text} icon="check" tone="green" text={d.text} time={cardAgo(d.line, utterances, huddle, now)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
