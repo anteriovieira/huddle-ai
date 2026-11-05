@@ -365,6 +365,11 @@ const MinutesSchema = z.object({
   tags: z.array(z.string()),
   signals: z.array(z.string()),
   key_points: z.array(z.string()),
+  // Decisões tomadas, perguntas/pendências em aberto e riscos/bloqueios levantados: deixam a ata
+  // mais útil para quem não esteve na call. Listas vazias quando não houver.
+  decisions: z.array(z.string()),
+  open_questions: z.array(z.string()),
+  risks: z.array(z.string()),
   next_steps: z.array(z.object({ text: z.string(), owner: z.string(), due: z.string() })),
 });
 
@@ -382,6 +387,9 @@ function minutesSystem(settings) {
       '- tags: five to twelve short lowercase tags (hyphens instead of spaces): projects, products, teams, topics.',
       '- signals: three to five moments from the transcript that support the classification, one sentence each.',
       '- key_points: the main points discussed, one or two sentences each, most important first.',
+      '- decisions: decisions the group reached, one short sentence each. Empty list when none were made.',
+      '- open_questions: questions left unanswered or points still pending at the end, one short sentence each. Empty list when none.',
+      '- risks: risks, blockers or concerns raised, one short sentence each. Empty list when none.',
       '- next_steps: commitments and agreed actions. owner: who will do it, as spoken (empty string when unclear). due: the deadline or date as said, in a short form like "sex, 31/10" or "amanhã" (empty string when none was said). Resolve weekday names against the meeting date.',
     ].join('\n'),
   ].join('\n\n');

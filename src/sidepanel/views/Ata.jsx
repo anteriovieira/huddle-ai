@@ -4,7 +4,7 @@ import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minu
 import { Icon } from '../ui/Icon.jsx';
 import { KebabMenu } from '../ui/Menu.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
-import { Avatar, Chip } from '../ui/primitives.jsx';
+import { Avatar, Chip, Section } from '../ui/primitives.jsx';
 
 function MetaCell({ label, value }) {
   return (
@@ -17,6 +17,18 @@ function MetaCell({ label, value }) {
 
 function Heading({ children }) {
   return <h2 className="section__title">{children}</h2>;
+}
+
+// Uma linha de item no estilo dos cards de insight: ícone de tom à esquerda e o texto.
+function AtaRow({ icon, tone, text }) {
+  return (
+    <div className="q-card q-card--row">
+      <span className={`q-row__icon q-row__icon--${tone}`}>
+        <Icon name={icon} />
+      </span>
+      <p className="q-card__text">{text}</p>
+    </div>
+  );
 }
 
 // The full minutes. `done` remembers ticked next steps (keyed `huddleId:text`).
@@ -112,44 +124,54 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
         <p className="ata__summary">{data.summary}</p>
       </section>
 
-      {data.key_points.length > 0 && (
-        <section className="stack stack--compact" aria-label="Pontos principais">
-          <Heading>Pontos principais</Heading>
-          <ul className="bullets">
-            {data.key_points.map((text, i) => (
-              <li key={i}>{text}</li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <Section title="Pontos principais" count={data.key_points.length}>
+        {data.key_points.map((text, i) => (
+          <AtaRow key={i} icon="bulb" tone="blue" text={text} />
+        ))}
+      </Section>
 
-      {data.next_steps.length > 0 && (
-        <section className="stack stack--compact" aria-label="Próximos passos">
-          <Heading>Próximos passos</Heading>
-          {data.next_steps.map((stepItem, i) => {
-            const key = `${record.huddleId}:${stepItem.text}`;
-            return (
-              <label key={i} className="step">
-                <input
-                  type="checkbox"
-                  checked={done.has(key)}
-                  onChange={(e) => onToggleStep(key, e.target.checked)}
-                />
-                <span className="row__stack step__body">
-                  <span className="step__text">{stepItem.text}</span>
-                  {(stepItem.owner || stepItem.due) && (
-                    <span className="step__meta">
-                      {stepItem.owner && <Avatar name={stepItem.owner} size="xs" />}
-                      {stepItem.owner && <span>{stepItem.owner}</span>}
-                      {stepItem.due && <span className="chip chip--yellow chip--xs">{stepItem.due}</span>}
-                    </span>
-                  )}
-                </span>
-              </label>
-            );
-          })}
-        </section>
-      )}
+      <Section title="Decisões" count={(data.decisions ?? []).length}>
+        {(data.decisions ?? []).map((text, i) => (
+          <AtaRow key={i} icon="check" tone="green" text={text} />
+        ))}
+      </Section>
+
+      <Section title="Próximos passos" count={data.next_steps.length}>
+        {data.next_steps.map((stepItem, i) => {
+          const key = `${record.huddleId}:${stepItem.text}`;
+          return (
+            <label key={i} className="step">
+              <input
+                type="checkbox"
+                checked={done.has(key)}
+                onChange={(e) => onToggleStep(key, e.target.checked)}
+              />
+              <span className="row__stack step__body">
+                <span className="step__text">{stepItem.text}</span>
+                {(stepItem.owner || stepItem.due) && (
+                  <span className="step__meta">
+                    {stepItem.owner && <Avatar name={stepItem.owner} size="xs" />}
+                    {stepItem.owner && <span>{stepItem.owner}</span>}
+                    {stepItem.due && <span className="chip chip--yellow chip--xs">{stepItem.due}</span>}
+                  </span>
+                )}
+              </span>
+            </label>
+          );
+        })}
+      </Section>
+
+      <Section title="Perguntas em aberto" count={(data.open_questions ?? []).length}>
+        {(data.open_questions ?? []).map((text, i) => (
+          <AtaRow key={i} icon="question" tone="yellow" text={text} />
+        ))}
+      </Section>
+
+      <Section title="Riscos e bloqueios" count={(data.risks ?? []).length}>
+        {(data.risks ?? []).map((text, i) => (
+          <AtaRow key={i} icon="warn" tone="purple" text={text} />
+        ))}
+      </Section>
     </div>
   );
 }
