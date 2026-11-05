@@ -357,7 +357,7 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
 
 // The merged "Perguntas" section: every open question with its answer/reply/memory woven in, then
 // look-backs with no matching question, orphan replies, and things the user could raise.
-function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen }) {
+function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen, deck }) {
   const hidden = (key) => !showAllSeen && seen?.has(key);
   const questions = recentFirst((detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text)));
   const replies = detect.replies ? data.replies ?? [] : [];
@@ -413,33 +413,35 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
     ...allSuggestions,
   ];
 
-  return (
-    <Section
-      title="Perguntas"
-      count={total}
-      action={<MarkAllButton keys={markKeys} onMarkAll={onMarkAllSeen} seen={seen} />}
-    >
-      <div className="q-list">
-        {questionCards}
-        {orphanMemory.map((c) => (
-          <div key={`m:${c.key}`} className="q-card q-card--memory">
-            <div className="q-card__head">
-              <span className="q-state q-state--memory">De reuniões passadas</span>
-              <button className="q-card__close" type="button" aria-label="Dispensar" title="Dispensar" onClick={() => onDismissContext(c.key)}>
-                <Icon name="close" />
-              </button>
-            </div>
-            <p className="q-card__text">{c.about || c.query}</p>
-            <MemoryFacet card={c} onOpenSource={onOpenSource} />
-          </div>
-        ))}
-        {orphanReplies.map((r, i) => (
-          <CopyCard key={`r:${i}`} variant="reply" icon="chat" label="Resposta sugerida" text={r.text} copyLabel="Copiar resposta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
-        ))}
-        {suggestions.map((text) => (
-          <CopyCard key={`s:${text}`} variant="proposable" icon="spark" label="Você poderia levantar" text={text} copyLabel="Copiar pergunta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
-        ))}
+  const allCards = [
+    ...questionCards,
+    ...orphanMemory.map((c) => (
+      <div key={`m:${c.key}`} className="q-card q-card--memory">
+        <div className="q-card__head">
+          <span className="q-state q-state--memory">De reuniões passadas</span>
+          <button className="q-card__close" type="button" aria-label="Dispensar" title="Dispensar" onClick={() => onDismissContext(c.key)}>
+            <Icon name="close" />
+          </button>
+        </div>
+        <p className="q-card__text">{c.about || c.query}</p>
+        <MemoryFacet card={c} onOpenSource={onOpenSource} />
       </div>
+    )),
+    ...orphanReplies.map((r, i) => (
+      <CopyCard key={`r:${i}`} variant="reply" icon="chat" label="Resposta sugerida" text={r.text} copyLabel="Copiar resposta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
+    )),
+    ...suggestions.map((text) => (
+      <CopyCard key={`s:${text}`} variant="proposable" icon="spark" label="Você poderia levantar" text={text} copyLabel="Copiar pergunta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
+    )),
+  ];
+
+  return (
+    <Section title="Perguntas" count={total} action={<MarkAllButton keys={markKeys} onMarkAll={onMarkAllSeen} seen={seen} />}>
+      {deck && allCards.length > 1 ? (
+        <div className={`deck deck--${Math.min(allCards.length, 3)}`}>{allCards[0]}</div>
+      ) : (
+        <div className="q-list">{allCards}</div>
+      )}
     </Section>
   );
 }
@@ -601,6 +603,7 @@ export function InsightsView({
   showAllSeen,
   onMarkSeen,
   onMarkAllSeen,
+  deck,
 }) {
   if (!current) {
     if (!hasKeyForModel(settings)) {
@@ -655,10 +658,12 @@ export function InsightsView({
         showAllSeen={showAllSeen}
         onMarkSeen={onMarkSeen}
         onMarkAllSeen={onMarkAllSeen}
+        deck={deck}
       />
       <Section
         title="Pontos levantados"
         count={data.points.length}
+        deck={deck}
         action={<MarkAllButton keys={data.points.map((p) => (typeof p === 'string' ? p : p.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
       >
         {recentFirst(
@@ -671,6 +676,7 @@ export function InsightsView({
         <Section
           title="Ações"
           count={data.actions.length}
+          deck={deck}
           action={<MarkAllButton keys={data.actions.map((a) => a.text)} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
           {recentFirst(data.actions.filter((action) => !hiddenCard(action.text))).map((action) => (
@@ -682,6 +688,7 @@ export function InsightsView({
         <Section
           title="Decisões"
           count={data.decisions.length}
+          deck={deck}
           action={<MarkAllButton keys={data.decisions.map((d) => (typeof d === 'string' ? d : d.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
           {recentFirst(
@@ -695,6 +702,7 @@ export function InsightsView({
         <Section
           title="Referências mencionadas"
           count={(data.references ?? []).length}
+          deck={deck}
           action={<MarkAllButton keys={(data.references ?? []).map((r) => r.title)} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
           {(data.references ?? []).filter((ref) => !hiddenCard(ref.title)).map((ref) => (
@@ -706,6 +714,7 @@ export function InsightsView({
         <Section
           title="Siglas"
           count={(data.acronyms ?? []).length}
+          deck={deck}
           action={<MarkAllButton keys={(data.acronyms ?? []).map((a) => a.term)} onMarkAll={onMarkAllSeen} seen={seen} />}
         >
           {(data.acronyms ?? []).filter((item) => !hiddenCard(item.term)).map((item) => (

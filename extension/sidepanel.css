@@ -1984,6 +1984,40 @@ select {
   text-decoration: line-through;
 }
 
+/* Modo deck: só o card do topo é renderizado; camadas decorativas espiam atrás dele, sugerindo a
+   pilha. O total fica no selo ao lado do título da seção; marcar como visto revela o próximo. */
+.deck {
+  position: relative;
+  isolation: isolate;
+}
+
+.deck > * {
+  position: relative;
+  z-index: 2;
+}
+
+.deck::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transform: translateY(6px) scale(0.97);
+  z-index: 1;
+}
+
+.deck--3::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transform: translateY(12px) scale(0.94);
+  z-index: 0;
+}
+
 .q-action__meta {
   display: flex;
   flex-wrap: wrap;

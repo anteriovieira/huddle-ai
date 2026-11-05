@@ -113,6 +113,8 @@ function SummaryActions({
   analyzing,
   paused,
   onTogglePause,
+  deckMode,
+  onToggleDeck,
   tickerHidden,
   hasRecent,
   onToggleTicker,
@@ -122,6 +124,19 @@ function SummaryActions({
 }) {
   return (
     <div className="info__actions">
+      {onToggleDeck && (
+        <Tooltip label={deckMode ? 'Ver cards em lista' : 'Empilhar cards (deck)'}>
+          <button
+            className={deckMode ? 'icon-button icon-button--on' : 'icon-button'}
+            type="button"
+            aria-label={deckMode ? 'Ver cards em lista' : 'Empilhar cards em deck'}
+            aria-pressed={String(Boolean(deckMode))}
+            onClick={onToggleDeck}
+          >
+            <Icon name="deck" />
+          </button>
+        </Tooltip>
+      )}
       {onTogglePause && (
         <Tooltip label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}>
           <button
@@ -210,6 +225,8 @@ export function InfoBar({
   showAllSeen,
   hiddenSeen,
   onToggleShowAll,
+  deckMode,
+  onToggleDeck,
 }) {
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
@@ -232,6 +249,8 @@ export function InfoBar({
         analyzing={analysis.running}
         paused={analysisPaused}
         onTogglePause={onTogglePause}
+        deckMode={deckMode}
+        onToggleDeck={onToggleDeck}
         tickerHidden={tickerHidden}
         hasRecent={hasRecent}
         onToggleTicker={onToggleTicker}

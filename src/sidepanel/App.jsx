@@ -146,6 +146,9 @@ export function App() {
   // Insight cards the user marked as seen (hidden from the list), and whether to show them anyway.
   const [seen, setSeen] = useState(() => new Set());
   const [showAllSeen, setShowAllSeen] = useState(false);
+  // Modo "deck": empilha os cards de cada seção de insight, mostrando um por vez (o mais recente no
+  // topo). Marcar como visto remove da pilha e revela o próximo.
+  const [deckMode, setDeckMode] = useState(false);
   // The insight item shown when a caption badge is clicked (what was decided/asked/assigned).
   const [markDialog, setMarkDialog] = useState(null);
   // Context-recall cards: one per look-back question detected live, with the subagent's answer.
@@ -1367,6 +1370,8 @@ export function App() {
     showAllSeen,
     hiddenSeen,
     onToggleShowAll: toggleShowAllSeen,
+    deckMode,
+    onToggleDeck: () => setDeckMode((v) => !v),
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
     onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
@@ -1400,6 +1405,7 @@ export function App() {
           showAllSeen={showAllSeen}
           onMarkSeen={markSeen}
           onMarkAllSeen={markAllSeen}
+          deck={deckMode}
         />
       );
     }
