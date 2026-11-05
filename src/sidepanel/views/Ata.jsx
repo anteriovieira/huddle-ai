@@ -31,6 +31,47 @@ function AtaRow({ icon, tone, text }) {
   );
 }
 
+// Um próximo passo como card de tarefa no mesmo estilo da Ação do insight: selo "Tarefa", botão de
+// concluir (círculo → círculo com check) e, abaixo, responsável e prazo. `done` guarda o estado
+// marcado por "huddleId:text".
+function AtaStep({ record, step, done, onToggle }) {
+  const key = `${record.huddleId}:${step.text}`;
+  const checked = done.has(key);
+  return (
+    <div className={checked ? 'q-card q-card--action q-card--done' : 'q-card q-card--action'}>
+      <div className="q-bar">
+        <span className="q-state q-state--action">
+          <Icon name="bolt" /> Tarefa
+        </span>
+        <span className="q-actions">
+          <button
+            type="button"
+            className={checked ? 'q-copy q-check q-check--done' : 'q-copy q-check'}
+            aria-pressed={String(checked)}
+            aria-label={checked ? 'Marcar como não feita' : 'Marcar como feita'}
+            title={checked ? 'Feita' : 'Marcar como feita'}
+            onClick={() => onToggle(key, !checked)}
+          >
+            <Icon name={checked ? 'seen' : 'circle'} />
+          </button>
+        </span>
+      </div>
+      <p className="q-card__text">{step.text}</p>
+      {(step.owner || step.due) && (
+        <div className="q-action__meta">
+          {step.owner && (
+            <span className="owner">
+              <Avatar name={step.owner} size="xs" />
+              <span className="owner__name">{step.owner}</span>
+            </span>
+          )}
+          {step.due && <span className="chip chip--yellow chip--xs">{step.due}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // The full minutes. `done` remembers ticked next steps (keyed `huddleId:text`).
 export function AtaContent({ record, done, onCopy, onToggleStep }) {
   const { meta, data } = record;
@@ -137,28 +178,9 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
       </Section>
 
       <Section title="Próximos passos" count={data.next_steps.length}>
-        {data.next_steps.map((stepItem, i) => {
-          const key = `${record.huddleId}:${stepItem.text}`;
-          return (
-            <label key={i} className="step">
-              <input
-                type="checkbox"
-                checked={done.has(key)}
-                onChange={(e) => onToggleStep(key, e.target.checked)}
-              />
-              <span className="row__stack step__body">
-                <span className="step__text">{stepItem.text}</span>
-                {(stepItem.owner || stepItem.due) && (
-                  <span className="step__meta">
-                    {stepItem.owner && <Avatar name={stepItem.owner} size="xs" />}
-                    {stepItem.owner && <span>{stepItem.owner}</span>}
-                    {stepItem.due && <span className="chip chip--yellow chip--xs">{stepItem.due}</span>}
-                  </span>
-                )}
-              </span>
-            </label>
-          );
-        })}
+        {data.next_steps.map((stepItem, i) => (
+          <AtaStep key={i} record={record} step={stepItem} done={done} onToggle={onToggleStep} />
+        ))}
       </Section>
 
       <Section title="Perguntas em aberto" count={(data.open_questions ?? []).length}>
