@@ -110,9 +110,12 @@ function SummaryActions({
   onCopySummary,
   onPostSummary,
   onAnalyzeNow,
+  onReanalyze,
   analyzing,
   paused,
   onTogglePause,
+  anyDecked,
+  onToggleAllDecks,
   tickerHidden,
   hasRecent,
   onToggleTicker,
@@ -122,6 +125,19 @@ function SummaryActions({
 }) {
   return (
     <div className="info__actions">
+      {onToggleAllDecks && (
+        <Tooltip label={anyDecked ? 'Desfazer todos os decks' : 'Empilhar todas as seções'}>
+          <button
+            className={anyDecked ? 'icon-button icon-button--on' : 'icon-button'}
+            type="button"
+            aria-label={anyDecked ? 'Desfazer todos os decks' : 'Empilhar todas as seções em deck'}
+            aria-pressed={String(Boolean(anyDecked))}
+            onClick={onToggleAllDecks}
+          >
+            <Icon name="layers" />
+          </button>
+        </Tooltip>
+      )}
       {onTogglePause && (
         <Tooltip label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}>
           <button
@@ -157,7 +173,20 @@ function SummaryActions({
             disabled={analyzing}
             onClick={onAnalyzeNow}
           >
-            <Icon name="sparkles" />
+            <Icon name={analyzing ? 'spinner' : 'sparkles'} className={analyzing ? 'icon icon--spin' : 'icon'} />
+          </button>
+        </Tooltip>
+      )}
+      {onReanalyze && (
+        <Tooltip label={analyzing ? 'Refazendo…' : 'Refazer os insights desta sessão'}>
+          <button
+            className={analyzing ? 'icon-button icon-button--loading' : 'icon-button'}
+            type="button"
+            aria-label={analyzing ? 'Refazendo…' : 'Refazer os insights'}
+            disabled={analyzing}
+            onClick={onReanalyze}
+          >
+            <Icon name={analyzing ? 'spinner' : 'refresh'} className={analyzing ? 'icon icon--spin' : 'icon'} />
           </button>
         </Tooltip>
       )}
@@ -202,6 +231,7 @@ export function InfoBar({
   canPostMinutes,
   onPostMinutes,
   onAnalyzeNow,
+  onReanalyze,
   tickerHidden,
   hasRecent,
   onToggleTicker,
@@ -213,6 +243,8 @@ export function InfoBar({
   showAllSeen,
   hiddenSeen,
   onToggleShowAll,
+  anyDecked,
+  onToggleAllDecks,
 }) {
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
@@ -234,12 +266,15 @@ export function InfoBar({
         canPostSummary={canPostSummary}
         onCopySummary={onCopySummary}
         onPostSummary={onPostSummary}
-        onAnalyzeNow={onAnalyzeNow}
+        onAnalyzeNow={live ? onAnalyzeNow : undefined}
+        onReanalyze={live ? undefined : onReanalyze}
         analyzing={analysis.running}
         paused={live ? analysisPaused : false}
         onTogglePause={live ? onTogglePause : undefined}
+        anyDecked={anyDecked}
+        onToggleAllDecks={onToggleAllDecks}
         tickerHidden={tickerHidden}
-        hasRecent={hasRecent}
+        hasRecent={live && hasRecent}
         onToggleTicker={onToggleTicker}
         showAllSeen={showAllSeen}
         hiddenSeen={hiddenSeen}

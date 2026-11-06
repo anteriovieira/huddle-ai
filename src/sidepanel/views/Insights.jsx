@@ -109,8 +109,8 @@ function ReferenceRow({ ref, onAsk, onSeen, seen, onRemove, dismiss }) {
       </span>
       <span className="q-actions">
         <AskButton topic={[ref.title, ref.description].filter(Boolean).join(' — ')} onAsk={onAsk} />
-        <SeenButton topic={ref.title} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         <RemoveButton topic={ref.title} onRemove={onRemove} />
+        <SeenButton topic={ref.title} onSeen={onSeen} seen={seen} dismiss={dismiss} />
       </span>
     </div>
   );
@@ -128,8 +128,8 @@ function AcronymRow({ item, onAsk, onSeen, seen, onRemove, dismiss }) {
       </span>
       <span className="q-actions">
         <AskButton topic={[item.term, item.meaning].filter(Boolean).join(' — ')} onAsk={onAsk} />
-        <SeenButton topic={item.term} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         <RemoveButton topic={item.term} onRemove={onRemove} />
+        <SeenButton topic={item.term} onSeen={onSeen} seen={seen} dismiss={dismiss} />
       </span>
     </div>
   );
@@ -284,8 +284,8 @@ function CopyCard({ variant, icon, label, text, time, copyLabel, onAsk, onSeen, 
           {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={text} onAsk={onAsk} />
           <CopyButton text={text} label={copyLabel} />
-          <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
           <RemoveButton topic={text} onRemove={onRemove} />
+          <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         </span>
       </div>
       <p className="q-card__text">{text}</p>
@@ -355,7 +355,6 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
         <span className="q-card__meta">
           {time && <span className="muted small">{time}</span>}
           <AskButton topic={question.text} onAsk={onAsk} />
-          <SeenButton topic={question.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
           <RemoveButton topic={question.text} onRemove={onRemove} />
           {hasBody && (
             <Tooltip label={expanded ? 'Recolher' : 'Expandir'}>
@@ -370,6 +369,7 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
               </button>
             </Tooltip>
           )}
+          <SeenButton topic={question.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         </span>
       </div>
       {hasBody ? (
@@ -442,7 +442,7 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
       question={q}
       reply={replyFor(q.line)}
       memory={embedded.get(q.line)}
-      time={cardAgo(q.line, utterances, huddle, now)}
+      time={huddle?.active ? cardAgo(q.line, utterances, huddle, now) : null}
       utterances={utterances}
       onOpenSource={onOpenSource}
       onAsk={onAsk}
@@ -521,8 +521,8 @@ function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen, onRem
         {time && <span className="q-time muted small">{time}</span>}
         <AskButton topic={text} onAsk={onAsk} />
         <CopyButton text={text} label={copyLabel} />
-        <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         <RemoveButton topic={text} onRemove={onRemove} />
+        <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
       </span>
     </div>
   );
@@ -540,7 +540,6 @@ function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen, onRe
         <span className="q-actions">
           {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={action.text} onAsk={onAsk} />
-          <SeenButton topic={action.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
           <RemoveButton topic={action.text} onRemove={onRemove} />
           <Tooltip label={checked ? 'Feita' : 'Marcar como feita'}>
             <button
@@ -553,6 +552,7 @@ function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen, onRe
               <Icon name={checked ? 'seen' : 'circle'} />
             </button>
           </Tooltip>
+          <SeenButton topic={action.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
         </span>
       </div>
       <p className="q-card__text">{action.text}</p>
@@ -614,7 +614,7 @@ function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggl
       <div className="card__meta">
         <span className="accent">{active ? 'Falando agora' : 'Último tópico'}</span>
         <span className="q-card__meta">
-          <span className="muted" id="updated-ago">{ago(updatedAt, now)}</span>
+          {active && <span className="muted" id="updated-ago">{ago(updatedAt, now)}</span>}
           {canExpand && (
             <Tooltip label={isExpanded ? 'Ocultar tópicos discutidos' : 'Ver tópicos discutidos'}>
               <button
@@ -768,6 +768,9 @@ export function InsightsView({
   }
   const data = current.data;
   const dismiss = !showAllSeen;
+  // "há X min" de cada card só faz sentido ao vivo; fora disso não mostramos o tempo.
+  const live = huddle.active;
+  const timeFor = (line) => (live ? cardAgo(line, utterances, huddle, now) : null);
   const hiddenCard = (key) => removed?.has(key) || (!showAllSeen && seen?.has(key));
   // Deck + "marcar todos" no cabeçalho de cada seção. `count` é quantos cards estão visíveis; o deck
   // só aparece a partir de 2.
@@ -808,7 +811,6 @@ export function InsightsView({
         expanded={topicExpanded}
         onToggle={onToggleTopic}
       />
-      <PeopleSection people={people} overrides={nameOverrides} onRename={onRenamePerson} />
       <QuestionsSection
         data={data}
         utterances={utterances}
@@ -835,7 +837,7 @@ export function InsightsView({
         action={tools('points', points.length, points.map((p) => p.text))}
       >
         {points.map((p) => (
-          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={cardAgo(p.line, utterances, huddle, now)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
+          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={timeFor(p.line)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
         ))}
       </Section>
       {settings.detect.actions && (
@@ -846,7 +848,7 @@ export function InsightsView({
           action={tools('actions', actions.length, actions.map((a) => a.text))}
         >
           {actions.map((action) => (
-            <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={cardAgo(action.line, utterances, huddle, now)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
+            <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={timeFor(action.line)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
@@ -858,7 +860,7 @@ export function InsightsView({
           action={tools('decisions', decisions.length, decisions.map((d) => d.text))}
         >
           {decisions.map((d) => (
-            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={cardAgo(d.line, utterances, huddle, now)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
+            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={timeFor(d.line)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
@@ -886,6 +888,7 @@ export function InsightsView({
           ))}
         </Section>
       )}
+      <PeopleSection people={people} overrides={nameOverrides} onRename={onRenamePerson} />
     </div>
   );
 }

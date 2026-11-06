@@ -89,9 +89,6 @@ export function normalizeInsights(data) {
           // conhecimento quando a reunião não define; isto só barra o que ficou mesmo sem significado.
           .filter((a) => a.meaning.trim())
       : [],
-    people: Array.isArray(d.people)
-      ? d.people.filter((p) => p && typeof p.name === 'string' && p.name.trim()).map((p) => ({ name: p.name, note: p.note ?? '' }))
-      : [],
     agenda: { items: strings(d.agenda?.items), current: int(d.agenda?.current, -1) },
     focus: { on_agenda: d.focus?.on_agenda ?? true, since_line: int(d.focus?.since_line, 0) },
     marks: Array.isArray(d.marks)
@@ -165,7 +162,6 @@ export function mergeInsights(prev, next) {
     alerts: mergeList(base.alerts, incoming.alerts, byText),
     references: mergeList(base.references, incoming.references, (r) => norm(r.title)),
     acronyms: mergeList(base.acronyms, incoming.acronyms, (a) => norm(a.term)),
-    people: mergeList(base.people, incoming.people, (p) => norm(p.name)),
     context_queries: mergeList(base.context_queries, incoming.context_queries, byLineOrText),
   };
 }

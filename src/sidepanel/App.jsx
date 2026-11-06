@@ -42,6 +42,8 @@ const DEFAULT_SETTINGS = {
 // Guardada fora de `settings` porque Settings.submit só persiste campos conhecidos.
 const MODEL_MIGRATION = 1;
 const MIN_UTTERANCES_FOR_MINUTES = 3;
+// Seções de insight que podem ser empilhadas (deck). Usadas pelo toggle global do info bar.
+const DECK_SECTION_KEYS = ['questions', 'points', 'actions', 'decisions', 'references', 'acronyms'];
 const EMPTY_STATE = { huddle: null, utterances: [] };
 
 // Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
@@ -448,6 +450,48 @@ export function App() {
     }
   }, [transcriptKey, applyPartial]);
 
+  // "Refazer": usado quando a reunião não está mais ao vivo. Reanalisa do zero — manda só a
+  // transcrição inteira (previous: null, sem reenviar os insights já montados) e substitui o
+  // resultado, em vez do envio incremental da análise automática.
+  const reanalyze = useCallback(async () => {
+    const { huddle: h, utterances: u, settings: s } = latest.current;
+    const ctl = analysisCtl.current;
+    if (ctl.running || !h || !hasKeyForModel(s) || !u.length) return;
+    ctl.running = true;
+    setAnalysisRunning(true);
+    logEvent('info', `Refazendo os insights de ${u.length} falas com ${s.model}`);
+    const startedAt = Date.now();
+    const ctrl = new AbortController();
+    ctl.ctrl = ctrl;
+    try {
+      const data = await analyze({
+        settings: s,
+        utterances: u,
+        previous: null,
+        sinceLine: 0,
+        nameOverrides: latest.current.nameOverrides,
+        abortSignal: ctrl.signal,
+        onPartial: (d) => applyPartial(h.id, d),
+      });
+      logEvent('info', `Insights refeitos em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+      ctl.lastKey = transcriptKey();
+      ctl.lastCount = u.length;
+      setAnalysisError(null);
+      const record = { huddleId: h.id, updatedAt: Date.now(), data };
+      setInsights(record);
+      completedHuddle.current = h.id;
+      await chromeApi?.storage.session.set({ insights: record });
+    } catch (error) {
+      if (ctrl.signal.aborted) return;
+      setAnalysisError(error.message);
+      logEvent('error', `Falha ao refazer os insights: ${error.message}`);
+    } finally {
+      if (ctl.ctrl === ctrl) ctl.ctrl = null;
+      ctl.running = false;
+      setAnalysisRunning(false);
+    }
+  }, [transcriptKey, applyPartial]);
+
   const saveMinutesToHistory = useCallback(async (record) => {
     if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
     const { history: saved = [] } = await chromeApi.storage.local.get('history');
@@ -683,6 +727,12 @@ export function App() {
         else next.add(key);
         return next;
       }),
+    [],
+  );
+  // Toggle global do info bar: se há qualquer seção empilhada, desfaz todos os decks; senão, empilha
+  // todas as seções de uma vez.
+  const toggleAllDecks = useCallback(
+    () => setDeckSections((prev) => (prev.size > 0 ? new Set() : new Set(DECK_SECTION_KEYS))),
     [],
   );
 
@@ -1397,14 +1447,9 @@ export function App() {
       ]
     : [];
   const hiddenSeen = seenKeys.filter((k) => seen.has(k) && !removed.has(k)).length;
-  // Participantes: os falantes das legendas (verdade do Slack) mais quem a IA identificou, sem
-  // repetir. É o que a seção Participantes mostra para o usuário corrigir a grafia.
-  const peopleList = [
-    ...new Set([
-      ...utterances.map((u) => u.speaker).filter(Boolean),
-      ...(currentInsights?.data.people ?? []).map((p) => p.name).filter(Boolean),
-    ]),
-  ];
+  // Participantes: os falantes das legendas (verdade do Slack, sem repetir). É o que a seção
+  // Participantes mostra para o usuário corrigir a grafia do nome.
+  const peopleList = [...new Set(utterances.map((u) => u.speaker).filter(Boolean))];
   const copySummary = () => currentInsights && copyToClipboard(insightsAsText(currentInsights.data, settings.detect));
   const postSummary = () => currentInsights && postToThread(insightsAsText(currentInsights.data, settings.detect));
 
@@ -1428,12 +1473,15 @@ export function App() {
     canPostMinutes: !!currentMinutes && !!huddle?.active,
     onPostMinutes: () => currentMinutes && postToThread(minutesAsText(currentMinutes, 'slack')),
     onAnalyzeNow: analyzeNow,
+    onReanalyze: reanalyze,
     tickerHidden,
     hasRecent: recentUtterances.length > 0,
     onToggleTicker: () => setTickerHidden((v) => !v),
     showAllSeen,
     hiddenSeen,
     onToggleShowAll: toggleShowAllSeen,
+    anyDecked: deckSections.size > 0,
+    onToggleAllDecks: toggleAllDecks,
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
     onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
@@ -1509,7 +1557,7 @@ export function App() {
     if (section === 'insights') {
       return (
         <footer className="footer footer--insights">
-          {!tickerHidden && recentUtterances.length > 0 && (
+          {huddle?.active && !tickerHidden && recentUtterances.length > 0 && (
             <div className="ticker-card">
               <Tooltip label="Fechar últimas falas">
                 <button
