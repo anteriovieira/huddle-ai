@@ -95,12 +95,14 @@ Preencha as declarações de dados no dashboard conforme abaixo.
 
 ## 6. Ficha da loja (store listing)
 
-| Campo | Valor sugerido |
+| Campo | Valor para colar |
 |---|---|
 | **Nome** | Huddle AI |
 | **Resumo (≤132 car.)** | Insights ao vivo, transcrição e ata dos huddles do Slack — no painel lateral, com a sua chave de IA. |
-| **Categoria** | Produtividade / Ferramentas de trabalho |
-| **Idioma** | Português (Brasil) |
+| **Categoria** | **Workflow & Planning** (taxonomia atual da store). Alternativa: **Communication**. |
+| **Idioma padrão da ficha** | Português (Brasil) |
+
+> O resumo acima tem 108 caracteres (limite 132). O nome na store é **Huddle AI** (o `name` do manifest também é "Huddle AI").
 
 **Descrição detalhada (rascunho para colar):**
 
@@ -116,29 +118,60 @@ Preencha as declarações de dados no dashboard conforme abaixo.
 
 ---
 
-## 7. Assets de imagem
+## 7. Ficha — conta, contato e distribuição
 
-Todos gerados e versionados. Formatos aceitos pela store: PNG ou JPEG de 24 bits (sem alpha para screenshots).
+Campos da aba **Account** e das abas de **Privacy practices** / **Distribution** do dashboard.
 
-| Asset | Tamanho exigido | Arquivo |
-|---|---|---|
-| Ícone da loja | 128×128 | [`extension/icons/icon128.png`](../extension/icons/icon128.png) |
-| Screenshot 1 — Insights | 1280×800 | [`docs/store/insights.png`](./store/insights.png) |
-| Screenshot 2 — Captions | 1280×800 | [`docs/store/captions.png`](./store/captions.png) |
-| Screenshot 3 — Ata | 1280×800 | [`docs/store/ata.png`](./store/ata.png) |
-| Small promo tile | 440×280 | [`docs/store/small.png`](./store/small.png) |
-| Marquee promo tile | 1400×560 | [`docs/store/marquee.png`](./store/marquee.png) |
+| Campo | Valor para colar |
+|---|---|
+| **E-mail de contato do desenvolvedor** | `anteriovieira@gmail.com` (precisa ser verificado no dashboard) |
+| **Site / homepage** (opcional) | URL do repositório no GitHub |
+| **URL de suporte** (opcional) | Página de *issues* do repositório |
+| **URL da política de privacidade** | Obrigatória — ver seção 5 (publicar `docs/privacy-policy.md` via GitHub Pages) |
+| **Visibilidade** | Público (ou **Não listado** para testar antes) |
+| **Distribuição / regiões** | Todas as regiões |
+| **Preço** | Gratuito |
+| **Contém anúncios** | Não |
+| **Conteúdo adulto / mature** | Não |
+
+---
+
+## 8. Assets de imagem
+
+Todos gerados, versionados e com as dimensões conferidas. Formatos aceitos pela store: PNG ou JPEG de 24 bits (sem canal alpha nos screenshots).
+
+### Ícones (dentro do pacote `.zip`, declarados no `manifest.json`)
+
+| Ícone | Tamanho | Arquivo | Onde é usado |
+|---|---|---|---|
+| Ícone 16 | 16×16 | [`extension/icons/icon16.png`](../extension/icons/icon16.png) | Barra de ferramentas / favicon |
+| Ícone 32 | 32×32 | [`extension/icons/icon32.png`](../extension/icons/icon32.png) | Barra de ferramentas (telas HiDPI) |
+| Ícone 48 | 48×48 | [`extension/icons/icon48.png`](../extension/icons/icon48.png) | Página `chrome://extensions` |
+| Ícone 128 | 128×128 | [`extension/icons/icon128.png`](../extension/icons/icon128.png) | **Ícone da loja** + instalação |
+
+### Imagens da ficha (upload manual no dashboard, **não** vão no `.zip`)
+
+| Asset | Tamanho exigido | Arquivo | Obrigatório? |
+|---|---|---|---|
+| Screenshot 1 — Insights | 1280×800 | [`docs/store/insights.png`](./store/insights.png) | Sim (mín. 1) |
+| Screenshot 2 — Captions | 1280×800 | [`docs/store/captions.png`](./store/captions.png) | Recomendado |
+| Screenshot 3 — Ata | 1280×800 | [`docs/store/ata.png`](./store/ata.png) | Recomendado |
+| Small promo tile | 440×280 | [`docs/store/small.png`](./store/small.png) | Opcional |
+| Marquee promo tile | 1400×560 | [`docs/store/marquee.png`](./store/marquee.png) | Opcional |
 
 Os screenshots usam dados de exemplo renderizados com os componentes reais do painel (um huddle fictício sobre migração de gateway de billing). Nenhum dado real de reunião aparece. Mínimo da store: ícone 128×128 + pelo menos 1 screenshot; os promo tiles são opcionais, porém recomendados.
 
 ---
 
-## 8. Checklist de submissão
+## 9. Checklist de submissão
 
-- [ ] `npm run build` com a versão final; conferir `version` em `manifest.json`.
-- [ ] Trocar o `oauth2.client_id` placeholder pelo client ID real do Google Cloud (ver [README](../README.md#google-drive)) ou remover `identity`/`oauth2` se o Drive não for publicado nesta versão.
-- [ ] Gerar o `.zip` da pasta `extension/` (sem `key.pem`, sem fontes `src/`).
+- [ ] `npm run build` com a versão final; conferir `version` em `manifest.json` (atual: **0.1.178**).
+- [x] `oauth2.client_id` já é o client ID real do Google Cloud (não é mais placeholder).
+- [ ] Gerar o `.zip` da pasta `extension/` **removendo o campo `key` do `manifest.json`** (a store rejeita `key`; ela atribui o próprio ID). Não incluir `key.pem` nem as fontes `src/`.
 - [ ] Preencher propósito único, justificativas de permissão e host permissions (seções 1–3).
 - [ ] Declarar uso de dados e anexar a URL da política de privacidade (seção 5).
-- [ ] Enviar os 3 screenshots + ícone; opcionalmente os 2 promo tiles (seção 7).
-- [ ] Revisar a descrição e o resumo (seção 6).
+- [ ] Preencher contato, distribuição e visibilidade (seção 7).
+- [ ] Enviar os 3 screenshots + ícone 128×128; opcionalmente os 2 promo tiles (seção 8).
+- [ ] Revisar o nome, a categoria, a descrição e o resumo (seção 6).
+
+> **Dica do `.zip`:** para gerar o pacote sem o campo `key`, copie `extension/` para uma pasta temporária, remova a chave `"key"` do `manifest.json` dessa cópia e compacte o conteúdo dela. O repositório mantém o `key` de propósito — ele fixa o ID local `lnffnbbmkiafgmglepfcjdchaahjoooe`, de que depende o OAuth do Google Drive em desenvolvimento.
