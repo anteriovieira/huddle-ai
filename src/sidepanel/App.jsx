@@ -452,6 +452,17 @@ export function App() {
     }
   }, [transcriptKey, applyPartial]);
 
+  // Persiste os insights no histórico local (chrome.storage.local), para a sessão mostrar o último
+  // conjunto gerado quando for recarregada. Só atualiza uma sessão já arquivada no histórico.
+  const saveInsightsToHistory = useCallback(async (huddleId, data) => {
+    if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
+    const { history: saved = [] } = await chromeApi.storage.local.get('history');
+    const index = saved.findIndex((entry) => entry.huddle?.id === huddleId);
+    if (index < 0) return;
+    saved[index] = { ...saved[index], insights: data };
+    await chromeApi.storage.local.set({ history: saved });
+  }, []);
+
   // "Refazer": usado quando a reunião não está mais ao vivo. Reanalisa do zero — manda só a
   // transcrição inteira (previous: null, sem reenviar os insights já montados) e substitui o
   // resultado, em vez do envio incremental da análise automática.
@@ -483,6 +494,7 @@ export function App() {
       setInsights(record);
       completedHuddle.current = h.id;
       await chromeApi?.storage.session.set({ insights: record });
+      await saveInsightsToHistory(h.id, data);
     } catch (error) {
       if (ctrl.signal.aborted) return;
       setAnalysisError(error.message);
@@ -492,7 +504,7 @@ export function App() {
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey, applyPartial]);
+  }, [transcriptKey, applyPartial, saveInsightsToHistory]);
 
   const saveMinutesToHistory = useCallback(async (record) => {
     if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
@@ -931,15 +943,6 @@ export function App() {
     const { history: saved = [] } = await chromeApi.storage.local.get('history');
     const entry = { huddle: hud, utterances: utt, insights: null, minutes: null };
     await chromeApi.storage.local.set({ history: [entry, ...saved].slice(0, 20) });
-  }, []);
-
-  const saveInsightsToHistory = useCallback(async (huddleId, data) => {
-    if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
-    const { history: saved = [] } = await chromeApi.storage.local.get('history');
-    const index = saved.findIndex((entry) => entry.huddle?.id === huddleId);
-    if (index < 0) return;
-    saved[index] = { ...saved[index], insights: data };
-    await chromeApi.storage.local.set({ history: saved });
   }, []);
 
   const analyzeOnce = useCallback(
