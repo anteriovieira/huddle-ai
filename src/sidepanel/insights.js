@@ -256,6 +256,16 @@ export function nameCorrectionsBlock(nameOverrides) {
   return `<name_corrections>\nThese are user-confirmed name spellings. Use the corrected name as the canonical name for that person everywhere (people, action owners, alerts, replies, minutes).\n${lines}\n</name_corrections>`;
 }
 
+// Lista de participantes conhecidos (os falantes rotulados nas legendas). Dá ao modelo a verdade de
+// quem está na reunião para ele casar e normalizar os nomes que usa, em vez de inventar/manter uma
+// variante mal ouvida. Vazio quando ainda não há falantes.
+export function participantsBlock(utterances) {
+  const names = [...new Set((utterances ?? []).map((u) => u.speaker).filter(Boolean))];
+  if (!names.length) return '';
+  const lines = names.map((n) => `- ${n}`).join('\n');
+  return `<participants>\nThese are the people actually speaking in this meeting, by the names the live captions labeled them with — this is the ground truth of who is present. Whenever you name a person in ANY field (points, actions owners, decisions, questions, alerts, replies), match them to this list and use the EXACT name here when it is the same person; correct an obviously misheard or variant spelling to the matching participant (e.g. a point that says "Kim" when the participant is "Kim Lee" → use "Kim Lee"). A name that does not match anyone here is someone merely mentioned, not necessarily a participant — only name them if the transcript makes clear they are a real person, and never promote such a name over a participant on this list.\n${lines}\n</participants>`;
+}
+
 export async function analyze({ settings, utterances, previous, sinceLine = 0, nameOverrides, onPartial, abortSignal }) {
   try {
     // Envio incremental: quando já há uma análise anterior, manda só as falas novas (mais um
@@ -266,6 +276,7 @@ export async function analyze({ settings, utterances, previous, sinceLine = 0, n
     const windowed = from > 0;
     const transcript = formatTranscript(utterances, from);
     const prompt = [
+      participantsBlock(utterances),
       nameCorrectionsBlock(nameOverrides),
       `<previous_insights>\n${JSON.stringify(previous ?? null)}\n</previous_insights>`,
       windowed
@@ -420,6 +431,7 @@ export async function generateMinutes({ settings, meta, utterances, nameOverride
       schema: MinutesSchema,
       system: minutesSystem(settings),
       prompt: [
+        participantsBlock(utterances),
         nameCorrectionsBlock(nameOverrides),
         `<meeting>\nTítulo: ${meta.title ?? 'Huddle'}\nInício: ${formatMeetingDate(meta.startedAt)}\nParticipantes que falaram: ${meta.participants.join(', ')}\n</meeting>`,
         `<transcript>\n${formatTranscript(utterances)}\n</transcript>`,
