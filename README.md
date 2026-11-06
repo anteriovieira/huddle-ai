@@ -2,6 +2,12 @@
 
 Chrome extension that reads the live captions of a Slack huddle and shows insights (current topic, points raised, action items, decisions, open questions) in Chrome's side panel, using Claude.
 
+## Screenshots
+
+| Insights | Captions | Ata |
+|---|---|---|
+| ![Insights panel](docs/screenshots/insights.png) | ![Captions panel](docs/screenshots/captions.png) | ![Minutes (ata) panel](docs/screenshots/ata.png) |
+
 ## Setup
 
 ```bash
