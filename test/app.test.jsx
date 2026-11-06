@@ -56,7 +56,9 @@ test('App boots to the idle screen with a mocked chrome and no huddle', async ()
     root.unmount();
   });
 
-  assert.match(html, /Nenhum huddle ativo/);
-  assert.match(html, /Ir para o Slack/);
+  // App defaults to English (DEFAULT_SETTINGS.language = 'English'), so the idle screen renders in
+  // English here.
+  assert.match(html, /No active huddle/);
+  assert.match(html, /Go to Slack/);
   assert.match(html, /Huddle AI/);
 });

@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
+import { useT } from '../lib/i18n.js';
 import { Icon } from './Icon.jsx';
 import { Tooltip } from './Tooltip.jsx';
 
 // Shows one insight item (what was decided / asked / assigned) behind a caption badge, with the
 // same actions the insights cards offer: ask the chat for details, copy, and mark as seen.
 export function MarkDialog({ label, icon, tone = 'blue', text, owner, seenOn, onAsk, onCopy, onSeen, onClose }) {
+  const t = useT();
   const closeRef = useRef(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -35,21 +37,21 @@ export function MarkDialog({ label, icon, tone = 'blue', text, owner, seenOn, on
         </div>
         <div className="dialog__actions">
           <div className="info__actions">
-            <Tooltip label="Pedir detalhes à IA">
-              <button className="icon-button" type="button" aria-label="Pedir detalhes à IA" onClick={onAsk}>
+            <Tooltip label={t('ask.detail')}>
+              <button className="icon-button" type="button" aria-label={t('ask.detail')} onClick={onAsk}>
                 <Icon name="sparkles" />
               </button>
             </Tooltip>
-            <Tooltip label="Copiar">
-              <button className="icon-button" type="button" aria-label="Copiar" onClick={onCopy}>
+            <Tooltip label={t('common.copy')}>
+              <button className="icon-button" type="button" aria-label={t('common.copy')} onClick={onCopy}>
                 <Icon name="copy" />
               </button>
             </Tooltip>
-            <Tooltip label={seenOn ? 'Visto' : 'Marcar como visto'}>
+            <Tooltip label={seenOn ? t('seen.seen') : t('seen.mark')}>
               <button
                 className={seenOn ? 'icon-button icon-button--on' : 'icon-button'}
                 type="button"
-                aria-label={seenOn ? 'Visto, clique para desmarcar' : 'Marcar como visto'}
+                aria-label={seenOn ? t('seen.unmarkAria') : t('seen.mark')}
                 aria-pressed={String(Boolean(seenOn))}
                 onClick={onSeen}
               >
@@ -58,7 +60,7 @@ export function MarkDialog({ label, icon, tone = 'blue', text, owner, seenOn, on
             </Tooltip>
           </div>
           <button ref={closeRef} className="button button--small" type="button" onClick={onClose}>
-            Fechar
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -68,8 +70,10 @@ export function MarkDialog({ label, icon, tone = 'blue', text, owner, seenOn, on
 
 // A small centered confirmation dialog over a dim backdrop. Discreet alternative to the
 // full-width danger banner. Escape or a backdrop click cancels; the confirm button is focused.
-export function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancelar', tone = 'danger', icon = 'trash', onConfirm, onCancel }) {
+export function ConfirmDialog({ title, message, confirmLabel, cancelLabel, tone = 'danger', icon = 'trash', onConfirm, onCancel }) {
+  const t = useT();
   const confirmRef = useRef(null);
+  const cancel = cancelLabel ?? t('common.cancel');
 
   useEffect(() => {
     confirmRef.current?.focus();
@@ -99,7 +103,7 @@ export function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Can
         </div>
         <div className="dialog__actions">
           <button className="button button--small" type="button" onClick={onCancel}>
-            {cancelLabel}
+            {cancel}
           </button>
           <button
             ref={confirmRef}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ago, formatDateTime, formatDuration } from '../lib/format.js';
 import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minutes.js';
+import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { KebabMenu } from '../ui/Menu.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
@@ -35,21 +36,22 @@ function AtaRow({ icon, tone, text }) {
 // concluir (círculo → círculo com check) e, abaixo, responsável e prazo. `done` guarda o estado
 // marcado por "huddleId:text".
 function AtaStep({ record, step, done, onToggle }) {
+  const t = useT();
   const key = `${record.huddleId}:${step.text}`;
   const checked = done.has(key);
   return (
     <div className={checked ? 'q-card q-card--action q-card--done' : 'q-card q-card--action'}>
       <div className="q-bar">
         <span className="q-state q-state--action">
-          <Icon name="bolt" /> Tarefa
+          <Icon name="bolt" /> {t('ata.step.task')}
         </span>
         <span className="q-actions">
           <button
             type="button"
             className={checked ? 'q-copy q-check q-check--done' : 'q-copy q-check'}
             aria-pressed={String(checked)}
-            aria-label={checked ? 'Marcar como não feita' : 'Marcar como feita'}
-            title={checked ? 'Feita' : 'Marcar como feita'}
+            aria-label={checked ? t('action.markNotDone') : t('action.markDone')}
+            title={checked ? t('action.done') : t('action.markDone')}
             onClick={() => onToggle(key, !checked)}
           >
             <Icon name={checked ? 'seen' : 'circle'} />
@@ -74,6 +76,7 @@ function AtaStep({ record, step, done, onToggle }) {
 
 // The full minutes. `done` remembers ticked next steps (keyed `huddleId:text`).
 export function AtaContent({ record, done, onCopy, onToggleStep }) {
+  const t = useT();
   const { meta, data } = record;
   const tone = CATEGORY_TONES[data.classification.category];
   // A classificação começa colapsada: o chip e a confiança ficam sempre visíveis, e o usuário
@@ -82,19 +85,19 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
   const hasDetails = Boolean(data.classification.description) || data.signals.length > 0;
   return (
     <div className="stack ata">
-      <section className="stack stack--compact" aria-label="Informações da reunião">
+      <section className="stack stack--compact" aria-label={t('ata.infoAria')}>
         <div className="section__row">
-          <Heading>Informações da reunião</Heading>
+          <Heading>{t('ata.meetingInfo')}</Heading>
           <button className="button button--small" type="button" onClick={onCopy}>
             <Icon name="copy" />
-            Copiar ata
+            {t('ata.copy')}
           </button>
         </div>
         <dl className="meta-grid">
-          <MetaCell label="Data e hora" value={formatDateTime(meta.startedAt)} />
-          <MetaCell label="Duração" value={formatDuration(meta.endedAt - meta.startedAt)} />
-          <MetaCell label="Término" value={formatDateTime(meta.endedAt)} />
-          <MetaCell label="Fonte" value={meta.source} />
+          <MetaCell label={t('ata.dateTime')} value={formatDateTime(meta.startedAt)} />
+          <MetaCell label={t('ata.duration')} value={formatDuration(meta.endedAt - meta.startedAt)} />
+          <MetaCell label={t('ata.ended')} value={formatDateTime(meta.endedAt)} />
+          <MetaCell label={t('ata.source')} value={meta.source} />
         </dl>
         {meta.participants.length > 0 && (
           <div className="participants">
@@ -108,16 +111,16 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
         )}
       </section>
 
-      <section className="card" aria-label="Classificação">
+      <section className="card" aria-label={t('ata.classificationAria')}>
         <div className="card__meta">
-          <span className="muted strong-muted">Classificação</span>
+          <span className="muted strong-muted">{t('ata.classification')}</span>
           <span className="muted">
-            Confiança <b className="text-strong">{`${data.classification.confidence}%`}</b>
+            {t('ata.confidence')} <b className="text-strong">{`${data.classification.confidence}%`}</b>
           </span>
         </div>
         <div className="classification">
           <span className={`chip chip--lg ${tone ? `chip--${tone}` : ''}`}>{data.classification.category}</span>
-          <div className="confidence" role="img" aria-label={`Confiança de ${data.classification.confidence}%`}>
+          <div className="confidence" role="img" aria-label={t('ata.confidenceAria', { n: data.classification.confidence })}>
             <div
               className={`confidence__bar confidence__bar--${tone ?? 'grey'}`}
               style={{ width: `${data.classification.confidence}%` }}
@@ -128,9 +131,9 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
           <div className="stack stack--compact">
             {data.classification.description && <p className="muted small card__body">{data.classification.description}</p>}
             {data.signals.length > 0 && (
-              <div className="stack stack--compact" aria-label="Sinais de classificação">
-                <span className="muted small strong">Sinais de classificação</span>
-                <p className="muted small">Trechos da transcrição que classificam a reunião:</p>
+              <div className="stack stack--compact" aria-label={t('ata.signalsAria')}>
+                <span className="muted small strong">{t('ata.signals')}</span>
+                <p className="muted small">{t('ata.signalsIntro')}</p>
                 <ul className="bullets bullets--plain">
                   {data.signals.map((text, i) => (
                     <li key={i}>{text}</li>
@@ -143,14 +146,14 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
         {hasDetails && (
           <button className="topic__toggle" type="button" aria-expanded={String(detailsOpen)} onClick={() => setDetailsOpen((v) => !v)}>
             <Icon name={detailsOpen ? 'collapse' : 'expand'} />
-            {detailsOpen ? 'Ocultar detalhes' : 'Ver o que levou a essa classificação'}
+            {detailsOpen ? t('ata.hideDetails') : t('ata.whyClassified')}
           </button>
         )}
       </section>
 
       {data.tags.length > 0 && (
-        <section className="stack stack--compact" aria-label="Tags">
-          <Heading>Tags</Heading>
+        <section className="stack stack--compact" aria-label={t('ata.tagsAria')}>
+          <Heading>{t('ata.tags')}</Heading>
           <div className="chips">
             {data.tags.map((tag) => (
               <Chip key={tag}>{tag}</Chip>
@@ -159,37 +162,37 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
         </section>
       )}
 
-      <section className="stack stack--compact" aria-label="Resumo da reunião">
-        <Heading>Resumo da reunião</Heading>
+      <section className="stack stack--compact" aria-label={t('ata.summaryAria')}>
+        <Heading>{t('ata.summary')}</Heading>
         <p className="ata__headline">{data.title}</p>
         <p className="ata__summary">{data.summary}</p>
       </section>
 
-      <Section title="Pontos principais" count={data.key_points.length}>
+      <Section title={t('ata.keyPoints')} count={data.key_points.length}>
         {data.key_points.map((text, i) => (
           <AtaRow key={i} icon="bulb" tone="blue" text={text} />
         ))}
       </Section>
 
-      <Section title="Decisões" count={(data.decisions ?? []).length}>
+      <Section title={t('ata.decisions')} count={(data.decisions ?? []).length}>
         {(data.decisions ?? []).map((text, i) => (
           <AtaRow key={i} icon="check" tone="green" text={text} />
         ))}
       </Section>
 
-      <Section title="Próximos passos" count={data.next_steps.length}>
+      <Section title={t('ata.nextSteps')} count={data.next_steps.length}>
         {data.next_steps.map((stepItem, i) => (
           <AtaStep key={i} record={record} step={stepItem} done={done} onToggle={onToggleStep} />
         ))}
       </Section>
 
-      <Section title="Perguntas em aberto" count={(data.open_questions ?? []).length}>
+      <Section title={t('ata.openQuestions')} count={(data.open_questions ?? []).length}>
         {(data.open_questions ?? []).map((text, i) => (
           <AtaRow key={i} icon="question" tone="yellow" text={text} />
         ))}
       </Section>
 
-      <Section title="Riscos e bloqueios" count={(data.risks ?? []).length}>
+      <Section title={t('ata.risks')} count={(data.risks ?? []).length}>
         {(data.risks ?? []).map((text, i) => (
           <AtaRow key={i} icon="warn" tone="purple" text={text} />
         ))}
@@ -199,16 +202,19 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
 }
 
 export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minutes, autoMinutes, now }) {
+  const t = useT();
   let text;
   if (busy) {
-    text = 'Gerando a ata…';
+    text = t('ata.info.generating');
   } else if (minutes) {
     const model = modelLabel(minutes.model);
-    text = `Ata gerada ${ago(minutes.generatedAt, now)}${model ? ` · ${model}` : ''}.`;
+    text = model
+      ? t('ata.info.generatedModel', { ago: ago(minutes.generatedAt, now), model })
+      : t('ata.info.generated', { ago: ago(minutes.generatedAt, now) });
   } else if (autoMinutes) {
-    text = 'A ata é gerada automaticamente quando o huddle termina.';
+    text = t('ata.info.auto');
   } else {
-    text = 'Gere a ata do huddle quando quiser.';
+    text = t('ata.info.manual');
   }
   return (
     <div className="info info--row">
@@ -217,21 +223,21 @@ export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minut
       </span>
       <div className="info__actions">
         {onRegenerate && (
-          <Tooltip label={busy ? 'Gerando…' : 'Gerar ata'}>
-            <button className="icon-button" type="button" aria-label="Gerar ata" disabled={busy} onClick={onRegenerate}>
+          <Tooltip label={busy ? t('ata.generatingTip') : t('ata.generate')}>
+            <button className="icon-button" type="button" aria-label={t('ata.generate')} disabled={busy} onClick={onRegenerate}>
               <Icon name="sparkles" />
             </button>
           </Tooltip>
         )}
         {onPost && (
-          <Tooltip label="Postar no thread">
-            <button className="icon-button" type="button" aria-label="Postar no thread" disabled={!canPost} onClick={onPost}>
+          <Tooltip label={t('ata.postThread')}>
+            <button className="icon-button" type="button" aria-label={t('ata.postThread')} disabled={!canPost} onClick={onPost}>
               <Icon name="plane" />
             </button>
           </Tooltip>
         )}
-        <Tooltip label="Atas anteriores">
-          <button className="icon-button" type="button" aria-label="Atas anteriores" onClick={onOpenList}>
+        <Tooltip label={t('ata.previous')}>
+          <button className="icon-button" type="button" aria-label={t('ata.previous')} onClick={onOpenList}>
             <Icon name="history" />
           </button>
         </Tooltip>
@@ -241,19 +247,20 @@ export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minut
 }
 
 function DriveButton({ uploaded, driveBusy, onDrive }) {
+  const t = useT();
   if (driveBusy) {
     return (
-      <button className="icon-button icon-button--lg" type="button" disabled aria-label="Enviando ao Google Drive">
+      <button className="icon-button icon-button--lg" type="button" disabled aria-label={t('drive.sendingAria')}>
         <span className="spinner" aria-hidden="true" />
       </button>
     );
   }
   return (
-    <Tooltip label={uploaded ? 'Enviada ao Drive · reenviar' : 'Enviar ao Google Drive'}>
+    <Tooltip label={uploaded ? t('drive.sentResend') : t('drive.send')}>
       <button
         className={uploaded ? 'icon-button icon-button--lg is-done' : 'icon-button icon-button--lg'}
         type="button"
-        aria-label={uploaded ? 'Reenviar ao Google Drive' : 'Enviar ao Google Drive'}
+        aria-label={uploaded ? t('drive.resendAria') : t('drive.send')}
         onClick={onDrive}
       >
         <Icon name="cloud" />
@@ -263,22 +270,23 @@ function DriveButton({ uploaded, driveBusy, onDrive }) {
 }
 
 export function AtaFooter({ record, onCopy, canPost, onPost, onDownload, uploaded, driveBusy, onDrive, flash }) {
+  const t = useT();
   return (
     <footer className="footer">
       <div className="buttons">
         <button className="button button--primary" type="button" onClick={onCopy}>
-          Copiar ata
+          {t('ata.copy')}
         </button>
         <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} />
-        <Tooltip label="Baixar ata em Markdown (.md)">
-          <button className="icon-button icon-button--lg" type="button" aria-label="Baixar ata em Markdown" onClick={onDownload}>
+        <Tooltip label={t('ata.downloadMd')}>
+          <button className="icon-button icon-button--lg" type="button" aria-label={t('ata.downloadMdAria')} onClick={onDownload}>
             <Icon name="download" />
           </button>
         </Tooltip>
       </div>
       {uploaded && (
         <a className="muted small ata__drive-link" href={uploaded.link} target="_blank" rel="noopener noreferrer">
-          Ver no Google Drive
+          {t('drive.viewIn')}
         </a>
       )}
       {flash && (
@@ -302,44 +310,47 @@ export function AtaEmpty({
   onGenerate,
   onOpenList,
 }) {
+  const t = useT();
+  const uUnit = t(utterances === 1 ? 'unit.caption.one' : 'unit.caption.other');
+  const pUnit = t(participants === 1 ? 'unit.participant.one' : 'unit.participant.other');
   return (
     <div className="ata-empty">
       <div className="idle__hero">
         <div className="idle__icon">
           <Icon name="doc" />
         </div>
-        <h1>{active ? 'A ata sai quando o huddle terminar' : 'A ata deste huddle ainda não foi gerada'}</h1>
-        <p>Com data, duração, classificação da reunião, tags, resumo, pontos principais e próximos passos com responsáveis.</p>
+        <h1>{active ? t('ata.empty.titleActive') : t('ata.empty.titleEnded')}</h1>
+        <p>{t('ata.empty.desc')}</p>
       </div>
       {error && (
         <div className="notice notice--error" role="status">
           {error}
         </div>
       )}
-      <section className="checklist" aria-label="Opções da ata">
+      <section className="checklist" aria-label={t('ata.empty.optionsAria')}>
         <label className="check check--toggle">
           <span className="row__stack">
-            <span className="strong">Gerar ao encerrar</span>
-            <span className="muted small">Assim que a janela do huddle fechar</span>
+            <span className="strong">{t('ata.empty.genOnEnd')}</span>
+            <span className="muted small">{t('ata.empty.genOnEndHint')}</span>
           </span>
           <input type="checkbox" checked={autoMinutes} onChange={(e) => onToggleAuto(e.target.checked)} />
         </label>
         <div className="check">
           <span className="row__stack">
-            <span className="strong">{active ? 'Até agora' : 'Neste huddle'}</span>
+            <span className="strong">{active ? t('ata.empty.soFar') : t('ata.empty.thisHuddle')}</span>
             <span className="muted small">
-              {`${utterances} ${utterances === 1 ? 'fala' : 'falas'} · ${participants} ${participants === 1 ? 'participante' : 'participantes'}`}
+              {t('ata.empty.counts', { n: utterances, unit: uUnit, m: participants, punit: pUnit })}
             </span>
           </span>
         </div>
       </section>
       <div className="idle__footer">
-        {!hasKey && <p className="muted small center">Adicione sua chave da API nas configurações para gerar a ata.</p>}
+        {!hasKey && <p className="muted small center">{t('ata.empty.needKey')}</p>}
         <button className="button button--primary button--block" type="button" disabled={!canGenerate} onClick={onGenerate}>
-          Gerar ata agora
+          {t('ata.empty.generateNow')}
         </button>
         <button className="button button--block" type="button" onClick={onOpenList}>
-          Ver sessões anteriores
+          {t('ata.empty.seePrevious')}
         </button>
       </div>
     </div>
@@ -347,17 +358,20 @@ export function AtaEmpty({
 }
 
 export function AtaLoading({ startedAt, utterances, participants, now }) {
+  const t = useT();
   const elapsed = now - startedAt;
+  const uUnit = t(utterances === 1 ? 'unit.caption.one' : 'unit.caption.other');
+  const pUnit = t(participants === 1 ? 'unit.participant.one' : 'unit.participant.other');
   const steps = [
-    [`Lendo ${utterances} falas de ${participants} ${participants === 1 ? 'participante' : 'participantes'}`, 0],
-    ['Classificando a reunião', 2500],
-    ['Escrevendo resumo e próximos passos', 6000],
+    [t('ata.loading.reading', { n: utterances, uunit: uUnit, m: participants, punit: pUnit }), 0],
+    [t('ata.loading.classifying'), 2500],
+    [t('ata.loading.writing'), 6000],
   ];
   const activeIndex = steps.findLastIndex(([, at]) => elapsed >= at);
   return (
     <div className="stack">
-      <section className="card progress" role="status" aria-label="Progresso">
-        <h1 className="card__title">Escrevendo a ata do huddle</h1>
+      <section className="card progress" role="status" aria-label={t('ata.loading.progressAria')}>
+        <h1 className="card__title">{t('ata.loading.title')}</h1>
         {steps.slice(0, activeIndex + 1).map(([label], index) => (
           <div key={index} className="progress__step">
             {index < activeIndex ? (
@@ -370,9 +384,7 @@ export function AtaLoading({ startedAt, utterances, participants, now }) {
             <span className={index === activeIndex ? 'strong' : ''}>{label}</span>
           </div>
         ))}
-        <p className="muted small">
-          Costuma levar menos de um minuto. Mantenha o painel aberto até terminar; a ata fica salva.
-        </p>
+        <p className="muted small">{t('ata.loading.note')}</p>
       </section>
       <div className="skeleton" aria-hidden="true">
         <div className="skeleton__line" style={{ width: '55%', height: '14px' }} />
@@ -391,22 +403,23 @@ export function AtaLoading({ startedAt, utterances, participants, now }) {
   );
 }
 
-// The list part of "Sessões anteriores", styled like Slack's "Recent huddles": an icon, the
+// The list part of "Previous sessions", styled like Slack's "Recent huddles": an icon, the
 // title on one truncated line, a time·duration meta line, participant avatars and a kebab
-// menu (Abrir / Carregar / Apagar). Clicking the row opens the session.
+// menu (Open / Load / Delete). Clicking the row opens the session.
 export function AtasList({ records, query, tag, onOpen, onLoad, onDelete, currentHuddleId, now }) {
+  const t = useT();
   const { visible, groups } = groupSessions(records, query, tag, now);
   if (!records.length) {
     return (
       <div className="empty">
-        <p>Nenhuma sessão ainda. Elas aparecem aqui ao fim de cada huddle.</p>
+        <p>{t('atas.emptyNone')}</p>
       </div>
     );
   }
   if (!visible.length) {
     return (
       <div className="empty">
-        <p>Nenhuma sessão encontrada para esse filtro.</p>
+        <p>{t('atas.emptyFilter')}</p>
       </div>
     );
   }
@@ -419,11 +432,11 @@ export function AtasList({ records, query, tag, onOpen, onLoad, onDelete, curren
             const people = record.meta.participants;
             const isCurrent = record.huddleId === currentHuddleId;
             const menuItems = [
-              { label: 'Abrir', icon: 'open', onSelect: () => onOpen(record) },
+              { label: t('atas.menu.open'), icon: 'open', onSelect: () => onOpen(record) },
               isCurrent
-                ? { label: 'Já está no app', icon: 'check', disabled: true }
-                : onLoad && { label: 'Carregar', icon: 'download', onSelect: () => onLoad(record) },
-              onDelete && { label: 'Apagar', icon: 'trash', danger: true, onSelect: () => onDelete(record) },
+                ? { label: t('atas.menu.inApp'), icon: 'check', disabled: true }
+                : onLoad && { label: t('atas.menu.load'), icon: 'download', onSelect: () => onLoad(record) },
+              onDelete && { label: t('atas.menu.delete'), icon: 'trash', danger: true, onSelect: () => onDelete(record) },
             ].filter(Boolean);
             return (
               <div
@@ -446,7 +459,7 @@ export function AtasList({ records, query, tag, onOpen, onLoad, onDelete, curren
                   <span className="ata-item__title">{record.data.title}</span>
                   <span className="ata-item__meta">
                     {`${listTime(record.meta.startedAt, now)} · ${formatDuration(record.meta.endedAt - record.meta.startedAt)}`}
-                    {isCurrent && <span className="pill pill--xs">No app</span>}
+                    {isCurrent && <span className="pill pill--xs">{t('atas.inApp')}</span>}
                   </span>
                 </div>
                 {people.length > 0 && (

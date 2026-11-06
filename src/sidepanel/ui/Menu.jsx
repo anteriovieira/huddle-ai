@@ -2,15 +2,18 @@
 // { label, icon?, onSelect, danger?, disabled? }; falsy entries are skipped.
 
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useT } from '../lib/i18n.js';
 import { Icon } from './Icon.jsx';
 
 const stop = (event) => event.stopPropagation();
 
-export function KebabMenu({ label = 'Ações', items, side = 'bottom', align = 'end' }) {
+export function KebabMenu({ label, items, side = 'bottom', align = 'end' }) {
+  const t = useT();
+  const triggerLabel = label ?? t('menu.actions');
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="icon-button icon-button--sm kebab" type="button" aria-label={label} onClick={stop}>
+        <button className="icon-button icon-button--sm kebab" type="button" aria-label={triggerLabel} onClick={stop}>
           <Icon name="dots" />
         </button>
       </DropdownMenu.Trigger>

@@ -19,7 +19,9 @@ global.ResizeObserver = dom.window.ResizeObserver = class {
 
 const huddle = { id: 'h1', active: true, startedAt: Date.now() - 60000, title: 'Huddle in general', captions: true, language: 'pt-BR' };
 const sessionStore = { state: { huddle, utterances: [{ id: 'u1', speaker: 'Ana', text: 'oi', at: 0 }] } };
-const localStore = { settings: { apiKey: 'sk-ant-test' } };
+// language: 'Portuguese' so the app renders its UI in Portuguese for these assertions (English is
+// the app default; the UI language is driven by settings.language via the i18n layer).
+const localStore = { settings: { apiKey: 'sk-ant-test', language: 'Portuguese' } };
 
 global.chrome = {
   runtime: { getManifest: () => ({ version: '9.9.9' }), sendMessage: async () => {} },
@@ -54,6 +56,7 @@ const { createRoot } = await import('react-dom/client');
 const { App } = await import('../src/sidepanel/App.jsx');
 const { TooltipProvider, Tooltip } = await import('../src/sidepanel/ui/Tooltip.jsx');
 const { PastAtaView } = await import('../src/sidepanel/views/Atas.jsx');
+const { I18nProvider } = await import('../src/sidepanel/lib/i18n.js');
 const mock = await import('./mocks/insights.mock.js');
 
 const sampleRecord = {
@@ -173,18 +176,22 @@ test('PastAtaView deletes a session only after confirmation', async () => {
   const deleted = [];
   const view = () =>
     React.createElement(
-      TooltipProvider,
-      null,
-      React.createElement(PastAtaView, {
-        record: sampleRecord,
-        isCurrent: false,
-        now: Date.now(),
-        onBack() {},
-        onLoad() {},
-        onDelete: (r) => deleted.push(r),
-        ataProps: noopAta,
-        footerProps: noopFooter,
-      }),
+      I18nProvider,
+      { lang: 'Portuguese' },
+      React.createElement(
+        TooltipProvider,
+        null,
+        React.createElement(PastAtaView, {
+          record: sampleRecord,
+          isCurrent: false,
+          now: Date.now(),
+          onBack() {},
+          onLoad() {},
+          onDelete: (r) => deleted.push(r),
+          ataProps: noopAta,
+          footerProps: noopFooter,
+        }),
+      ),
     );
   await act(async () => root.render(view()));
   try {

@@ -17,10 +17,14 @@ const { AtaContent, AtaEmpty, AtasList } = await import('../src/sidepanel/views/
 const { IdleView } = await import('../src/sidepanel/views/Idle.jsx');
 const { Header, InfoBar } = await import('../src/sidepanel/views/Header.jsx');
 const { TooltipProvider } = await import('../src/sidepanel/ui/Tooltip.jsx');
+const { I18nProvider } = await import('../src/sidepanel/lib/i18n.js');
 const React = await import('react');
 
 const h = React.createElement;
-const render = (el) => renderToStaticMarkup(el);
+// Render every component under a Portuguese i18n provider so these assertions keep their original
+// Portuguese UI strings. English is the app default (see app.test.jsx); the UI language is driven
+// by i18n context, so wrapping here fixes the locale for the whole render.
+const render = (el) => renderToStaticMarkup(h(I18nProvider, { lang: 'Portuguese' }, el));
 
 test('Icon renders an inline svg for a known name, nothing for unknown', () => {
   assert.match(render(h(Icon, { name: 'check' })), /<svg/);
