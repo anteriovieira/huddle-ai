@@ -17,16 +17,20 @@ import { InsightsView } from './views/Insights.jsx';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
+import { MarkDialog } from './ui/ConfirmDialog.jsx';
 import { toast } from 'sonner';
 import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
+import { I18nProvider, translate } from './lib/i18n.js';
 
 const DEFAULT_SETTINGS = {
   apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '' },
   model: 'claude-haiku-5-5',
   // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
   modelProvider: '',
-  language: 'Português',
+  language: 'English',
+  // Tamanho das respostas do modelo: 'curto' | 'normal' | 'detalhado' (ver insights.js VERBOSITY).
+  verbosity: 'normal',
   freq: 30,
   userName: '',
   detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true, context: true },
@@ -39,14 +43,13 @@ const DEFAULT_SETTINGS = {
 // Guardada fora de `settings` porque Settings.submit só persiste campos conhecidos.
 const MODEL_MIGRATION = 1;
 const MIN_UTTERANCES_FOR_MINUTES = 3;
+// Seções de insight que podem ser empilhadas (deck). Usadas pelo toggle global do info bar.
+const DECK_SECTION_KEYS = ['questions', 'points', 'actions', 'decisions', 'references', 'acronyms'];
 const EMPTY_STATE = { huddle: null, utterances: [] };
 
 // Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
 // dividir a coluna com Insights) e Copilot vive no ícone do cabeçalho.
-const TWO_COL_TABS = [
-  ['insights', 'Insights'],
-  ['ata', 'Ata'],
-];
+const TWO_COL_TABS = ['insights', 'ata'];
 
 // Larguras em que o painel passa a mostrar mais de uma coluna lado a lado.
 const COLS_2_MIN = 640;
@@ -71,6 +74,16 @@ function download(filename, text, type = 'text/plain') {
 let chatSeq = 0;
 // Creates a chat with a fresh unique id. Call this in event handlers (not inside a setState
 // updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
+// "Give me more details about this item" in each language the settings offer, so the chat question
+// matches the user's chosen language (the answer language is enforced in the chat prompt too).
+const ASK_DETAIL_PROMPT = {
+  English: (text) => `Briefly explain this in 1-2 sentences, based on the meeting: "${text}"`,
+  Portuguese: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
+  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
+  Spanish: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
+  Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
+};
+
 function newChat(index = 1) {
   return { id: `c${Date.now().toString(36)}${chatSeq++}`, title: `Chat ${index}`, messages: [] };
 }
@@ -100,6 +113,9 @@ export function App() {
   const [logs, setLogs] = useState([]);
   const [chats, setChats] = useState({ huddleId: null, list: [] });
   const [slackOpen, setSlackOpen] = useState(false);
+  // A aba em foco na janela é o Slack? Quando não é (e existe uma aba do Slack), o cabeçalho
+  // mostra um botão para voltar ao Slack.
+  const [onSlackTab, setOnSlackTab] = useState(true);
   const [slackReloadTabId, setSlackReloadTabId] = useState(null);
   const [driveState, setDriveState] = useState({ connected: false, email: null });
   const [now, setNow] = useState(Date.now());
@@ -129,6 +145,19 @@ export function App() {
   const [driveConnecting, setDriveConnecting] = useState(false);
   const [done, setDone] = useState(() => new Set());
   const [acked, setAcked] = useState(() => new Set());
+  // Insight cards the user marked as seen (hidden from the list), and whether to show them anyway.
+  const [seen, setSeen] = useState(() => new Set());
+  const [showAllSeen, setShowAllSeen] = useState(false);
+  // Cards que o usuário removeu de vez (diferente de "visto": não voltam nem com "ver todos").
+  const [removed, setRemoved] = useState(() => new Set());
+  // Correções de nome dos participantes: { nomeComoVeioNaLegenda: nomeCorrigido }. O usuário conserta
+  // a grafia na seção Participantes e isso passa a valer nas próximas análises e na geração da ata.
+  const [nameOverrides, setNameOverrides] = useState({});
+  // Modo "deck" por seção: cada seção de insight pode empilhar seus cards, mostrando um por vez. O
+  // Set guarda as chaves das seções empilhadas ('points', 'actions', 'decisions', 'questions'…).
+  const [deckSections, setDeckSections] = useState(() => new Set());
+  // The insight item shown when a caption badge is clicked (what was decided/asked/assigned).
+  const [markDialog, setMarkDialog] = useState(null);
   // Context-recall cards: one per look-back question detected live, with the subagent's answer.
   const [contextCards, setContextCards] = useState([]);
   const [contextDismissed, setContextDismissed] = useState(() => new Set());
@@ -139,6 +168,10 @@ export function App() {
   const minutesCtl = useRef({ running: false, startedAt: 0, failedFor: null });
   const [analysisRunning, setAnalysisRunning] = useState(false);
   const [analysisError, setAnalysisError] = useState(null);
+  // Momento da última análise disparada (espelho visível de analysisCtl.lastRunAt), para a InfoBar
+  // mostrar a contagem regressiva até a próxima. Pausa do loop automático (análise só sob demanda).
+  const [analysisLastRunAt, setAnalysisLastRunAt] = useState(0);
+  const [analysisPaused, setAnalysisPaused] = useState(false);
   const [minutesRunning, setMinutesRunning] = useState(false);
   const [minutesStartedAt, setMinutesStartedAt] = useState(0);
   const [minutesError, setMinutesError] = useState(null);
@@ -283,13 +316,23 @@ export function App() {
     const nextStale = extStateRef.current.huddle?.active ? null : staleTab;
     setSlackOpen(next);
     setSlackReloadTabId(nextStale);
+    try {
+      const [active] = await chromeApi.tabs.query({ active: true, currentWindow: true });
+      setOnSlackTab(/^https:\/\/app\.slack\.com\//.test(active?.url ?? ''));
+    } catch {
+      setOnSlackTab(true);
+    }
   }, []);
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab };
+  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused, nameOverrides };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
+
+  // Translate a UI string using the current language (read from the live settings ref, so toasts
+  // fired from async callbacks use the latest choice without re-creating the callbacks).
+  const tr = useCallback((key, vars) => translate(latest.current.settings.language, key, vars), []);
 
   const transcriptKey = useCallback(() => {
     const { huddle: h, utterances: u } = latest.current;
@@ -312,15 +355,16 @@ export function App() {
   }, []);
 
   const maybeAnalyze = useCallback(async () => {
-    const { huddle: h, utterances: u, settings: s, currentInsights: ci } = latest.current;
+    const { huddle: h, utterances: u, settings: s, currentInsights: ci, analysisPaused: paused } = latest.current;
     const ctl = analysisCtl.current;
-    if (ctl.running || !h?.active || !hasKeyForModel(s) || !u.length) return;
+    if (paused || ctl.running || !h?.active || !hasKeyForModel(s) || !u.length) return;
     const key = transcriptKey();
     if (key === ctl.lastKey) return;
     if (Date.now() - ctl.lastRunAt < s.freq * 1000) return;
 
     ctl.running = true;
     ctl.lastRunAt = Date.now();
+    setAnalysisLastRunAt(ctl.lastRunAt);
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
@@ -331,6 +375,8 @@ export function App() {
         settings: s,
         utterances: u,
         previous: ci?.data,
+        sinceLine: ctl.lastCount ?? 0,
+        nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -340,6 +386,7 @@ export function App() {
         decisoes: data.decisions.length,
       });
       ctl.lastKey = key;
+      ctl.lastCount = u.length; // próxima análise manda só o que vier depois daqui
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
@@ -364,6 +411,7 @@ export function App() {
     if (ctl.running || !h || !hasKeyForModel(s) || !u.length) return;
     ctl.running = true;
     ctl.lastRunAt = Date.now();
+    setAnalysisLastRunAt(ctl.lastRunAt);
     setAnalysisRunning(true);
     logEvent('info', `Analisando ${u.length} falas agora com ${s.model}`);
     const startedAt = Date.now();
@@ -374,6 +422,8 @@ export function App() {
         settings: s,
         utterances: u,
         previous: ci?.data,
+        sinceLine: ctl.lastCount ?? 0,
+        nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -383,7 +433,9 @@ export function App() {
         decisoes: data.decisions.length,
       });
       ctl.lastKey = transcriptKey();
+      ctl.lastCount = u.length;
       ctl.lastRunAt = Date.now(); // reinicia o intervalo a partir de agora
+      setAnalysisLastRunAt(ctl.lastRunAt);
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
@@ -393,6 +445,48 @@ export function App() {
       if (ctrl.signal.aborted) return;
       setAnalysisError(error.message);
       logEvent('error', `Falha na análise sob demanda: ${error.message}`);
+    } finally {
+      if (ctl.ctrl === ctrl) ctl.ctrl = null;
+      ctl.running = false;
+      setAnalysisRunning(false);
+    }
+  }, [transcriptKey, applyPartial]);
+
+  // "Refazer": usado quando a reunião não está mais ao vivo. Reanalisa do zero — manda só a
+  // transcrição inteira (previous: null, sem reenviar os insights já montados) e substitui o
+  // resultado, em vez do envio incremental da análise automática.
+  const reanalyze = useCallback(async () => {
+    const { huddle: h, utterances: u, settings: s } = latest.current;
+    const ctl = analysisCtl.current;
+    if (ctl.running || !h || !hasKeyForModel(s) || !u.length) return;
+    ctl.running = true;
+    setAnalysisRunning(true);
+    logEvent('info', `Refazendo os insights de ${u.length} falas com ${s.model}`);
+    const startedAt = Date.now();
+    const ctrl = new AbortController();
+    ctl.ctrl = ctrl;
+    try {
+      const data = await analyze({
+        settings: s,
+        utterances: u,
+        previous: null,
+        sinceLine: 0,
+        nameOverrides: latest.current.nameOverrides,
+        abortSignal: ctrl.signal,
+        onPartial: (d) => applyPartial(h.id, d),
+      });
+      logEvent('info', `Insights refeitos em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
+      ctl.lastKey = transcriptKey();
+      ctl.lastCount = u.length;
+      setAnalysisError(null);
+      const record = { huddleId: h.id, updatedAt: Date.now(), data };
+      setInsights(record);
+      completedHuddle.current = h.id;
+      await chromeApi?.storage.session.set({ insights: record });
+    } catch (error) {
+      if (ctrl.signal.aborted) return;
+      setAnalysisError(error.message);
+      logEvent('error', `Falha ao refazer os insights: ${error.message}`);
     } finally {
       if (ctl.ctrl === ctrl) ctl.ctrl = null;
       ctl.running = false;
@@ -421,7 +515,7 @@ export function App() {
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
       const meta = minutesMeta(h, u);
-      const data = await generateMinutes({ settings: s, meta, utterances: u });
+      const data = await generateMinutes({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
       await chromeApi?.storage.session.set({ minutes: record });
@@ -489,9 +583,9 @@ export function App() {
     async (text) => {
       try {
         await navigator.clipboard.writeText(text);
-        flash('Copiado.');
+        flash(tr('toast.copied'));
       } catch {
-        flash('Não consegui copiar.');
+        flash(tr('toast.copyFailed'));
       }
     },
     [flash],
@@ -501,13 +595,13 @@ export function App() {
   const postToThread = useCallback(
     async (text) => {
       const tabId = latest.current.huddle?.tabId;
-      if (!tabId || !chromeApi?.tabs) return flash('Janela do huddle não encontrada.');
+      if (!tabId || !chromeApi?.tabs) return flash(tr('toast.huddleWindowNotFound'));
       try {
         const result = await chromeApi.tabs.sendMessage(tabId, { type: 'thread:draft', text });
         if (!result?.ok) throw new Error(result?.error ?? 'sem resposta da janela do huddle');
-        flash('Texto colocado no thread do huddle. Revise e envie no Slack, depois volte para a aba Captions.');
+        flash(tr('toast.threadDrafted'));
       } catch (error) {
-        flash(`Não consegui postar no thread: ${error.message}`);
+        flash(tr('toast.threadFailed', { error: error.message }));
       }
     },
     [flash],
@@ -531,9 +625,9 @@ export function App() {
       await chromeApi.tabs.update(slackReloadTabId, { active: true });
       const t = await chromeApi.tabs.get(slackReloadTabId);
       if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
-      flash('Aba do Slack recarregada. Se o huddle estiver numa janela separada, reabra o huddle.');
+      flash(tr('toast.slackReloaded'));
     } catch (error) {
-      flash(`Não consegui recarregar a aba do Slack: ${error.message}`);
+      flash(tr('toast.slackReloadFailed', { error: error.message }));
     }
   }, [slackReloadTabId, goToSlack, flash]);
 
@@ -547,9 +641,9 @@ export function App() {
       await chromeApi.tabs.update(slackReloadTabId, { active: true });
       const t = await chromeApi.tabs.get(slackReloadTabId);
       if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
-      flash('Conectado a esta aba. Feche e reabra o huddle (sem recarregar a página) para começar a captura.');
+      flash(tr('toast.tabConnected'));
     } catch (error) {
-      flash(`Não consegui conectar à aba: ${error.message}. Tente recarregar a aba.`);
+      flash(tr('toast.tabConnectFailed', { error: error.message }));
     }
   }, [slackReloadTabId, goToSlack, flash]);
 
@@ -561,7 +655,7 @@ export function App() {
       next.delete(alert.text);
       return next;
     });
-    flash(alert.kind === 'action' ? 'Ação aceita.' : 'Alerta marcado como visto.');
+    flash(alert.kind === 'action' ? tr('toast.actionAccepted') : tr('toast.alertSeen'));
   }, [flash]);
 
   const editAlert = useCallback((alert) => {
@@ -576,6 +670,109 @@ export function App() {
       else next.delete(key);
       return next;
     });
+  }, []);
+
+  const markSeen = useCallback(
+    (key) =>
+      setSeen((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
+  // Mark every key of a section as seen at once (additive — never unmarks), so "marcar todos"
+  // also covers cards not currently visible.
+  const markAllSeen = useCallback(
+    (keys) =>
+      setSeen((prev) => {
+        const next = new Set(prev);
+        for (const k of keys) next.add(k);
+        return next;
+      }),
+    [],
+  );
+  const toggleShowAllSeen = useCallback(() => setShowAllSeen((v) => !v), []);
+
+  // Remove um card de vez (o usuário decidiu que não precisa dele). Guardado por chave de texto, como
+  // o "visto", mas sem volta.
+  const removeItem = useCallback(
+    (key) =>
+      setRemoved((prev) => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      }),
+    [],
+  );
+
+  // Corrige (ou limpa) o nome de um participante. Corrigido vazio ou igual ao original remove a
+  // correção.
+  const renamePerson = useCallback(
+    (original, corrected) =>
+      setNameOverrides((prev) => {
+        const next = { ...prev };
+        if (!corrected || corrected === original) delete next[original];
+        else next[original] = corrected;
+        return next;
+      }),
+    [],
+  );
+
+  // Liga/desliga o empilhamento (deck) de uma seção de insight.
+  const toggleDeckSection = useCallback(
+    (key) =>
+      setDeckSections((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
+  // Toggle global do info bar: se há qualquer seção empilhada, desfaz todos os decks; senão, empilha
+  // todas as seções de uma vez.
+  const toggleAllDecks = useCallback(
+    () => setDeckSections((prev) => (prev.size > 0 ? new Set() : new Set(DECK_SECTION_KEYS))),
+    [],
+  );
+
+  // Resolve a caption badge (transcript line + kind) to the matching insight item and open it in a
+  // dialog. Decisions/actions/questions carry their line; falls back to the caption text if none.
+  const onMarkClick = useCallback((line, kind) => {
+    const data = latest.current.currentInsights?.data;
+    // Prefer the AI-generated insight item of this kind: the one on the exact line, else the one on
+    // the nearest line, else the first of its kind — so the dialog shows the insight text, not the
+    // raw caption. Only when no item of this kind exists do we fall back to the spoken line.
+    const pick = (items) => {
+      if (!items.length) return null;
+      const withLine = items.filter((x) => x.line > 0);
+      if (!withLine.length) return items[0];
+      return (
+        withLine.find((x) => x.line === line) ??
+        withLine.reduce((best, x) => (Math.abs(x.line - line) < Math.abs(best.line - line) ? x : best))
+      );
+    };
+    let item = null;
+    if (data && kind === 'question') {
+      const q = pick(data.open_questions ?? []);
+      if (q) item = { label: tr('mark.label.question'), icon: 'question', tone: 'yellow', text: q.answer ? `${q.text}\n\n${q.answer}` : q.text, key: q.text };
+    } else if (data && kind === 'decision') {
+      const d = pick((data.decisions ?? []).map((x) => (typeof x === 'string' ? { text: x, line: 0 } : x)));
+      if (d) item = { label: tr('mark.label.decision'), icon: 'check', tone: 'green', text: d.text, key: d.text };
+    } else if (data && kind === 'action') {
+      const a = pick(data.actions ?? []);
+      if (a) item = { label: tr('mark.label.action'), icon: 'bolt', tone: 'green', text: a.text, owner: a.owner || '', key: a.text };
+    }
+    if (!item) {
+      const labels = { action: tr('mark.label.action'), decision: tr('mark.label.decision'), question: tr('mark.label.question') };
+      const icons = { action: 'bolt', decision: 'check', question: 'question' };
+      const tones = { action: 'green', decision: 'green', question: 'yellow' };
+      const text = latest.current.utterances[line - 1]?.text ?? '';
+      item = { label: labels[kind] ?? tr('mark.label.detected'), icon: icons[kind] ?? 'bulb', tone: tones[kind] ?? 'blue', text, key: text };
+    }
+    setMarkDialog(item);
   }, []);
 
   // --- Downloads ---
@@ -615,10 +812,10 @@ export function App() {
         await persistDrive(record, info);
         if (!driveState.connected) await refreshDriveStatus();
         logEvent('info', 'Ata enviada ao Google Drive', { arquivo: file.name ?? name });
-        flash('Ata enviada ao Google Drive.');
+        flash(tr('toast.driveUploaded'));
       } catch (error) {
         logEvent('error', `Falha ao enviar ao Drive: ${error.message}`);
-        flash(`Não consegui enviar ao Drive: ${error.message}`);
+        flash(tr('toast.driveUploadFailed', { error: error.message }));
       } finally {
         setDriveBusy(null);
       }
@@ -631,7 +828,7 @@ export function App() {
     try {
       const next = await drive.connect();
       setDriveState(next);
-      setNotice(next.email ? `Conectado como ${next.email}.` : 'Google Drive conectado.');
+      setNotice(next.email ? tr('toast.driveConnectedEmail', { email: next.email }) : tr('toast.driveConnected'));
     } catch (error) {
       setNotice(error.message);
     } finally {
@@ -642,13 +839,14 @@ export function App() {
   const disconnectDrive = useCallback(async () => {
     await drive.disconnect();
     setDriveState({ connected: false, email: null });
-    setNotice('Google Drive desconectado.');
+    setNotice(tr('toast.driveDisconnected'));
   }, []);
 
   // --- Settings ---
   const saveSettings = useCallback(async (next) => {
     setSettings(next);
     analysisCtl.current.lastKey = '';
+    analysisCtl.current.lastCount = 0; // settings mudaram: reanalisa a transcrição inteira
     minutesCtl.current.failedFor = null;
     setAnalysisError(null);
     await chromeApi?.storage.local.set({ settings: next });
@@ -665,7 +863,7 @@ export function App() {
 
   const clearHistory = useCallback(async () => {
     await chromeApi?.storage.local.remove('history');
-    setNotice('Histórico e sessões apagados.');
+    setNotice(tr('toast.historyCleared'));
   }, []);
 
   const clearLogs = useCallback(async () => {
@@ -675,7 +873,7 @@ export function App() {
   const runDiagnostics = useCallback(async () => {
     const tabId = latest.current.huddle?.tabId ?? (await chromeApi?.tabs.query({ url: 'https://app.slack.com/*' }))?.[0]?.id;
     if (!tabId) {
-      setNotice('Nenhuma aba do Slack aberta.');
+      setNotice(tr('toast.noSlackTab'));
       return;
     }
     try {
@@ -684,11 +882,14 @@ export function App() {
       await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
       setNotice(
         dump.huddle
-          ? `Huddle encontrado, legendas ${dump.captionsFound ? 'encontradas' : 'não encontradas'}, ${dump.rows} falas. O diagnóstico foi copiado para a área de transferência.`
-          : `Nenhuma janela de huddle detectada (${dump.popupsTracked} janelas acompanhadas). Recarregue a aba do Slack e abra o huddle de novo.`,
+          ? tr('toast.diagHuddle', {
+              captions: dump.captionsFound ? tr('toast.diagFound') : tr('toast.diagNotFound'),
+              rows: dump.rows,
+            })
+          : tr('toast.diagNoHuddle', { popups: dump.popupsTracked }),
       );
     } catch (error) {
-      setNotice(`Não consegui ler o Slack (${error.message}).`);
+      setNotice(tr('toast.diagReadFailed', { error: error.message }));
     }
   }, []);
 
@@ -755,6 +956,7 @@ export function App() {
           settings: s,
           utterances: latest.current.utterances,
           previous: null,
+          nameOverrides: latest.current.nameOverrides,
           abortSignal: ctrl.signal,
           onPartial: (d) => applyPartial(huddleId, d),
         });
@@ -762,6 +964,7 @@ export function App() {
         const record = { huddleId, updatedAt: Date.now(), data };
         setInsights(record);
         completedHuddle.current = huddleId;
+        analysisCtl.current.lastCount = latest.current.utterances.length;
         await chromeApi?.storage.session.set({ insights: record });
         await saveInsightsToHistory(huddleId, data);
       } catch (error) {
@@ -781,14 +984,14 @@ export function App() {
     async ({ title, date, text }) => {
       const utt = parseTranscript(text);
       if (utt.length === 0) {
-        setImportError('Cole a transcrição no campo de texto para importar.');
+        setImportError(tr('toast.importEmpty'));
         return;
       }
       const ts = sessionTimestamp(date);
       const span = utt.at(-1).at || (utt.length - 1) * 1000;
       const hud = {
         id: `import-${ts.toString(36)}`,
-        title: title || 'Sessão importada',
+        title: title || tr('session.importedTitle'),
         captions: true,
         language: null,
         startedAt: ts - span,
@@ -813,10 +1016,10 @@ export function App() {
       setTab('insights');
       logEvent('info', `Transcrição importada: ${utt.length} falas, ${new Set(utt.map((u) => u.speaker)).size} participantes`);
       if (!hasKeyForModel(latest.current.settings)) {
-        flash('Transcrição importada. Adicione a chave da API para gerar a ata e os insights.');
+        flash(tr('toast.importedNeedKey'));
         return;
       }
-      flash('Transcrição importada. Gerando a ata e os insights…');
+      flash(tr('toast.importedGenerating'));
       // Give state a tick to settle before the background jobs read latest.current.
       setTimeout(() => {
         analyzeOnce(hud.id);
@@ -829,12 +1032,12 @@ export function App() {
   const loadSession = useCallback(
     async (record) => {
       if (record.huddleId === latest.current.huddle?.id) {
-        flash('Esta sessão já está carregada no app.');
+        flash(tr('toast.sessionAlreadyLoaded'));
         return;
       }
       const entry = history.find((item) => (item.huddle?.id ?? item.minutes?.huddleId) === record.huddleId);
       if (!entry?.huddle) {
-        flash('Não encontrei os dados completos desta sessão.');
+        flash(tr('toast.sessionDataMissing'));
         return;
       }
       const hud = { ...entry.huddle, active: false, archived: true, loaded: true };
@@ -861,10 +1064,25 @@ export function App() {
       setAtasOpen(false);
       setAtasQuery('');
       setTab('insights');
-      flash('Sessão carregada. Pergunte sobre ela no chat ou veja as abas.');
+      flash(tr('toast.sessionLoaded'));
     },
-    [history, flash],
+    [history, flash, tr],
   );
+
+  // Volta para a página principal (o estado em que a extensão abre): descarrega a sessão que estava
+  // sendo vista e fecha os overlays. Um huddle ao vivo volta a se preencher sozinho na próxima fala.
+  const goHome = useCallback(async () => {
+    setChatOpen(false);
+    setViewingAta(null);
+    setAtasOpen(false);
+    setImportOpen(false);
+    setExtState(EMPTY_STATE);
+    setInsights(null);
+    setMinutes(null);
+    await chromeApi?.storage.session.set({ state: EMPTY_STATE });
+    await chromeApi?.storage.session.remove(['insights', 'minutes']);
+    setTab('insights');
+  }, []);
 
   // --- Context recall: a look-back question in the live transcript ("o que decidimos na reunião
   // passada sobre X?") triggers the recall subagent over past session summaries; the answer shows
@@ -872,6 +1090,7 @@ export function App() {
   useEffect(() => {
     analysisCtl.current.ctrl?.abort(); // descarta análise em voo da sessão anterior
     completedHuddle.current = null; // novo huddle volta a usar streaming no primeiro preenchimento
+    analysisCtl.current.lastCount = 0; // novo huddle: próxima análise manda a transcrição inteira
     contextSeen.current = new Set();
     setContextCards([]);
     setContextDismissed(new Set());
@@ -945,9 +1164,9 @@ export function App() {
       }
       setViewingAta(null);
       logEvent('info', 'Sessão apagada');
-      flash('Sessão apagada.');
+      flash(tr('toast.sessionDeleted'));
     },
-    [flash],
+    [flash, tr],
   );
 
   // --- Chat ---
@@ -1010,7 +1229,7 @@ export function App() {
     const question = (chatDrafts[chat.id] ?? '').trim();
     if (!question) return;
     if (!hasKeyForModel(settings)) {
-      flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
+      flash(tr('toast.chatNeedKey'));
       return;
     }
     if (chatBusy.has(chat.id)) return;
@@ -1050,6 +1269,55 @@ export function App() {
     }
   }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, nameChat, flash]);
 
+  // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
+  // decision, action, question, reference…). Posts the question and streams the answer right away.
+  const askAboutInsight = useCallback(
+    async (topic) => {
+      const text = String(topic ?? '').trim();
+      if (!text) return;
+      setChatOpen(true);
+      if (!hasKeyForModel(latest.current.settings)) {
+        flash(tr('toast.chatNeedKey'));
+        return;
+      }
+      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
+      const question = build(text);
+      const chat = newChat();
+      setChats((prev) => ({
+        ...prev,
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [{ role: 'user', text: question }] }],
+      }));
+      setActiveChatId(chat.id);
+      setChatBusy((b) => new Set(b).add(chat.id));
+      setChatStream({ chatId: chat.id, text: '' });
+      nameChat(chat.id, question);
+      logEvent('info', `Detalhar insight no chat (${latest.current.utterances.length} falas)`);
+      try {
+        const answer = await askMeeting({
+          settings: latest.current.settings,
+          utterances: latest.current.utterances,
+          history: [],
+          question,
+          sessions: latest.current.pastSessions,
+          onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+          log: logEvent,
+        });
+        appendMessage(chat.id, { role: 'assistant', text: answer });
+      } catch (error) {
+        appendMessage(chat.id, { role: 'error', text: error.message });
+        logEvent('error', `Falha no chat: ${error.message}`);
+      } finally {
+        setChatBusy((b) => {
+          const next = new Set(b);
+          next.delete(chat.id);
+          return next;
+        });
+        setChatStream(null);
+      }
+    },
+    [appendMessage, nameChat, flash],
+  );
+
   // --- Derived view helpers ---
   const ataProps = (record) => ({
     done,
@@ -1070,10 +1338,13 @@ export function App() {
   };
 
   // --- Screens ---
+  // Every screen is wrapped so the whole UI renders in the language chosen in Settings; components
+  // read it via useT()/context. The model-output language is unchanged (handled in insights.js).
+  const screen = (node) => <I18nProvider lang={settings.language}>{node}</I18nProvider>;
   // Telas sem huddle ao vivo não têm layout multi-coluna: num painel largo,
   // ficam limitadas à largura de um painel e centralizadas (.screen).
   if (logsOpen) {
-    return (
+    return screen(
       <LogsView
         logs={logs}
         onBack={closeLogs}
@@ -1084,7 +1355,7 @@ export function App() {
     );
   }
   if (settingsOpen) {
-    return (
+    return screen(
       <SettingsView
         settings={settings}
         driveState={driveState}
@@ -1102,10 +1373,10 @@ export function App() {
     );
   }
   if (importOpen) {
-    return <ImportView error={importError} hasKey={hasKeyForModel(settings)} onSubmit={importSession} onCancel={() => setImportOpen(false)} />;
+    return screen(<ImportView error={importError} hasKey={hasKeyForModel(settings)} onSubmit={importSession} onCancel={() => setImportOpen(false)} />);
   }
   if (viewingAta) {
-    return (
+    return screen(
       <PastAtaView
         record={viewingAta}
         isCurrent={viewingAta.huddleId === huddle?.id}
@@ -1119,7 +1390,7 @@ export function App() {
     );
   }
   if (atasOpen) {
-    return (
+    return screen(
       <AtasView
         records={allMinutes}
         query={atasQuery}
@@ -1137,13 +1408,14 @@ export function App() {
     );
   }
   if (!huddle) {
-    return (
+    return screen(
       <div className="screen">
         <Header
           huddle={null}
           version={version()}
           chatOpen={false}
           now={now}
+          onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
           onOpenAtas={openAtas}
           onToggleChat={toggleChat}
           onOpenLogs={openLogs}
@@ -1167,6 +1439,25 @@ export function App() {
   const recentUtterances = utterances.slice(-3);
   const canCopySummary = !!currentInsights;
   const canPostSummary = !!currentInsights && !!huddle.active;
+  // How many of the insight cards currently shown have been marked as seen (so the "ver todos"
+  // toggle can show a count of what is hidden). Plain compute — this runs below the early returns,
+  // so it must not be a hook.
+  const seenKeys = currentInsights
+    ? [
+        ...(currentInsights.data.points ?? []).map((p) => (typeof p === 'string' ? p : p.text)),
+        ...(currentInsights.data.decisions ?? []).map((d) => (typeof d === 'string' ? d : d.text)),
+        ...(currentInsights.data.open_questions ?? []).map((q) => q.text),
+        ...(currentInsights.data.actions ?? []).map((a) => a.text),
+        ...(currentInsights.data.replies ?? []).map((r) => r.text),
+        ...(currentInsights.data.suggestions ?? []),
+        ...(currentInsights.data.references ?? []).map((r) => r.title),
+        ...(currentInsights.data.acronyms ?? []).map((a) => a.term),
+      ]
+    : [];
+  const hiddenSeen = seenKeys.filter((k) => seen.has(k) && !removed.has(k)).length;
+  // Participantes: os falantes das legendas (verdade do Slack, sem repetir). É o que a seção
+  // Participantes mostra para o usuário corrigir a grafia do nome.
+  const peopleList = [...new Set(utterances.map((u) => u.speaker).filter(Boolean))];
   const copySummary = () => currentInsights && copyToClipboard(insightsAsText(currentInsights.data, settings.detect));
   const postSummary = () => currentInsights && postToThread(insightsAsText(currentInsights.data, settings.detect));
 
@@ -1175,6 +1466,9 @@ export function App() {
   const infoBarProps = {
     settings,
     analysis: { running: analysisRunning, error: analysisError },
+    analysisPaused,
+    analysisLastRunAt,
+    onTogglePause: () => setAnalysisPaused((v) => !v),
     huddle,
     now,
     utteranceCount: utterances.length,
@@ -1184,12 +1478,21 @@ export function App() {
     canPostSummary,
     onCopySummary: copySummary,
     onPostSummary: postSummary,
+    canPostMinutes: !!currentMinutes && !!huddle?.active,
+    onPostMinutes: () => currentMinutes && postToThread(minutesAsText(currentMinutes, 'slack')),
     onAnalyzeNow: analyzeNow,
+    onReanalyze: reanalyze,
     tickerHidden,
     hasRecent: recentUtterances.length > 0,
     onToggleTicker: () => setTickerHidden((v) => !v),
+    showAllSeen,
+    hiddenSeen,
+    onToggleShowAll: toggleShowAllSeen,
+    anyDecked: deckSections.size > 0,
+    onToggleAllDecks: toggleAllDecks,
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
+    onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
     onRegenerate: runMinutes,
     onOpenAtas: openAtas,
   };
@@ -1215,11 +1518,23 @@ export function App() {
           onDismissContext={dismissContext}
           onOpenContextSource={openContextSource}
           onOpenSettings={openSettings}
+          onAskAI={askAboutInsight}
+          seen={seen}
+          showAllSeen={showAllSeen}
+          onMarkSeen={markSeen}
+          onMarkAllSeen={markAllSeen}
+          removed={removed}
+          onRemove={removeItem}
+          people={peopleList}
+          nameOverrides={nameOverrides}
+          onRenamePerson={renamePerson}
+          deckSections={deckSections}
+          onToggleDeckSection={toggleDeckSection}
         />
       );
     }
     if (section === 'captions') {
-      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />;
+      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
     }
     return minutesRunning ? (
       <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} />
@@ -1250,7 +1565,7 @@ export function App() {
     if (section === 'insights') {
       return (
         <footer className="footer footer--insights">
-          {!tickerHidden && recentUtterances.length > 0 && (
+          {huddle?.active && !tickerHidden && recentUtterances.length > 0 && (
             <div className="ticker-card">
               <Tooltip label="Fechar últimas falas">
                 <button
@@ -1281,7 +1596,7 @@ export function App() {
     <section className="pane" key={section}>
       <InfoBar tab={section} {...infoBarProps} />
       {section === 'captions' ? (
-        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
       ) : (
         <div className="pane__body">{panelContent(section)}</div>
       )}
@@ -1298,7 +1613,7 @@ export function App() {
         <Tabs tab={tab} onSelect={onSelectTab} />
         <InfoBar tab={tab} {...infoBarProps} />
         {tab === 'captions' ? (
-          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} />
+          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
         ) : (
           <main className={`main main--${tab}`} id="main">
             {panelContent(tab)}
@@ -1331,13 +1646,15 @@ export function App() {
     );
   }
 
-  return (
+  return screen(
     <>
       <Header
         huddle={huddle}
         version={version()}
         chatOpen={chatOpen}
         now={now}
+        onHome={huddle?.loaded ? goHome : undefined}
+        onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
         onOpenAtas={openAtas}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}
@@ -1361,6 +1678,23 @@ export function App() {
           onCloseDock={toggleChat}
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
+        />
+      )}
+      {markDialog && (
+        <MarkDialog
+          label={markDialog.label}
+          icon={markDialog.icon}
+          tone={markDialog.tone}
+          text={markDialog.text}
+          owner={markDialog.owner}
+          seenOn={seen.has(markDialog.key)}
+          onAsk={() => {
+            askAboutInsight(markDialog.key);
+            setMarkDialog(null);
+          }}
+          onCopy={() => copyToClipboard(markDialog.text)}
+          onSeen={() => markSeen(markDialog.key)}
+          onClose={() => setMarkDialog(null)}
         />
       )}
     </>

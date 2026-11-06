@@ -1,14 +1,9 @@
 import { useState } from 'react';
 import { MODELS, PROVIDERS, PROVIDER_IDS, providerOf, hasKeyForModel } from '../lib/models.js';
+import { LANGUAGES, useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Field, Select, Toggle } from '../ui/primitives.jsx';
 
-const LANGUAGES = ['Português', 'English', 'Español'];
-const CAPTION_SOURCES = [
-  ['auto', 'Automático (recomendado)'],
-  ['panel', 'Painel de legendas (aba Captions)'],
-  ['overlay', 'Legendas sobre os vídeos'],
-];
 const FREQUENCIES = [15, 30, 60];
 
 export function SettingsView({
@@ -25,6 +20,7 @@ export function SettingsView({
   onConnectDrive,
   onDisconnectDrive,
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(() => ({
     ...settings,
     detect: { ...settings.detect },
@@ -32,6 +28,17 @@ export function SettingsView({
   const set = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
   const setDetect = (key, value) => setDraft((d) => ({ ...d, detect: { ...d.detect, [key]: value } }));
   const setKey = (provider, value) => setDraft((d) => ({ ...d, apiKeys: { ...d.apiKeys, [provider]: value } }));
+
+  const CAPTION_SOURCES = [
+    ['auto', t('captionSource.auto')],
+    ['panel', t('captionSource.panel')],
+    ['overlay', t('captionSource.overlay')],
+  ];
+  const VERBOSITY_OPTS = [
+    ['curto', t('verbosity.short')],
+    ['normal', t('verbosity.normal')],
+    ['detalhado', t('verbosity.detailed')],
+  ];
 
   const CUSTOM_MODEL = '__custom__';
   const modelIsKnown = MODELS.some((m) => m.id === draft.model);
@@ -56,6 +63,7 @@ export function SettingsView({
       model: draft.model.trim(),
       modelProvider: draft.modelProvider,
       language: draft.language,
+      verbosity: draft.verbosity,
       freq: Number(draft.freq),
       userName: draft.userName.trim(),
       captionSource: draft.captionSource,
@@ -68,10 +76,10 @@ export function SettingsView({
   return (
     <>
       <header className="header">
-        <button className="icon-button" type="button" aria-label="Voltar" onClick={onCancel}>
+        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={onCancel}>
           <Icon name="back" />
         </button>
-        <h1 className="header__app">Configurações</h1>
+        <h1 className="header__app">{t('settings.title')}</h1>
       </header>
       <main className="main" id="settings-main">
         <form className="settings" id="settings-form" onSubmit={submit}>
@@ -80,13 +88,13 @@ export function SettingsView({
               <span className="card-icon card-icon--purple">
                 <Icon name="sparkles" />
               </span>
-              <h2 className="section__title">Inteligência</h2>
+              <h2 className="section__title">{t('settings.intelligence')}</h2>
             </div>
             <Field
-              label="Modelo"
+              label={t('settings.model')}
               htmlFor="model"
               headAside={<span className="provider-pill">{PROVIDERS[needProvider].label}</span>}
-              hint="Anthropic, OpenAI, Google e provedores com camada gratuita. A chave usada acompanha o provedor."
+              hint={t('settings.modelHint')}
             >
               <select id="model" value={modelIsKnown ? draft.model : CUSTOM_MODEL} onChange={(e) => onModelChange(e.target.value)}>
                 {PROVIDER_IDS.map((p) => (
@@ -98,12 +106,12 @@ export function SettingsView({
                     ))}
                   </optgroup>
                 ))}
-                <option value={CUSTOM_MODEL}>Personalizado…</option>
+                <option value={CUSTOM_MODEL}>{t('settings.custom')}</option>
               </select>
             </Field>
             {!modelIsKnown && (
               <div className="field-row">
-                <Field label="Provider" htmlFor="modelProvider">
+                <Field label={t('settings.provider')} htmlFor="modelProvider">
                   <Select
                     id="modelProvider"
                     options={PROVIDER_IDS.map((p) => [p, PROVIDERS[p].label])}
@@ -111,13 +119,13 @@ export function SettingsView({
                     onChange={(v) => set('modelProvider', v)}
                   />
                 </Field>
-                <Field label="ID do modelo" htmlFor="customModel">
+                <Field label={t('settings.modelId')} htmlFor="customModel">
                   <input
                     id="customModel"
                     type="text"
                     value={draft.model}
                     autoComplete="off"
-                    placeholder="ex.: gpt-5.5"
+                    placeholder={t('settings.modelIdPlaceholder')}
                     onChange={(e) => set('model', e.target.value)}
                   />
                 </Field>
@@ -128,16 +136,16 @@ export function SettingsView({
                 <span className="provider-keys__icon">
                   <Icon name="key" />
                 </span>
-                <span className="provider-keys__label">Chaves de API</span>
+                <span className="provider-keys__label">{t('settings.apiKeys')}</span>
                 <span className={`key-count${missingKey ? ' key-count--warn' : ''}`}>
-                  {configuredCount} de {PROVIDER_IDS.length}
+                  {t('settings.keyCount', { n: configuredCount, m: PROVIDER_IDS.length })}
                 </span>
                 <span className="provider-keys__chevron" aria-hidden="true">
                   <Icon name="back" />
                 </span>
               </summary>
               <div className="provider-keys__body">
-                <p className="muted small">Ficam só neste navegador. Preencha a do provedor do modelo escolhido.</p>
+                <p className="muted small">{t('settings.keysHint')}</p>
                 {PROVIDER_IDS.map((p) => {
                   const filled = Boolean(draft.apiKeys[p]?.trim());
                   return (
@@ -148,8 +156,8 @@ export function SettingsView({
                       headAside={
                         <span
                           className={`key-dot${filled ? ' key-dot--on' : ''}`}
-                          title={filled ? 'Configurada' : 'Vazia'}
-                          aria-label={filled ? 'Configurada' : 'Vazia'}
+                          title={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
+                          aria-label={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
                           role="img"
                         />
                       }
@@ -168,11 +176,11 @@ export function SettingsView({
               </div>
             </details>
             <div className="field-row">
-              <Field label="Idioma" htmlFor="language">
-                <Select id="language" options={LANGUAGES.map((l) => [l, l])} value={draft.language} onChange={(v) => set('language', v)} />
+              <Field label={t('settings.language')} htmlFor="language">
+                <Select id="language" options={LANGUAGES} value={draft.language} onChange={(v) => set('language', v)} />
               </Field>
-              <Field label="Analisar a cada" htmlFor="freq">
-                <div className="segmented" role="radiogroup" aria-label="Analisar a cada">
+              <Field label={t('settings.analyzeEvery')} htmlFor="freq">
+                <div className="segmented" role="radiogroup" aria-label={t('settings.analyzeEvery')}>
                   {FREQUENCIES.map((f) => (
                     <label key={f} className="segmented__opt">
                       <input
@@ -189,16 +197,36 @@ export function SettingsView({
               </Field>
             </div>
             <Field
-              label="Seu nome no huddle"
+              label={t('settings.responseSize')}
+              htmlFor="verbosity"
+              hint={t('settings.responseSizeHint')}
+            >
+              <div className="segmented" role="radiogroup" aria-label={t('settings.responseSize')}>
+                {VERBOSITY_OPTS.map(([value, label]) => (
+                  <label key={value} className="segmented__opt">
+                    <input
+                      type="radio"
+                      name="verbosity"
+                      value={value}
+                      checked={draft.verbosity === value}
+                      onChange={() => set('verbosity', value)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <Field
+              label={t('settings.yourName')}
               htmlFor="userName"
-              hint='Usado para separar os "Alertas pra você" — menções, ações e perguntas dirigidas a você.'
+              hint={t('settings.yourNameHint')}
             >
               <input
                 id="userName"
                 type="text"
                 value={draft.userName}
                 autoComplete="off"
-                placeholder="Como você aparece nas legendas"
+                placeholder={t('settings.yourNamePlaceholder')}
                 onChange={(e) => set('userName', e.target.value)}
               />
             </Field>
@@ -208,12 +236,12 @@ export function SettingsView({
               <span className="card-icon card-icon--blue">
                 <Icon name="headphones" />
               </span>
-              <h2 className="section__title">Legendas</h2>
+              <h2 className="section__title">{t('settings.captions')}</h2>
             </div>
             <Field
-              label="Como capturar"
+              label={t('settings.captureHow')}
               htmlFor="captionSource"
-              hint="Automático começa a capturar assim que a legenda liga, sem precisar abrir a aba Captions: usa o painel quando a aba está aberta (transcrição completa) e as legendas sobre os vídeos quando não. Vale ao reler a aba do Slack."
+              hint={t('settings.captureHint')}
             >
               <Select id="captionSource" options={CAPTION_SOURCES} value={draft.captionSource} onChange={(v) => set('captionSource', v)} />
             </Field>
@@ -223,58 +251,55 @@ export function SettingsView({
               <span className="card-icon card-icon--yellow">
                 <Icon name="bulb" />
               </span>
-              <h2 className="section__title">Insights</h2>
+              <h2 className="section__title">{t('settings.insights')}</h2>
             </div>
-            <Toggle id="detect-alerts" label="Alertas pra você (menções, ações, perguntas)" checked={draft.detect.alerts} onChange={(v) => setDetect('alerts', v)} />
-            <Toggle id="detect-actions" label="Ações e responsáveis" checked={draft.detect.actions} onChange={(v) => setDetect('actions', v)} />
-            <Toggle id="detect-decisions" label="Decisões" checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
-            <Toggle id="detect-questions" label="Perguntas em aberto" checked={draft.detect.questions} onChange={(v) => setDetect('questions', v)} />
-            <Toggle id="detect-context" label="Contexto de reuniões passadas" checked={draft.detect.context} onChange={(v) => setDetect('context', v)} />
-            <Toggle id="detect-suggestions" label="Sugestões do que falar" checked={draft.detect.suggestions} onChange={(v) => setDetect('suggestions', v)} />
-            <Toggle id="detect-replies" label="Respostas sugeridas" checked={draft.detect.replies} onChange={(v) => setDetect('replies', v)} />
-            <Toggle id="detect-references" label="Referências (livros, apps, links)" checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
-            <Toggle id="detect-acronyms" label="Siglas citadas" checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
+            <Toggle id="detect-alerts" label={t('detect.alerts')} checked={draft.detect.alerts} onChange={(v) => setDetect('alerts', v)} />
+            <Toggle id="detect-actions" label={t('detect.actions')} checked={draft.detect.actions} onChange={(v) => setDetect('actions', v)} />
+            <Toggle id="detect-decisions" label={t('detect.decisions')} checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
+            <Toggle id="detect-questions" label={t('detect.questions')} checked={draft.detect.questions} onChange={(v) => setDetect('questions', v)} />
+            <Toggle id="detect-context" label={t('detect.context')} checked={draft.detect.context} onChange={(v) => setDetect('context', v)} />
+            <Toggle id="detect-suggestions" label={t('detect.suggestions')} checked={draft.detect.suggestions} onChange={(v) => setDetect('suggestions', v)} />
+            <Toggle id="detect-replies" label={t('detect.replies')} checked={draft.detect.replies} onChange={(v) => setDetect('replies', v)} />
+            <Toggle id="detect-references" label={t('detect.references')} checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
+            <Toggle id="detect-acronyms" label={t('detect.acronyms')} checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
           </section>
           <section className="settings-card settings-card--tight">
             <div className="card-head">
               <span className="card-icon card-icon--green">
                 <Icon name="doc" />
               </span>
-              <h2 className="section__title">Ata</h2>
+              <h2 className="section__title">{t('settings.ata')}</h2>
             </div>
-            <Toggle id="autoMinutes" label="Gerar a ata ao encerrar o huddle" checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
+            <Toggle id="autoMinutes" label={t('settings.autoMinutes')} checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
           </section>
           <section className="settings-card settings-card--tight">
             <div className="card-head">
               <span className="card-icon card-icon--muted">
                 <Icon name="cloud" />
               </span>
-              <h2 className="section__title">Google Drive</h2>
+              <h2 className="section__title">{t('settings.drive')}</h2>
             </div>
             {driveState.connected ? (
               <p className="muted small">
-                {driveState.email ? `Conectado como ${driveState.email}. ` : 'Conectado. '}
-                Envie a ata de qualquer huddle ao Drive pelo botão de nuvem na aba Ata.
+                {driveState.email ? t('settings.driveConnectedEmail', { email: driveState.email }) : t('settings.driveConnectedNoEmail')}
+                {t('settings.driveConnectedSuffix')}
               </p>
             ) : (
-              <p className="muted small">
-                Conecte para enviar as atas ao seu Drive. A extensão só acessa os arquivos que ela mesma cria (escopo
-                drive.file).
-              </p>
+              <p className="muted small">{t('settings.driveDisconnected')}</p>
             )}
             <div className="buttons buttons--start">
               {driveState.connected ? (
                 <button id="drive-connect-btn" className="button" type="button" onClick={onDisconnectDrive}>
-                  Desconectar
+                  {t('settings.disconnect')}
                 </button>
               ) : driveConnecting ? (
                 <button id="drive-connect-btn" className="button button--primary" type="button" disabled>
                   <span className="spinner" aria-hidden="true" />
-                  Abrindo janela do Google…
+                  {t('settings.driveOpening')}
                 </button>
               ) : (
                 <button id="drive-connect-btn" className="button button--primary" type="button" onClick={onConnectDrive}>
-                  Conectar Google Drive
+                  {t('settings.connectDrive')}
                 </button>
               )}
             </div>
@@ -284,18 +309,18 @@ export function SettingsView({
               <span className="card-icon card-icon--muted">
                 <Icon name="shield" />
               </span>
-              <h2 className="section__title">Privacidade</h2>
+              <h2 className="section__title">{t('settings.privacy')}</h2>
             </div>
-            <Toggle id="saveHistory" label="Salvar histórico de huddles e sessões" checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
+            <Toggle id="saveHistory" label={t('settings.saveHistory')} checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
             <div className="buttons buttons--start">
               <button className="button button--danger" type="button" onClick={onClearHistory}>
-                Apagar histórico
+                {t('settings.clearHistory')}
               </button>
               <button className="button" type="button" onClick={onRunDiagnostics}>
-                Diagnóstico
+                {t('settings.diagnostics')}
               </button>
               <button className="button" type="button" onClick={onOpenLogs}>
-                Ver logs
+                {t('settings.viewLogs')}
               </button>
             </div>
             {notice && (
@@ -309,10 +334,10 @@ export function SettingsView({
       <footer className="footer footer--row">
         <span className="muted small">v{version}</span>
         <button className="button" type="button" onClick={onCancel}>
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button className="button button--primary" type="submit" form="settings-form">
-          Salvar
+          {t('common.save')}
         </button>
       </footer>
     </>

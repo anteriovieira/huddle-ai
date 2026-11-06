@@ -11,17 +11,25 @@ export function Avatar({ name, size = 'md' }) {
   );
 }
 
-// A titled section with an optional count badge. Renders nothing when there are no children.
-export function Section({ title, count, children, ariaLabel }) {
+// A titled section with an optional count badge, plus an optional `action` rendered at the end of
+// the header (e.g. "marcar todos"). Renders nothing when there are no children. In `deck` mode the
+// items are shown as a pile: only the top (first) card is rendered, with decorative layers peeking
+// behind it, and the badge counts how many are left in the pile.
+export function Section({ title, count, children, ariaLabel, action, deck }) {
   const items = [].concat(children).filter(Boolean);
   if (!items.length) return null;
+  const stacked = deck && items.length > 1;
+  const badge = deck ? items.length : count;
   return (
     <section className="section" aria-label={ariaLabel ?? title}>
       <h3 className="section__title">
-        {title}
-        {count != null && <span className="count">{String(count)}</span>}
+        <span className="section__label">
+          {title}
+          {badge != null && <span className="count">{String(badge)}</span>}
+        </span>
+        {action}
       </h3>
-      {children}
+      {stacked ? <div className={`deck deck--${Math.min(items.length, 3)}`}>{items[0]}</div> : children}
     </section>
   );
 }

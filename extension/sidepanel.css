@@ -181,6 +181,16 @@ select {
   font-size: 17px;
 }
 
+.header__slack {
+  white-space: nowrap;
+  gap: 5px;
+}
+
+.header__slack .icon {
+  width: 15px;
+  height: 15px;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -233,6 +243,21 @@ select {
 .icon-button:disabled:hover {
   background: transparent;
   color: var(--muted);
+}
+
+/* Ação em andamento (analisar/refazer): botão na cor de "carregando" e o ícone vira um spinner que
+   gira no lugar do ícone da ação. */
+.icon-button--loading,
+.icon-button--loading:disabled,
+.icon-button--loading:disabled:hover {
+  color: var(--blue);
+  opacity: 1;
+  cursor: default;
+}
+
+.icon--spin {
+  animation: spin 0.8s linear infinite;
+  transform-origin: center;
 }
 
 /* Tabs */
@@ -329,25 +354,17 @@ select {
   margin-top: auto;
 }
 
-.captions-copy {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
+/* Lista virtualizada: contêiner em bloco (sem ancoragem flex no fim) e falas posicionadas de forma
+   absoluta dentro de uma <ol> com a altura total calculada. */
+.captions-scroll--virtual {
+  display: block;
 }
 
-.captions-copy:hover {
-  color: var(--text-strong);
+.captions--virtual {
+  position: relative;
+  display: block;
+  gap: 0;
+  width: 100%;
 }
 
 /* Colunas lado a lado (painel expandido) */
@@ -466,6 +483,45 @@ select {
   font-size: 15px;
   font-weight: 900;
   color: var(--text-strong);
+}
+
+/* Insights section headers: a rule above and below, aligned to the card content width (not bled to
+   the panel edges) so the left and right gutters match despite the scrollbar on the right. */
+.stack--insights .section__title {
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* "Marcar todos": a quiet ghost action at the end of an insights section header. */
+.section__mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.section__mark:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.section__mark .icon {
+  width: 13px;
+  height: 13px;
 }
 
 .count {
@@ -598,6 +654,43 @@ select {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+/* AI icon at the far right of a caption — hidden until the row is hovered or the button is focused;
+   opens the chat asking for more context about that line. */
+.caption__ask {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.caption:hover .caption__ask,
+.caption__ask:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.caption__ask:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.caption__ask .icon {
+  width: 14px;
+  height: 14px;
 }
 
 .caption__meta {
@@ -618,11 +711,39 @@ select {
 
 .tag {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
+}
+
+.tag .icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* A clickable caption badge: resets button chrome, keeps the tag look, dims slightly on hover. */
+.tag--btn {
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag--btn:hover {
+  filter: brightness(1.12);
+}
+
+.mark-dialog__text {
+  color: var(--text-strong);
+  font-size: 15px;
+  line-height: 1.46;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .tag--action {
@@ -631,8 +752,8 @@ select {
 }
 
 .tag--decision {
-  background: var(--blue-bg);
-  color: var(--blue);
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .tag--question {
@@ -709,91 +830,7 @@ select {
   min-width: 0;
 }
 
-/* Lista de ações (action items) */
-
-.action-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.action-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-}
-
-.action-item__check {
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin: 1px 0 0;
-  border: 1.5px solid var(--border-strong);
-  border-radius: 5px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.action-item__check:hover {
-  border-color: var(--muted);
-}
-
-.action-item__check:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 2px;
-}
-
-.action-item__check:checked {
-  background: var(--green);
-  border-color: var(--green);
-}
-
-.action-item__check:checked::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 4px;
-  height: 9px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.action-item__body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.action-item__title {
-  color: var(--text-strong);
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.action-item--done .action-item__title {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
-.action-item__meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+/* Dono e prazo de uma ação */
 
 .owner {
   display: inline-flex;
@@ -1669,6 +1706,426 @@ select {
   color: var(--indigo);
 }
 
+/* Perguntas — merged Q&A section: open questions carrying their answer, ready reply and/or
+   past-meeting memory, then look-backs, orphan replies and proposals. Discreet by design:
+   neutral surfaces, colour only in the small state labels and icons. */
+.q-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.q-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.q-card--proposable {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.q-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.q-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.q-state .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.q-state--open {
+  color: var(--yellow);
+}
+
+.q-state--answered {
+  color: var(--green);
+}
+
+.q-state--reply {
+  color: var(--blue);
+}
+
+.q-state--memory {
+  color: var(--indigo);
+}
+
+.q-state--proposable {
+  color: var(--purple);
+}
+
+.q-card__textbtn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-strong);
+  text-align: left;
+  cursor: pointer;
+}
+
+.q-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.q-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.q-chev {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.q-card__text {
+  display: block;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-strong);
+}
+
+.q-card__close {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.q-card__close .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A facet is a full-width footer strip: flush to the card's side and bottom edges (its negative
+   side margins cancel the card padding), separated from the text above only by a top gap + rule. */
+.q-facet {
+  margin: 8px -12px 0;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.q-facet:last-child {
+  margin-bottom: -10px;
+  border-radius: 0 0 7px 7px;
+}
+
+.q-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.q-facet__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.q-facet__label .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.q-facet--answer .q-facet__label,
+.q-facet--memory .q-facet__label {
+  margin-bottom: 4px;
+}
+
+.q-facet__label--answer {
+  color: var(--green);
+}
+
+.q-facet__label--reply {
+  color: var(--blue);
+}
+
+.q-facet__label--memory {
+  color: var(--indigo);
+}
+
+.q-facet__text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.q-time {
+  flex-shrink: 0;
+  align-self: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.q-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.q-copy:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.q-copy .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.q-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.q-sources .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.q-sources .chip .icon {
+  width: 11px;
+  height: 11px;
+}
+
+.q-memory-status {
+  margin: 8px 0 0;
+}
+
+/* Point / decision cards: a leading tone icon, the text, and a copy action, in the question style. */
+.q-card--row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.q-card--row .q-card__text {
+  flex: 1;
+}
+
+.q-row__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.q-row__icon .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.q-row__icon--blue {
+  color: var(--blue);
+}
+
+.q-row__icon--green {
+  color: var(--green);
+}
+
+.q-row__icon--purple {
+  color: var(--purple);
+}
+
+.q-row__icon--yellow {
+  color: var(--yellow);
+}
+
+.q-row__stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.q-row__title {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+/* Action cards: a check button marks done in place of a checkbox. */
+.q-state--action {
+  color: var(--green);
+}
+
+.q-check--done {
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+/* Visto: dois checks azuis estilo WhatsApp (um único check quando não visto). */
+.q-seen--on {
+  color: var(--blue);
+}
+
+/* Remover: destaca em vermelho no hover (ação destrutiva, tira o card de vez). */
+.q-remove:hover {
+  color: var(--danger);
+}
+
+/* Toggle de empilhar (deck) no cabeçalho da seção fica azul quando ligado. */
+.section__deck--on {
+  color: var(--blue);
+}
+
+/* Saída animada: ao marcar visto ou remover, o card desliza e some antes de sair da lista. */
+.q-card.is-leaving,
+.alert.is-leaving {
+  animation: card-leave 0.22s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes card-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-22px) scale(0.97);
+  }
+}
+
+/* Ferramentas no cabeçalho da seção (empilhar + marcar todos), lado a lado. */
+.section__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Seção de participantes: nome editável para corrigir a grafia. */
+.person {
+  align-items: center;
+  gap: 10px;
+}
+
+.person__name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text-strong);
+  font: inherit;
+  cursor: text;
+  border-radius: var(--radius);
+  padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person__name:hover {
+  background: var(--surface-hover);
+}
+
+.person__from {
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.person__input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--blue);
+  background: var(--bg);
+  color: var(--text-strong);
+  border-radius: var(--radius);
+  padding: 3px 6px;
+}
+
+.q-card--done .q-card__text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* Modo deck: só o card do topo é renderizado; camadas decorativas espiam atrás dele, sugerindo a
+   pilha. O total fica no selo ao lado do título da seção; marcar como visto revela o próximo. */
+.deck {
+  position: relative;
+  isolation: isolate;
+}
+
+.deck > * {
+  position: relative;
+  z-index: 2;
+}
+
+.deck::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transform: translateY(6px) scale(0.97);
+  z-index: 1;
+}
+
+.deck--3::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transform: translateY(12px) scale(0.94);
+  z-index: 0;
+}
+
+.q-action__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .ata-item__meta {
   display: flex;
   align-items: center;
@@ -2098,59 +2555,6 @@ select {
 
 .button--accept:hover:not(:disabled) {
   background: var(--button-hover);
-}
-
-/* Sugestão de contexto: puxa respostas de reuniões passadas durante a reunião ao vivo. */
-.alert--indigo {
-  border-color: var(--indigo-bg);
-  border-left: 3px solid var(--indigo);
-}
-
-.context__close {
-  margin-left: auto;
-  display: flex;
-  padding: 2px;
-  border: 0;
-  border-radius: 4px;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.context__close:hover {
-  background: var(--surface-hover);
-  color: var(--text-strong);
-}
-
-.context__q {
-  margin: 0;
-  font-style: italic;
-  overflow-wrap: anywhere;
-}
-
-.context__status {
-  margin: 0;
-}
-
-.context__sources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.context__src {
-  gap: 4px;
-  border: 0;
-  cursor: pointer;
-}
-
-.context__src:hover {
-  filter: brightness(1.15);
-}
-
-.context__src .icon {
-  width: 13px;
-  height: 13px;
 }
 
 /* Tópico atual */
@@ -2693,28 +3097,17 @@ a.ref__title {
 
 /* Timeline de tópicos */
 
-.topic__toggle {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  padding: 4px 0;
+/* Clicking the topic title/summary toggles the discussed-topics timeline. */
+.topic__head {
+  display: block;
+  width: 100%;
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-}
-
-.topic__toggle:hover {
-  color: var(--text-strong);
-}
-
-.topic__toggle .icon {
-  width: 14px;
-  height: 14px;
 }
 
 .timeline {

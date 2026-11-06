@@ -12,15 +12,19 @@ const { Icon } = await import('../src/sidepanel/ui/Icon.jsx');
 const { Avatar } = await import('../src/sidepanel/ui/primitives.jsx');
 const { Markdown } = await import('../src/sidepanel/ui/Markdown.jsx');
 const { InsightsView } = await import('../src/sidepanel/views/Insights.jsx');
-const { CaptionsView } = await import('../src/sidepanel/views/Captions.jsx');
+const { CaptionsView, CaptionsPanel } = await import('../src/sidepanel/views/Captions.jsx');
 const { AtaContent, AtaEmpty, AtasList } = await import('../src/sidepanel/views/Ata.jsx');
 const { IdleView } = await import('../src/sidepanel/views/Idle.jsx');
 const { Header, InfoBar } = await import('../src/sidepanel/views/Header.jsx');
 const { TooltipProvider } = await import('../src/sidepanel/ui/Tooltip.jsx');
+const { I18nProvider } = await import('../src/sidepanel/lib/i18n.js');
 const React = await import('react');
 
 const h = React.createElement;
-const render = (el) => renderToStaticMarkup(el);
+// Render every component under a Portuguese i18n provider so these assertions keep their original
+// Portuguese UI strings. English is the app default (see app.test.jsx); the UI language is driven
+// by i18n context, so wrapping here fixes the locale for the whole render.
+const render = (el) => renderToStaticMarkup(h(I18nProvider, { lang: 'Portuguese' }, el));
 
 test('Icon renders an inline svg for a known name, nothing for unknown', () => {
   assert.match(render(h(Icon, { name: 'check' })), /<svg/);
@@ -53,8 +57,9 @@ const insightsCurrent = {
     points: ['ponto importante'],
     actions: [{ text: 'fazer X', owner: 'Ana' }],
     decisions: ['decidimos Y'],
-    open_questions: ['e o Z?'],
-    suggestions: [],
+    open_questions: [{ text: 'e o Z?', line: 2, answer: 'o Z fica pra sexta' }],
+    suggestions: ['perguntar sobre o suporte'],
+    replies: [{ text: 'Pode ser na sexta mesmo.', re_line: 2 }],
     references: [{ kind: 'book', title: 'Clean Code', by: 'Martin', description: 'livro' }],
     acronyms: [{ term: 'API', meaning: 'interface' }],
     alerts: [{ kind: 'mention', text: 'Ana citou você', from: 'Ana', line: 1 }],
@@ -65,26 +70,30 @@ const insightsCurrent = {
 
 const settings = {
   apiKeys: { anthropic: 'sk-ant-x' },
-  detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, references: true, acronyms: true },
+  detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, replies: true, references: true, acronyms: true },
 };
 
 test('InsightsView renders topic, sections and alerts from data', () => {
   const html = render(
-    h(InsightsView, {
-      current: insightsCurrent,
-      settings,
-      huddle: { active: true, startedAt: Date.now() - 1000 },
-      utterances: [{ speaker: 'Ana', text: 'oi', at: 0 }],
-      now: Date.now(),
-      acked: new Set(),
-      done: new Set(),
-      topicExpanded: false,
-      onToggleTopic() {},
-      onAcceptAlert() {},
-      onEditAlert() {},
-      onToggleDone() {},
-      onOpenSettings() {},
-    }),
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: insightsCurrent,
+        settings,
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        utterances: [{ speaker: 'Ana', text: 'oi', at: 0 }],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
   );
   assert.match(html, /Tópico atual/);
   assert.match(html, /ponto importante/);
@@ -92,25 +101,66 @@ test('InsightsView renders topic, sections and alerts from data', () => {
   assert.match(html, /decidimos Y/);
   assert.match(html, /Alertas pra você/);
   assert.match(html, /Clean Code/);
+  assert.match(html, /Perguntas/);
+  assert.match(html, /e o Z\?/);
+  assert.match(html, /Você pode responder/);
+  assert.match(html, /perguntar sobre o suporte/);
+  // Cards com corpo abrem colapsados: a resposta e a reply só aparecem ao expandir.
+  assert.doesNotMatch(html, /o Z fica pra sexta/);
+  assert.doesNotMatch(html, /Pode ser na sexta mesmo\./);
+});
+
+test('InsightsView lists participants and shows the corrected name', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: insightsCurrent,
+        settings,
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        utterances: [{ speaker: 'Lukas', text: 'oi', at: 0 }],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        people: ['Lukas'],
+        nameOverrides: { Lukas: 'Lucas' },
+        onRenamePerson() {},
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
+  );
+  assert.match(html, /Participantes/);
+  assert.match(html, /Lucas/);
+  assert.match(html, /era &quot;Lukas&quot;|era "Lukas"/);
 });
 
 test('InsightsView prompts for an API key when missing', () => {
   const html = render(
-    h(InsightsView, {
-      current: null,
-      settings: { apiKeys: {}, detect: settings.detect },
-      huddle: { active: true, startedAt: 0 },
-      utterances: [],
-      now: Date.now(),
-      acked: new Set(),
-      done: new Set(),
-      topicExpanded: false,
-      onToggleTopic() {},
-      onAcceptAlert() {},
-      onEditAlert() {},
-      onToggleDone() {},
-      onOpenSettings() {},
-    }),
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: null,
+        settings: { apiKeys: {}, detect: settings.detect },
+        huddle: { active: true, startedAt: 0 },
+        utterances: [],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
   );
   assert.match(html, /Configurar chave/);
 });
@@ -135,6 +185,15 @@ test('CaptionsView lists utterances and marks the live one', () => {
 test('CaptionsView shows an empty state with no utterances', () => {
   const html = render(h(CaptionsView, { utterances: [], huddle: { active: true }, marks: [] }));
   assert.match(html, /Nenhuma fala ainda/);
+});
+
+test('CaptionsPanel virtualizes a long transcript: only a window is rendered', () => {
+  const utterances = Array.from({ length: 200 }, (_, i) => ({ id: `u${i}`, speaker: 'Ana', text: `fala-${i}`, at: i * 1000 }));
+  const html = render(h(CaptionsPanel, { utterances, huddle: { active: true }, marks: [] }));
+  assert.match(html, /fala-0\b/); // early lines are in the initial window
+  assert.doesNotMatch(html, /fala-150\b/); // far-off lines are not mounted
+  const mounted = (html.match(/class="caption/g) ?? []).length;
+  assert.ok(mounted < 200, `expected a windowed subset, got ${mounted}`);
 });
 
 test('AtaContent renders classification, summary and next steps', () => {
@@ -204,7 +263,7 @@ test('Header has the sessions button and no insights copy/post actions', () => {
   assert.doesNotMatch(html, /Postar no thread/);
 });
 
-test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => {
+test('InfoBar shows copy and the ticker toggle on the insights tab, but not thread-post', () => {
   const html = render(
     h(
       TooltipProvider,
@@ -232,8 +291,32 @@ test('InfoBar shows copy/post and the ticker toggle on the insights tab', () => 
     ),
   );
   assert.match(html, /aria-label="Copiar resumo"/);
-  assert.match(html, /aria-label="Postar no thread"/);
+  assert.doesNotMatch(html, /aria-label="Postar no thread"/); // posting the thread lives on the Ata info bar
   assert.match(html, /aria-label="Ocultar últimas falas"/);
+});
+
+test('InfoBar shows thread-post on the ata tab', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InfoBar, {
+        tab: 'ata',
+        settings: { apiKeys: { anthropic: 'sk-ant-x' }, autoMinutes: true },
+        analysis: { running: false, error: null },
+        huddle: { active: true },
+        utteranceCount: 3,
+        currentMinutes: null,
+        minutesRunning: false,
+        canPostMinutes: true,
+        onPostMinutes() {},
+        now: Date.now(),
+        onOpenAtas() {},
+        onRegenerate() {},
+      }),
+    ),
+  );
+  assert.match(html, /aria-label="Postar no thread"/);
 });
 
 test('AtasList renders Slack-like rows: title, icon, avatars and a kebab menu', () => {

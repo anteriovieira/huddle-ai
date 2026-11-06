@@ -64,8 +64,17 @@ export function minutesAsText(record, format = 'markdown') {
     heading('Pontos principais'),
     ...data.key_points.map(bullet),
     '',
+    (data.decisions ?? []).length ? heading('Decisões') : '',
+    ...(data.decisions ?? []).map(bullet),
+    '',
     data.next_steps.length ? heading('Próximos passos') : '',
     ...data.next_steps.map(step),
+    '',
+    (data.open_questions ?? []).length ? heading('Perguntas em aberto') : '',
+    ...(data.open_questions ?? []).map(bullet),
+    '',
+    (data.risks ?? []).length ? heading('Riscos e bloqueios') : '',
+    ...(data.risks ?? []).map(bullet),
     '',
     heading('Sinais de classificação'),
     ...data.signals.map(bullet),
@@ -208,10 +217,18 @@ export function insightsAsText(data, detect) {
     `*${data.topic.title}*`,
     data.topic.summary,
     '',
-    ...list('Pontos levantados', data.points),
+    ...list('Pontos levantados', data.points.map((p) => (typeof p === 'string' ? p : p.text))),
     ...(detect.actions ? list('Ações', data.actions.map((a) => (a.owner ? `${a.text} (${a.owner})` : a.text))) : []),
-    ...(detect.decisions ? list('Decisões', data.decisions) : []),
-    ...(detect.questions ? list('Em aberto', data.open_questions) : []),
+    ...(detect.decisions ? list('Decisões', data.decisions.map((d) => (typeof d === 'string' ? d : d.text))) : []),
+    ...(detect.questions
+      ? list(
+          'Em aberto',
+          data.open_questions.map((q) => {
+            if (typeof q === 'string') return q;
+            return q.answer ? `${q.text} → ${q.answer}` : q.text;
+          }),
+        )
+      : []),
     ...(detect.references
       ? list('Referências', (data.references ?? []).map((r) => [r.title, r.by, r.description].filter(Boolean).join(' — ')))
       : []),

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Markdown } from '../ui/Markdown.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
@@ -22,8 +23,9 @@ function ChatMessage({ message }) {
 }
 
 // While a reply is in flight: the streaming answer, or — before the first token — a
-// "Pensando" indicator.
+// "Thinking" indicator.
 function ChatPending({ streamText }) {
+  const t = useT();
   if (streamText) {
     return (
       <div className="chat-msg chat-msg--bot">
@@ -32,13 +34,13 @@ function ChatPending({ streamText }) {
     );
   }
   return (
-    <div className="chat-thinking" role="status" aria-label="Pensando">
+    <div className="chat-thinking" role="status" aria-label={t('chat.thinking')}>
       <span className="chat-thinking__dots" aria-hidden="true">
         <span className="chat-thinking__dot" />
         <span className="chat-thinking__dot" />
         <span className="chat-thinking__dot" />
       </span>
-      <span className="chat-thinking__label">Pensando</span>
+      <span className="chat-thinking__label">{t('chat.thinking')}</span>
     </div>
   );
 }
@@ -60,6 +62,7 @@ export function ChatDock({
   onDraftChange,
   onSubmit,
 }) {
+  const t = useT();
   const logRef = useRef(null);
   const inputRef = useRef(null);
   const tabsRef = useRef(null);
@@ -106,7 +109,7 @@ export function ChatDock({
   return (
     <section
       className={['chatdock', expanded && 'chatdock--expanded', floating && 'chatdock--floating'].filter(Boolean).join(' ')}
-      aria-label="Chat com a reunião"
+      aria-label={t('chat.withMeeting')}
     >
       <div className="chatdock__bar">
         <div className="chatdock__tabs" role="tablist" ref={tabsRef}>
@@ -123,11 +126,11 @@ export function ChatDock({
                   {item.title}
                 </button>
               </Tooltip>
-              <Tooltip label="Fechar esta conversa">
+              <Tooltip label={t('chat.closeConversation')}>
                 <button
                   className="chattab__close"
                   type="button"
-                  aria-label={`Fechar ${item.title}`}
+                  aria-label={t('chat.closeNamed', { title: item.title })}
                   onClick={() => onCloseChat(item.id)}
                 >
                   <Icon name="close" />
@@ -137,23 +140,23 @@ export function ChatDock({
           ))}
         </div>
         <div className="chatdock__controls">
-          <Tooltip label="Nova conversa" side="bottom">
-            <button className="chatdock__add" type="button" aria-label="Novo chat" onClick={onAddChat}>
+          <Tooltip label={t('chat.new')} side="bottom">
+            <button className="chatdock__add" type="button" aria-label={t('chat.newAria')} onClick={onAddChat}>
               <Icon name="plus" />
             </button>
           </Tooltip>
-          <Tooltip label={expanded ? 'Recolher o chat' : 'Expandir o chat'} side="bottom">
+          <Tooltip label={expanded ? t('chat.collapse') : t('chat.expand')} side="bottom">
             <button
               className="icon-button icon-button--sm"
               type="button"
-              aria-label={expanded ? 'Recolher' : 'Expandir'}
+              aria-label={expanded ? t('common.collapse') : t('common.expand')}
               onClick={onToggleExpand}
             >
               <Icon name={expanded ? 'collapse' : 'expand'} />
             </button>
           </Tooltip>
-          <Tooltip label="Fechar o chat" side="bottom">
-            <button className="icon-button icon-button--sm" type="button" aria-label="Fechar chat" onClick={onCloseDock}>
+          <Tooltip label={t('chat.closeChat')} side="bottom">
+            <button className="icon-button icon-button--sm" type="button" aria-label={t('chat.closeChatAria')} onClick={onCloseDock}>
               <Icon name="close" />
             </button>
           </Tooltip>
@@ -169,8 +172,8 @@ export function ChatDock({
           </>
         ) : (
           <div className="chatdock__empty">
-            <p>Nenhuma mensagem ainda</p>
-            <p className="muted small">Pergunte sobre o que foi dito no huddle até agora.</p>
+            <p>{t('chat.emptyTitle')}</p>
+            <p className="muted small">{t('chat.emptyHint')}</p>
           </div>
         )}
       </div>
@@ -188,17 +191,17 @@ export function ChatDock({
             rows={1}
             value={draft}
             autoComplete="off"
-            placeholder="Faça uma pergunta rápida"
-            aria-label="Pergunta para a reunião"
+            placeholder={t('chat.placeholder')}
+            aria-label={t('chat.inputAria')}
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={onInputKeyDown}
           />
-          <Tooltip label="Enviar pergunta">
+          <Tooltip label={t('chat.send')}>
             <button
               id="chat-send"
               className="chatdock__send"
               type="submit"
-              aria-label="Enviar"
+              aria-label={t('common.send')}
               disabled={busy || !draft.trim()}
             >
               <Icon name="enter" />
