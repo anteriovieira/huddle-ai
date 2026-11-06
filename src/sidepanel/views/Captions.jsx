@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { formatClock } from '../lib/format.js';
+import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Avatar } from '../ui/primitives.jsx';
 
-const MARK_META = {
-  action: { label: 'Ação', icon: 'bolt' },
-  decision: { label: 'Decisão', icon: 'check' },
-  question: { label: 'Pergunta', icon: 'question' },
-};
+const MARK_ICON = { action: 'bolt', decision: 'check', question: 'question' };
 
 // Acima disso a lista de legendas é virtualizada (só o que está na viewport é montado), para o
 // painel não ficar pesado numa reunião longa. Abaixo, renderiza tudo (mantém a ancoragem no fim).
@@ -19,13 +16,15 @@ const OVERSCAN = 8; // falas extras renderizadas acima/abaixo da viewport
 // Uma linha de legenda. `style`/`innerRef` só são usados pela lista virtualizada (posicionamento
 // absoluto + medição de altura); na lista normal ficam de fora.
 function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef }) {
+  const t = useT();
+  const markLabel = mark ? t(`mark.${mark}`) : '';
   return (
     <li ref={innerRef} className={live ? 'caption caption--live' : 'caption'} style={style}>
       <Avatar name={u.speaker} />
       <div className="caption__body">
         <div className="caption__meta">
           <span className="caption__name">{u.speaker}</span>
-          <span className={live ? 'accent small strong' : 'muted small'}>{live ? 'agora' : formatClock(u.at)}</span>
+          <span className={live ? 'accent small strong' : 'muted small'}>{live ? t('caption.now') : formatClock(u.at)}</span>
         </div>
         <p className="caption__text">{u.text}</p>
         {mark &&
@@ -33,16 +32,16 @@ function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef
             <button
               type="button"
               className={`tag tag--${mark} tag--btn`}
-              title={`Ver ${MARK_META[mark].label.toLowerCase()}`}
+              title={t('caption.viewMark', { label: markLabel.toLowerCase() })}
               onClick={() => onMarkClick(line, mark)}
             >
-              <Icon name={MARK_META[mark].icon} />
-              {`${MARK_META[mark].label} detectada`}
+              <Icon name={MARK_ICON[mark]} />
+              {t('caption.markDetected', { label: markLabel })}
             </button>
           ) : (
             <span className={`tag tag--${mark}`}>
-              <Icon name={MARK_META[mark].icon} />
-              {`${MARK_META[mark].label} detectada`}
+              <Icon name={MARK_ICON[mark]} />
+              {t('caption.markDetected', { label: markLabel })}
             </span>
           ))}
       </div>
@@ -50,8 +49,8 @@ function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef
         <button
           type="button"
           className="caption__ask"
-          title="Pedir mais contexto à IA"
-          aria-label="Pedir mais contexto à IA sobre esta fala"
+          title={t('caption.askContext')}
+          aria-label={t('caption.askContextAria')}
           onClick={() => onAskAI(`${u.speaker}: ${u.text}`)}
         >
           <Icon name="sparkles" />
@@ -99,6 +98,7 @@ function firstAfter(offsets, y) {
 // linhas, então altura é variável) e cacheia por id. Posiciona só a janela visível de forma
 // absoluta dentro de um contêiner com a altura total, lendo o scroll do contêiner-pai (scrollRef).
 function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, scrollRef, follow }) {
+  const t = useT();
   const heights = useRef(new Map());
   const [tick, setTick] = useState(0);
   const [view, setView] = useState({ top: 0, h: 600 });
@@ -182,7 +182,7 @@ function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, sc
   }
 
   return (
-    <ol className="captions captions--virtual" aria-label="Legendas" style={{ height: total }}>
+    <ol className="captions captions--virtual" aria-label={t('captions.ariaLabel')} style={{ height: total }}>
       {rows}
     </ol>
   );
@@ -193,6 +193,7 @@ function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, sc
 // botão para voltar ao vivo. Funciona em qualquer largura (1, 2 ou 3 colunas),
 // porque é dona do próprio contêiner de scroll.
 export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI }) {
+  const t = useT();
   const scrollRef = useRef(null);
   const [follow, setFollow] = useState(true);
   const virtual = utterances.length > VIRTUAL_THRESHOLD;
@@ -247,7 +248,7 @@ export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI 
           onClick={backToLive}
         >
           <span className="dot" />
-          {follow ? 'Seguindo ao vivo' : 'Voltar ao vivo'}
+          {follow ? t('captions.followingLive') : t('captions.backToLive')}
         </button>
       )}
     </div>
@@ -255,21 +256,22 @@ export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI 
 }
 
 export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI }) {
+  const t = useT();
   if (!utterances.length) {
     return (
       <div className="captions-empty">
-        <p className="captions-empty__title">Nenhuma fala ainda. As legendas aparecem aqui enquanto as pessoas falam.</p>
+        <p className="captions-empty__title">{t('captions.emptyTitle')}</p>
         <p className="captions-empty__hint muted small">
-          Nada aparecendo mesmo com o huddle aberto? Veja se as legendas estão ativadas no huddle ou nas{' '}
+          {t('captions.emptyHintPre')}
           <a
             className="link"
             href="https://slack.com/help/articles/1500002037922-Adjust-your-huddles-preferences"
             target="_blank"
             rel="noopener noreferrer"
           >
-            preferências do Slack
-          </a>{' '}
-          (Preferências › Áudio e vídeo).
+            {t('captions.slackPrefs')}
+          </a>
+          {t('captions.emptyHintPost')}
         </p>
       </div>
     );
@@ -277,7 +279,7 @@ export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI }
   const markMap = new Map((marks ?? []).map((mark) => [mark.line, mark.kind]));
   const lastIndex = utterances.length - 1;
   return (
-    <ol className="captions" aria-label="Legendas">
+    <ol className="captions" aria-label={t('captions.ariaLabel')}>
       {utterances.map((u, index) => (
         <CaptionRow
           key={u.id ?? index}

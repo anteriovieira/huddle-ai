@@ -1,5 +1,6 @@
 import { formatClock } from '../lib/format.js';
 import { hasKeyForModel } from '../lib/models.js';
+import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
 import { AtaInfo } from './Ata.jsx';
@@ -16,6 +17,7 @@ export function Header({
   onOpenAtas,
   onReturnToSlack,
 }) {
+  const t = useT();
   return (
     <header className="header">
       <Icon name="headphones" className="icon icon--title" />
@@ -30,34 +32,34 @@ export function Header({
             <span id="clock">{formatClock(now - huddle.startedAt)}</span>
           </span>
         ) : (
-          <span className="pill">Encerrado</span>
+          <span className="pill">{t('header.ended')}</span>
         ))}
       {onReturnToSlack && (
         <button className="button button--small header__slack" type="button" onClick={onReturnToSlack}>
           <Icon name="enter" />
-          Voltar ao Slack
+          {t('header.backToSlack')}
         </button>
       )}
       {onHome && (
-        <Tooltip label="Página principal" side="bottom">
-          <button className="icon-button" type="button" aria-label="Página principal" onClick={onHome}>
+        <Tooltip label={t('header.home')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.home')} onClick={onHome}>
             <Icon name="home" />
           </button>
         </Tooltip>
       )}
       {onOpenAtas && (
-        <Tooltip label="Sessões anteriores" side="bottom">
-          <button className="icon-button" type="button" aria-label="Sessões anteriores" onClick={onOpenAtas}>
+        <Tooltip label={t('header.sessions')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.sessions')} onClick={onOpenAtas}>
             <Icon name="history" />
           </button>
         </Tooltip>
       )}
       {huddle && (
-        <Tooltip label="Perguntar à reunião" side="bottom">
+        <Tooltip label={t('header.askMeeting')} side="bottom">
           <button
             className={chatOpen ? 'icon-button icon-button--on' : 'icon-button'}
             type="button"
-            aria-label="Chat com a reunião"
+            aria-label={t('header.chatAria')}
             aria-pressed={String(chatOpen)}
             onClick={onToggleChat}
           >
@@ -65,13 +67,13 @@ export function Header({
           </button>
         </Tooltip>
       )}
-      <Tooltip label="Logs" side="bottom">
-        <button className="icon-button" type="button" aria-label="Logs" onClick={onOpenLogs}>
+      <Tooltip label={t('header.logs')} side="bottom">
+        <button className="icon-button" type="button" aria-label={t('header.logs')} onClick={onOpenLogs}>
           <Icon name="logs" />
         </button>
       </Tooltip>
-      <Tooltip label="Configurações" side="bottom">
-        <button className="icon-button" type="button" aria-label="Configurações" onClick={onOpenSettings}>
+      <Tooltip label={t('header.settings')} side="bottom">
+        <button className="icon-button" type="button" aria-label={t('header.settings')} onClick={onOpenSettings}>
           <Icon name="settings" />
         </button>
       </Tooltip>
@@ -79,16 +81,13 @@ export function Header({
   );
 }
 
-const TAB_ITEMS = [
-  ['insights', 'Insights'],
-  ['captions', 'Captions'],
-  ['ata', 'Ata'],
-];
+const TAB_ITEMS = ['insights', 'captions', 'ata'];
 
 export function Tabs({ tab, onSelect, items = TAB_ITEMS }) {
+  const t = useT();
   return (
-    <nav className="tabs" role="tablist" aria-label="Seções">
-      {items.map(([id, label]) => (
+    <nav className="tabs" role="tablist" aria-label={t('tabs.aria')}>
+      {items.map((id) => (
         <button
           key={id}
           className="tab"
@@ -97,7 +96,7 @@ export function Tabs({ tab, onSelect, items = TAB_ITEMS }) {
           aria-selected={String(tab === id)}
           onClick={() => onSelect(id)}
         >
-          {label}
+          {t(`tabs.${id}`)}
         </button>
       ))}
     </nav>
@@ -123,14 +122,15 @@ function SummaryActions({
   hiddenSeen,
   onToggleShowAll,
 }) {
+  const t = useT();
   return (
     <div className="info__actions">
       {onToggleAllDecks && (
-        <Tooltip label={anyDecked ? 'Desfazer todos os decks' : 'Empilhar todas as seções'}>
+        <Tooltip label={anyDecked ? t('info.unstackAll') : t('info.stackAll')}>
           <button
             className={anyDecked ? 'icon-button icon-button--on' : 'icon-button'}
             type="button"
-            aria-label={anyDecked ? 'Desfazer todos os decks' : 'Empilhar todas as seções em deck'}
+            aria-label={anyDecked ? t('info.unstackAll') : t('info.stackAllAria')}
             aria-pressed={String(Boolean(anyDecked))}
             onClick={onToggleAllDecks}
           >
@@ -139,11 +139,11 @@ function SummaryActions({
         </Tooltip>
       )}
       {onTogglePause && (
-        <Tooltip label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}>
+        <Tooltip label={paused ? t('info.resumeAuto') : t('info.pauseAuto')}>
           <button
             className={paused ? 'icon-button icon-button--on' : 'icon-button'}
             type="button"
-            aria-label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}
+            aria-label={paused ? t('info.resumeAuto') : t('info.pauseAuto')}
             aria-pressed={String(Boolean(paused))}
             onClick={onTogglePause}
           >
@@ -152,11 +152,11 @@ function SummaryActions({
         </Tooltip>
       )}
       {(showAllSeen || hiddenSeen > 0) && (
-        <Tooltip label={showAllSeen ? 'Ocultar os vistos' : `Ver todos (${hiddenSeen} vistos)`}>
+        <Tooltip label={showAllSeen ? t('info.hideSeen') : t('info.showAll', { n: hiddenSeen })}>
           <button
             className={showAllSeen ? 'icon-button icon-button--on' : 'icon-button'}
             type="button"
-            aria-label={showAllSeen ? 'Ocultar os cards vistos' : 'Ver todos os cards, incluindo os vistos'}
+            aria-label={showAllSeen ? t('info.hideSeenAria') : t('info.showAllAria')}
             aria-pressed={String(showAllSeen)}
             onClick={onToggleShowAll}
           >
@@ -165,11 +165,11 @@ function SummaryActions({
         </Tooltip>
       )}
       {onAnalyzeNow && (
-        <Tooltip label={analyzing ? 'Analisando…' : 'Analisar agora'}>
+        <Tooltip label={analyzing ? t('info.analyzing') : t('info.analyzeNow')}>
           <button
             className={analyzing ? 'icon-button icon-button--loading' : 'icon-button'}
             type="button"
-            aria-label={analyzing ? 'Analisando…' : 'Analisar agora'}
+            aria-label={analyzing ? t('info.analyzing') : t('info.analyzeNow')}
             disabled={analyzing}
             onClick={onAnalyzeNow}
           >
@@ -178,11 +178,11 @@ function SummaryActions({
         </Tooltip>
       )}
       {onReanalyze && (
-        <Tooltip label={analyzing ? 'Refazendo…' : 'Refazer os insights desta sessão'}>
+        <Tooltip label={analyzing ? t('info.redoing') : t('info.redo')}>
           <button
             className={analyzing ? 'icon-button icon-button--loading' : 'icon-button'}
             type="button"
-            aria-label={analyzing ? 'Refazendo…' : 'Refazer os insights'}
+            aria-label={analyzing ? t('info.redoing') : t('info.redoAria')}
             disabled={analyzing}
             onClick={onReanalyze}
           >
@@ -190,17 +190,17 @@ function SummaryActions({
           </button>
         </Tooltip>
       )}
-      <Tooltip label="Copiar resumo">
-        <button className="icon-button" type="button" aria-label="Copiar resumo" disabled={!canCopySummary} onClick={onCopySummary}>
+      <Tooltip label={t('info.copySummary')}>
+        <button className="icon-button" type="button" aria-label={t('info.copySummary')} disabled={!canCopySummary} onClick={onCopySummary}>
           <Icon name="copy" />
         </button>
       </Tooltip>
       {hasRecent && (
-        <Tooltip label={tickerHidden ? 'Mostrar últimas falas' : 'Ocultar últimas falas'}>
+        <Tooltip label={tickerHidden ? t('info.showRecent') : t('info.hideRecent')}>
           <button
             className={tickerHidden ? 'icon-button' : 'icon-button icon-button--on'}
             type="button"
-            aria-label={tickerHidden ? 'Mostrar últimas falas' : 'Ocultar últimas falas'}
+            aria-label={tickerHidden ? t('info.showRecent') : t('info.hideRecent')}
             aria-pressed={String(!tickerHidden)}
             onClick={onToggleTicker}
           >
@@ -246,13 +246,14 @@ export function InfoBar({
   anyDecked,
   onToggleAllDecks,
 }) {
+  const t = useT();
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
       return (
         <div className="info">
-          Adicione a chave da API do modelo escolhido para gerar insights.{' '}
+          {t('infobar.needKey')}{' '}
           <button className="link" type="button" onClick={onOpenSettings}>
-            Configurar
+            {t('infobar.configure')}
           </button>
         </div>
       );
@@ -284,12 +285,12 @@ export function InfoBar({
     // Conta quanto falta para a próxima análise automática: lastRunAt + intervalo − agora.
     const remaining = Math.max(0, Math.ceil((analysisLastRunAt + settings.freq * 1000 - now) / 1000));
     let status;
-    if (!live) status = 'Insights desta sessão.';
-    else if (analysis.running) status = 'Analisando…';
-    else if (analysisPaused) status = 'Análise pausada.';
-    else if (!analysisLastRunAt) status = `Analisando a cada ${settings.freq}s.`;
-    else if (remaining > 0) status = `Próxima análise em ${remaining}s.`;
-    else status = 'Analisando na próxima fala…';
+    if (!live) status = t('infobar.sessionInsights');
+    else if (analysis.running) status = t('info.analyzing');
+    else if (analysisPaused) status = t('infobar.paused');
+    else if (!analysisLastRunAt) status = t('infobar.analyzingEvery', { n: settings.freq });
+    else if (remaining > 0) status = t('infobar.nextIn', { n: remaining });
+    else status = t('infobar.onNextUtterance');
     return (
       <div className="info info--row">
         <span className="info__text" role={analysis.running ? 'status' : undefined}>
@@ -301,42 +302,43 @@ export function InfoBar({
   }
   if (tab === 'captions') {
     const count = utteranceCount;
+    const unit = t(count === 1 ? 'unit.caption.one' : 'unit.caption.other');
     return (
       <div className="info info--row">
         <span className="info__text">
           {!huddle.captions ? (
             <>
-              Legendas não aparecem? Ative no huddle (botão de legendas) ou nas{' '}
+              {t('captions.enablePre')}
               <a
                 className="link"
                 href="https://slack.com/help/articles/1500002037922-Adjust-your-huddles-preferences"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                preferências do Slack
+                {t('captions.slackPrefs')}
               </a>
-              .
+              {t('captions.enablePost')}
             </>
           ) : huddle.language ? (
-            `Lendo legendas em ${huddle.language} do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
+            t('captions.readingLang', { lang: huddle.language, n: count, unit })
           ) : (
-            `Lendo legendas do huddle · ${count} ${count === 1 ? 'fala' : 'falas'}.`
+            t('captions.reading', { n: count, unit })
           )}
         </span>
         <div className="info__actions">
-          <Tooltip label="Copiar legendas">
+          <Tooltip label={t('captions.copy')}>
             <button
               className="icon-button"
               type="button"
-              aria-label="Copiar legendas"
+              aria-label={t('captions.copy')}
               disabled={!count}
               onClick={onCopyCaptions}
             >
               <Icon name="copy" />
             </button>
           </Tooltip>
-          <Tooltip label="Baixar transcrição">
-            <button className="icon-button" type="button" aria-label="Baixar transcrição" disabled={!count} onClick={onDownloadTranscript}>
+          <Tooltip label={t('captions.download')}>
+            <button className="icon-button" type="button" aria-label={t('captions.download')} disabled={!count} onClick={onDownloadTranscript}>
               <Icon name="download" />
             </button>
           </Tooltip>

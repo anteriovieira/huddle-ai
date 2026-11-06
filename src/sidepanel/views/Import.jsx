@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Field } from '../ui/primitives.jsx';
 
@@ -9,6 +10,7 @@ function todayStr() {
 }
 
 export function ImportView({ error, hasKey, onSubmit, onCancel }) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(todayStr);
   const [text, setText] = useState('');
@@ -16,31 +18,34 @@ export function ImportView({ error, hasKey, onSubmit, onCancel }) {
     e.preventDefault();
     onSubmit({ title: title.trim(), date, text });
   };
+  // The "Name: caption" format stays bold inside the intro sentence; render around the {fmt} slot.
+  const [introPre, introPost] = t('import.intro', { fmt: '\u0000' }).split('\u0000');
   return (
     <>
       <header className="header">
-        <button className="icon-button" type="button" aria-label="Voltar" onClick={onCancel}>
+        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={onCancel}>
           <Icon name="back" />
         </button>
-        <h1 className="header__app">Importar transcrição</h1>
+        <h1 className="header__app">{t('import.title')}</h1>
       </header>
       <main className="main" id="main">
         <form className="settings" id="import-form" onSubmit={submit}>
           <p className="muted small">
-            Cole aqui a transcrição de uma reunião que não passou pela extensão. Ela vira uma sessão carregada no app, com
-            ata e insights gerados. Linhas no formato <b>Nome: fala</b> são separadas por pessoa.
+            {introPre}
+            <b>{t('import.introFmt')}</b>
+            {introPost}
           </p>
-          <Field label="Título (opcional)" htmlFor="import-title">
+          <Field label={t('import.titleLabel')} htmlFor="import-title">
             <input
               id="import-title"
               type="text"
               autoComplete="off"
-              placeholder="Ex.: Planejamento Q4"
+              placeholder={t('import.titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Data da sessão" htmlFor="import-date">
+          <Field label={t('import.dateLabel')} htmlFor="import-date">
             <input
               id="import-date"
               type="date"
@@ -49,12 +54,12 @@ export function ImportView({ error, hasKey, onSubmit, onCancel }) {
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Transcrição" htmlFor="import-text">
+          <Field label={t('import.transcriptLabel')} htmlFor="import-text">
             <textarea
               id="import-text"
               className="textarea"
               rows={12}
-              placeholder={'Ana: acho que o Lucas pode tocar billing.\nLucas: consigo entregar até sexta.\n…'}
+              placeholder={t('import.textPlaceholder')}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
@@ -67,13 +72,13 @@ export function ImportView({ error, hasKey, onSubmit, onCancel }) {
         </form>
       </main>
       <footer className="footer footer--row">
-        <span className="muted small">{hasKey ? 'Gera a ata e os insights.' : 'Adicione a chave da API para gerar.'}</span>
+        <span className="muted small">{hasKey ? t('import.willGenerate') : t('import.needKey')}</span>
         <button className="button" type="button" onClick={onCancel}>
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button className="button button--primary" type="submit" form="import-form">
           <Icon name="upload" />
-          Importar
+          {t('import.submit')}
         </button>
       </footer>
     </>

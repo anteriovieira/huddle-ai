@@ -21,6 +21,7 @@ import { MarkDialog } from './ui/ConfirmDialog.jsx';
 import { toast } from 'sonner';
 import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
+import { I18nProvider, translate } from './lib/i18n.js';
 
 const DEFAULT_SETTINGS = {
   apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '' },
@@ -48,10 +49,7 @@ const EMPTY_STATE = { huddle: null, utterances: [] };
 
 // Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
 // dividir a coluna com Insights) e Copilot vive no ícone do cabeçalho.
-const TWO_COL_TABS = [
-  ['insights', 'Insights'],
-  ['ata', 'Ata'],
-];
+const TWO_COL_TABS = ['insights', 'ata'];
 
 // Larguras em que o painel passa a mostrar mais de uma coluna lado a lado.
 const COLS_2_MIN = 640;
@@ -332,6 +330,10 @@ export function App() {
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
+  // Translate a UI string using the current language (read from the live settings ref, so toasts
+  // fired from async callbacks use the latest choice without re-creating the callbacks).
+  const tr = useCallback((key, vars) => translate(latest.current.settings.language, key, vars), []);
+
   const transcriptKey = useCallback(() => {
     const { huddle: h, utterances: u } = latest.current;
     return `${h?.id}:${u.length}:${u.at(-1)?.text.length ?? 0}`;
@@ -581,9 +583,9 @@ export function App() {
     async (text) => {
       try {
         await navigator.clipboard.writeText(text);
-        flash('Copiado.');
+        flash(tr('toast.copied'));
       } catch {
-        flash('Não consegui copiar.');
+        flash(tr('toast.copyFailed'));
       }
     },
     [flash],
@@ -593,13 +595,13 @@ export function App() {
   const postToThread = useCallback(
     async (text) => {
       const tabId = latest.current.huddle?.tabId;
-      if (!tabId || !chromeApi?.tabs) return flash('Janela do huddle não encontrada.');
+      if (!tabId || !chromeApi?.tabs) return flash(tr('toast.huddleWindowNotFound'));
       try {
         const result = await chromeApi.tabs.sendMessage(tabId, { type: 'thread:draft', text });
         if (!result?.ok) throw new Error(result?.error ?? 'sem resposta da janela do huddle');
-        flash('Texto colocado no thread do huddle. Revise e envie no Slack, depois volte para a aba Captions.');
+        flash(tr('toast.threadDrafted'));
       } catch (error) {
-        flash(`Não consegui postar no thread: ${error.message}`);
+        flash(tr('toast.threadFailed', { error: error.message }));
       }
     },
     [flash],
@@ -623,9 +625,9 @@ export function App() {
       await chromeApi.tabs.update(slackReloadTabId, { active: true });
       const t = await chromeApi.tabs.get(slackReloadTabId);
       if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
-      flash('Aba do Slack recarregada. Se o huddle estiver numa janela separada, reabra o huddle.');
+      flash(tr('toast.slackReloaded'));
     } catch (error) {
-      flash(`Não consegui recarregar a aba do Slack: ${error.message}`);
+      flash(tr('toast.slackReloadFailed', { error: error.message }));
     }
   }, [slackReloadTabId, goToSlack, flash]);
 
@@ -639,9 +641,9 @@ export function App() {
       await chromeApi.tabs.update(slackReloadTabId, { active: true });
       const t = await chromeApi.tabs.get(slackReloadTabId);
       if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
-      flash('Conectado a esta aba. Feche e reabra o huddle (sem recarregar a página) para começar a captura.');
+      flash(tr('toast.tabConnected'));
     } catch (error) {
-      flash(`Não consegui conectar à aba: ${error.message}. Tente recarregar a aba.`);
+      flash(tr('toast.tabConnectFailed', { error: error.message }));
     }
   }, [slackReloadTabId, goToSlack, flash]);
 
@@ -653,7 +655,7 @@ export function App() {
       next.delete(alert.text);
       return next;
     });
-    flash(alert.kind === 'action' ? 'Ação aceita.' : 'Alerta marcado como visto.');
+    flash(alert.kind === 'action' ? tr('toast.actionAccepted') : tr('toast.alertSeen'));
   }, [flash]);
 
   const editAlert = useCallback((alert) => {
@@ -755,20 +757,20 @@ export function App() {
     let item = null;
     if (data && kind === 'question') {
       const q = pick(data.open_questions ?? []);
-      if (q) item = { label: 'Pergunta', icon: 'question', tone: 'yellow', text: q.answer ? `${q.text}\n\n${q.answer}` : q.text, key: q.text };
+      if (q) item = { label: tr('mark.label.question'), icon: 'question', tone: 'yellow', text: q.answer ? `${q.text}\n\n${q.answer}` : q.text, key: q.text };
     } else if (data && kind === 'decision') {
       const d = pick((data.decisions ?? []).map((x) => (typeof x === 'string' ? { text: x, line: 0 } : x)));
-      if (d) item = { label: 'Decisão', icon: 'check', tone: 'green', text: d.text, key: d.text };
+      if (d) item = { label: tr('mark.label.decision'), icon: 'check', tone: 'green', text: d.text, key: d.text };
     } else if (data && kind === 'action') {
       const a = pick(data.actions ?? []);
-      if (a) item = { label: 'Ação', icon: 'bolt', tone: 'green', text: a.text, owner: a.owner || '', key: a.text };
+      if (a) item = { label: tr('mark.label.action'), icon: 'bolt', tone: 'green', text: a.text, owner: a.owner || '', key: a.text };
     }
     if (!item) {
-      const labels = { action: 'Ação', decision: 'Decisão', question: 'Pergunta' };
+      const labels = { action: tr('mark.label.action'), decision: tr('mark.label.decision'), question: tr('mark.label.question') };
       const icons = { action: 'bolt', decision: 'check', question: 'question' };
       const tones = { action: 'green', decision: 'green', question: 'yellow' };
       const text = latest.current.utterances[line - 1]?.text ?? '';
-      item = { label: labels[kind] ?? 'Detectado', icon: icons[kind] ?? 'bulb', tone: tones[kind] ?? 'blue', text, key: text };
+      item = { label: labels[kind] ?? tr('mark.label.detected'), icon: icons[kind] ?? 'bulb', tone: tones[kind] ?? 'blue', text, key: text };
     }
     setMarkDialog(item);
   }, []);
@@ -810,10 +812,10 @@ export function App() {
         await persistDrive(record, info);
         if (!driveState.connected) await refreshDriveStatus();
         logEvent('info', 'Ata enviada ao Google Drive', { arquivo: file.name ?? name });
-        flash('Ata enviada ao Google Drive.');
+        flash(tr('toast.driveUploaded'));
       } catch (error) {
         logEvent('error', `Falha ao enviar ao Drive: ${error.message}`);
-        flash(`Não consegui enviar ao Drive: ${error.message}`);
+        flash(tr('toast.driveUploadFailed', { error: error.message }));
       } finally {
         setDriveBusy(null);
       }
@@ -826,7 +828,7 @@ export function App() {
     try {
       const next = await drive.connect();
       setDriveState(next);
-      setNotice(next.email ? `Conectado como ${next.email}.` : 'Google Drive conectado.');
+      setNotice(next.email ? tr('toast.driveConnectedEmail', { email: next.email }) : tr('toast.driveConnected'));
     } catch (error) {
       setNotice(error.message);
     } finally {
@@ -837,7 +839,7 @@ export function App() {
   const disconnectDrive = useCallback(async () => {
     await drive.disconnect();
     setDriveState({ connected: false, email: null });
-    setNotice('Google Drive desconectado.');
+    setNotice(tr('toast.driveDisconnected'));
   }, []);
 
   // --- Settings ---
@@ -861,7 +863,7 @@ export function App() {
 
   const clearHistory = useCallback(async () => {
     await chromeApi?.storage.local.remove('history');
-    setNotice('Histórico e sessões apagados.');
+    setNotice(tr('toast.historyCleared'));
   }, []);
 
   const clearLogs = useCallback(async () => {
@@ -871,7 +873,7 @@ export function App() {
   const runDiagnostics = useCallback(async () => {
     const tabId = latest.current.huddle?.tabId ?? (await chromeApi?.tabs.query({ url: 'https://app.slack.com/*' }))?.[0]?.id;
     if (!tabId) {
-      setNotice('Nenhuma aba do Slack aberta.');
+      setNotice(tr('toast.noSlackTab'));
       return;
     }
     try {
@@ -880,11 +882,14 @@ export function App() {
       await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
       setNotice(
         dump.huddle
-          ? `Huddle encontrado, legendas ${dump.captionsFound ? 'encontradas' : 'não encontradas'}, ${dump.rows} falas. O diagnóstico foi copiado para a área de transferência.`
-          : `Nenhuma janela de huddle detectada (${dump.popupsTracked} janelas acompanhadas). Recarregue a aba do Slack e abra o huddle de novo.`,
+          ? tr('toast.diagHuddle', {
+              captions: dump.captionsFound ? tr('toast.diagFound') : tr('toast.diagNotFound'),
+              rows: dump.rows,
+            })
+          : tr('toast.diagNoHuddle', { popups: dump.popupsTracked }),
       );
     } catch (error) {
-      setNotice(`Não consegui ler o Slack (${error.message}).`);
+      setNotice(tr('toast.diagReadFailed', { error: error.message }));
     }
   }, []);
 
@@ -979,14 +984,14 @@ export function App() {
     async ({ title, date, text }) => {
       const utt = parseTranscript(text);
       if (utt.length === 0) {
-        setImportError('Cole a transcrição no campo de texto para importar.');
+        setImportError(tr('toast.importEmpty'));
         return;
       }
       const ts = sessionTimestamp(date);
       const span = utt.at(-1).at || (utt.length - 1) * 1000;
       const hud = {
         id: `import-${ts.toString(36)}`,
-        title: title || 'Sessão importada',
+        title: title || tr('session.importedTitle'),
         captions: true,
         language: null,
         startedAt: ts - span,
@@ -1011,10 +1016,10 @@ export function App() {
       setTab('insights');
       logEvent('info', `Transcrição importada: ${utt.length} falas, ${new Set(utt.map((u) => u.speaker)).size} participantes`);
       if (!hasKeyForModel(latest.current.settings)) {
-        flash('Transcrição importada. Adicione a chave da API para gerar a ata e os insights.');
+        flash(tr('toast.importedNeedKey'));
         return;
       }
-      flash('Transcrição importada. Gerando a ata e os insights…');
+      flash(tr('toast.importedGenerating'));
       // Give state a tick to settle before the background jobs read latest.current.
       setTimeout(() => {
         analyzeOnce(hud.id);
@@ -1027,12 +1032,12 @@ export function App() {
   const loadSession = useCallback(
     async (record) => {
       if (record.huddleId === latest.current.huddle?.id) {
-        flash('Esta sessão já está carregada no app.');
+        flash(tr('toast.sessionAlreadyLoaded'));
         return;
       }
       const entry = history.find((item) => (item.huddle?.id ?? item.minutes?.huddleId) === record.huddleId);
       if (!entry?.huddle) {
-        flash('Não encontrei os dados completos desta sessão.');
+        flash(tr('toast.sessionDataMissing'));
         return;
       }
       const hud = { ...entry.huddle, active: false, archived: true, loaded: true };
@@ -1059,9 +1064,9 @@ export function App() {
       setAtasOpen(false);
       setAtasQuery('');
       setTab('insights');
-      flash('Sessão carregada. Pergunte sobre ela no chat ou veja as abas.');
+      flash(tr('toast.sessionLoaded'));
     },
-    [history, flash],
+    [history, flash, tr],
   );
 
   // Volta para a página principal (o estado em que a extensão abre): descarrega a sessão que estava
@@ -1159,9 +1164,9 @@ export function App() {
       }
       setViewingAta(null);
       logEvent('info', 'Sessão apagada');
-      flash('Sessão apagada.');
+      flash(tr('toast.sessionDeleted'));
     },
-    [flash],
+    [flash, tr],
   );
 
   // --- Chat ---
@@ -1224,7 +1229,7 @@ export function App() {
     const question = (chatDrafts[chat.id] ?? '').trim();
     if (!question) return;
     if (!hasKeyForModel(settings)) {
-      flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
+      flash(tr('toast.chatNeedKey'));
       return;
     }
     if (chatBusy.has(chat.id)) return;
@@ -1272,7 +1277,7 @@ export function App() {
       if (!text) return;
       setChatOpen(true);
       if (!hasKeyForModel(latest.current.settings)) {
-        flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
+        flash(tr('toast.chatNeedKey'));
         return;
       }
       const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
@@ -1333,10 +1338,13 @@ export function App() {
   };
 
   // --- Screens ---
+  // Every screen is wrapped so the whole UI renders in the language chosen in Settings; components
+  // read it via useT()/context. The model-output language is unchanged (handled in insights.js).
+  const screen = (node) => <I18nProvider lang={settings.language}>{node}</I18nProvider>;
   // Telas sem huddle ao vivo não têm layout multi-coluna: num painel largo,
   // ficam limitadas à largura de um painel e centralizadas (.screen).
   if (logsOpen) {
-    return (
+    return screen(
       <LogsView
         logs={logs}
         onBack={closeLogs}
@@ -1347,7 +1355,7 @@ export function App() {
     );
   }
   if (settingsOpen) {
-    return (
+    return screen(
       <SettingsView
         settings={settings}
         driveState={driveState}
@@ -1365,10 +1373,10 @@ export function App() {
     );
   }
   if (importOpen) {
-    return <ImportView error={importError} hasKey={hasKeyForModel(settings)} onSubmit={importSession} onCancel={() => setImportOpen(false)} />;
+    return screen(<ImportView error={importError} hasKey={hasKeyForModel(settings)} onSubmit={importSession} onCancel={() => setImportOpen(false)} />);
   }
   if (viewingAta) {
-    return (
+    return screen(
       <PastAtaView
         record={viewingAta}
         isCurrent={viewingAta.huddleId === huddle?.id}
@@ -1382,7 +1390,7 @@ export function App() {
     );
   }
   if (atasOpen) {
-    return (
+    return screen(
       <AtasView
         records={allMinutes}
         query={atasQuery}
@@ -1400,7 +1408,7 @@ export function App() {
     );
   }
   if (!huddle) {
-    return (
+    return screen(
       <div className="screen">
         <Header
           huddle={null}
@@ -1638,7 +1646,7 @@ export function App() {
     );
   }
 
-  return (
+  return screen(
     <>
       <Header
         huddle={huddle}

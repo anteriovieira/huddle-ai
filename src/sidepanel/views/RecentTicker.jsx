@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useT } from '../lib/i18n.js';
 import { Avatar } from '../ui/primitives.jsx';
 
 const WINDOW = 3; // falas visíveis
@@ -11,6 +12,7 @@ const DUR = 440;
 // entra — animando posição e altura juntas, para o usuário não perder a linha
 // que está lendo. Como as linhas têm alturas diferentes, medimos de verdade.
 export function RecentTicker({ utterances }) {
+  const t = useT();
   const recent = utterances.slice(-WINDOW);
   const [items, setItems] = useState(recent);
   const [sliding, setSliding] = useState(false);
@@ -83,7 +85,7 @@ export function RecentTicker({ utterances }) {
         transition: sliding ? `height ${DUR}ms ${EASE}` : 'none',
       }}
       aria-live="polite"
-      aria-label="Últimas falas"
+      aria-label={t('ticker.aria')}
     >
       <div
         className="ticker"

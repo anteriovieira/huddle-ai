@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { formatDateTime } from '../lib/format.js';
 import { tagCounts } from '../lib/minutes.js';
+import { useT } from '../lib/i18n.js';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
-
-const DELETE_MESSAGE = 'A transcrição, os insights e a ata desta sessão serão removidos deste navegador. Não dá para desfazer.';
 import { AtaContent, AtaFooter, AtasList } from './Ata.jsx';
 
 export function AtasView({
@@ -22,19 +21,21 @@ export function AtasView({
   onBack,
   onOpenImport,
 }) {
+  const t = useT();
   const tags = tagCounts(records);
-  const effectiveTag = tag && tags.some(([t]) => t === tag) ? tag : null;
+  const effectiveTag = tag && tags.some(([tg]) => tg === tag) ? tag : null;
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const sessionUnit = t(records.length === 1 ? 'unit.session.one' : 'unit.session.other');
   return (
     <>
       <header className="header">
-        <button className="icon-button" type="button" aria-label="Voltar" onClick={onBack}>
+        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={onBack}>
           <Icon name="back" />
         </button>
-        <h1 className="header__app">Sessões anteriores</h1>
-        <span className="muted small">{`${records.length} ${records.length === 1 ? 'sessão' : 'sessões'}`}</span>
-        <Tooltip label="Importar transcrição" side="bottom">
-          <button className="icon-button" type="button" aria-label="Importar transcrição" onClick={onOpenImport}>
+        <h1 className="header__app">{t('atas.title')}</h1>
+        <span className="muted small">{t('atas.count', { n: records.length, unit: sessionUnit })}</span>
+        <Tooltip label={t('atas.import')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('atas.import')} onClick={onOpenImport}>
             <Icon name="upload" />
           </button>
         </Tooltip>
@@ -44,30 +45,30 @@ export function AtasView({
           <Icon name="search" />
           <input
             type="search"
-            placeholder="Buscar por tag, pessoa ou assunto"
-            aria-label="Buscar sessões"
+            placeholder={t('atas.searchPlaceholder')}
+            aria-label={t('atas.searchAria')}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
           />
         </label>
       </div>
       {tags.length > 0 && (
-        <div className="tagbar" role="group" aria-label="Filtrar por tag">
+        <div className="tagbar" role="group" aria-label={t('atas.filterByTag')}>
           {effectiveTag && (
             <button className="chip chip--clear" type="button" onClick={() => onSelectTag(effectiveTag)}>
               <Icon name="close" />
-              Limpar
+              {t('common.clear')}
             </button>
           )}
-          {tags.map(([t, count]) => (
+          {tags.map(([tg, count]) => (
             <button
-              key={t}
-              className={effectiveTag === t ? 'chip chip--on' : 'chip'}
+              key={tg}
+              className={effectiveTag === tg ? 'chip chip--on' : 'chip'}
               type="button"
-              aria-pressed={String(effectiveTag === t)}
-              onClick={() => onSelectTag(t)}
+              aria-pressed={String(effectiveTag === tg)}
+              onClick={() => onSelectTag(tg)}
             >
-              {t}
+              {tg}
               <span className="chip__count">{String(count)}</span>
             </button>
           ))}
@@ -75,9 +76,9 @@ export function AtasView({
       )}
       {confirmDelete && (
         <ConfirmDialog
-          title={`Apagar “${confirmDelete.data.title}”?`}
-          message={DELETE_MESSAGE}
-          confirmLabel="Apagar sessão"
+          title={t('atas.deleteTitle', { title: confirmDelete.data.title })}
+          message={t('atas.deleteMessage')}
+          confirmLabel={t('atas.deleteConfirm')}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() => {
             const record = confirmDelete;
@@ -101,36 +102,37 @@ export function AtasView({
         </div>
       </main>
       <footer className="footer">
-        <p className="muted small">As sessões ficam só neste navegador. Apague em Configurações › Privacidade.</p>
+        <p className="muted small">{t('atas.footerNote')}</p>
       </footer>
     </>
   );
 }
 
 export function PastAtaView({ record, isCurrent, now, onBack, onLoad, onDelete, ataProps, footerProps }) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   return (
     <>
       <header className="header">
-        <button className="icon-button" type="button" aria-label="Voltar" onClick={onBack}>
+        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={onBack}>
           <Icon name="back" />
         </button>
         <div className="header__titles">
-          <span className="header__app">Sessão</span>
+          <span className="header__app">{t('session.title')}</span>
           <span className="header__sub">{formatDateTime(record.meta.startedAt)}</span>
         </div>
         {isCurrent ? (
-          <span className="pill">No app</span>
+          <span className="pill">{t('atas.inApp')}</span>
         ) : (
-          <Tooltip label="Carregar sessão" side="bottom">
-            <button className="icon-button" type="button" aria-label="Carregar sessão" onClick={() => onLoad(record)}>
+          <Tooltip label={t('session.load')} side="bottom">
+            <button className="icon-button" type="button" aria-label={t('session.load')} onClick={() => onLoad(record)}>
               <Icon name="enter" />
             </button>
           </Tooltip>
         )}
         {onDelete && (
-          <Tooltip label="Apagar sessão" side="bottom">
-            <button className="icon-button icon-button--danger" type="button" aria-label="Apagar sessão" onClick={() => setConfirming(true)}>
+          <Tooltip label={t('session.delete')} side="bottom">
+            <button className="icon-button icon-button--danger" type="button" aria-label={t('session.delete')} onClick={() => setConfirming(true)}>
               <Icon name="trash" />
             </button>
           </Tooltip>
@@ -138,9 +140,9 @@ export function PastAtaView({ record, isCurrent, now, onBack, onLoad, onDelete, 
       </header>
       {confirming && (
         <ConfirmDialog
-          title="Apagar esta sessão?"
-          message={DELETE_MESSAGE}
-          confirmLabel="Apagar sessão"
+          title={t('session.deleteTitle')}
+          message={t('atas.deleteMessage')}
+          confirmLabel={t('atas.deleteConfirm')}
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
             setConfirming(false);
