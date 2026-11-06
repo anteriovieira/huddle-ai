@@ -71,21 +71,25 @@ const settings = {
 
 test('InsightsView renders topic, sections and alerts from data', () => {
   const html = render(
-    h(InsightsView, {
-      current: insightsCurrent,
-      settings,
-      huddle: { active: true, startedAt: Date.now() - 1000 },
-      utterances: [{ speaker: 'Ana', text: 'oi', at: 0 }],
-      now: Date.now(),
-      acked: new Set(),
-      done: new Set(),
-      topicExpanded: false,
-      onToggleTopic() {},
-      onAcceptAlert() {},
-      onEditAlert() {},
-      onToggleDone() {},
-      onOpenSettings() {},
-    }),
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: insightsCurrent,
+        settings,
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        utterances: [{ speaker: 'Ana', text: 'oi', at: 0 }],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
   );
   assert.match(html, /Tópico atual/);
   assert.match(html, /ponto importante/);
@@ -102,23 +106,57 @@ test('InsightsView renders topic, sections and alerts from data', () => {
   assert.doesNotMatch(html, /Pode ser na sexta mesmo\./);
 });
 
+test('InsightsView lists participants and shows the corrected name', () => {
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: insightsCurrent,
+        settings,
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        utterances: [{ speaker: 'Lukas', text: 'oi', at: 0 }],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        people: ['Lukas'],
+        nameOverrides: { Lukas: 'Lucas' },
+        onRenamePerson() {},
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
+  );
+  assert.match(html, /Participantes/);
+  assert.match(html, /Lucas/);
+  assert.match(html, /era &quot;Lukas&quot;|era "Lukas"/);
+});
+
 test('InsightsView prompts for an API key when missing', () => {
   const html = render(
-    h(InsightsView, {
-      current: null,
-      settings: { apiKeys: {}, detect: settings.detect },
-      huddle: { active: true, startedAt: 0 },
-      utterances: [],
-      now: Date.now(),
-      acked: new Set(),
-      done: new Set(),
-      topicExpanded: false,
-      onToggleTopic() {},
-      onAcceptAlert() {},
-      onEditAlert() {},
-      onToggleDone() {},
-      onOpenSettings() {},
-    }),
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current: null,
+        settings: { apiKeys: {}, detect: settings.detect },
+        huddle: { active: true, startedAt: 0 },
+        utterances: [],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
   );
   assert.match(html, /Configurar chave/);
 });

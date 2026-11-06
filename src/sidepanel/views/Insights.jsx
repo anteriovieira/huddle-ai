@@ -3,7 +3,48 @@ import { formatClock } from '../lib/format.js';
 import { ago } from '../lib/format.js';
 import { hasKeyForModel } from '../lib/models.js';
 import { Icon } from '../ui/Icon.jsx';
+import { Tooltip } from '../ui/Tooltip.jsx';
 import { Avatar, Section } from '../ui/primitives.jsx';
+
+// Anima o card (o .q-card/.alert mais próximo do botão) deslizando para fora e, após a animação,
+// aplica a mudança de estado que o remove da lista — para marcar visto e para remover. Sem o card no
+// DOM (ex.: testes de render estático) aplica na hora.
+function dismissThen(event, fn) {
+  const card = event.currentTarget.closest('.q-card, .alert');
+  if (!card) return fn();
+  card.classList.add('is-leaving');
+  setTimeout(fn, 200);
+}
+
+// Toggle de empilhar (deck) no cabeçalho de uma seção. Some quando há menos de 2 cards para empilhar.
+function DeckToggle({ on, onToggle, count }) {
+  if (!onToggle || count < 2) return null;
+  return (
+    <Tooltip label={on ? 'Ver em lista' : 'Empilhar os cards'}>
+      <button
+        type="button"
+        className={on ? 'q-copy section__deck section__deck--on' : 'q-copy section__deck'}
+        aria-label={on ? 'Ver cards em lista' : 'Empilhar os cards'}
+        aria-pressed={String(Boolean(on))}
+        onClick={onToggle}
+      >
+        <Icon name="layers" />
+      </button>
+    </Tooltip>
+  );
+}
+
+// Remove um card de vez. Anima a saída antes de avisar o pai.
+function RemoveButton({ topic, onRemove }) {
+  if (!onRemove) return null;
+  return (
+    <Tooltip label="Remover">
+      <button type="button" className="q-copy q-remove" aria-label="Remover" onClick={(e) => dismissThen(e, () => onRemove(topic))}>
+        <Icon name="trash" />
+      </button>
+    </Tooltip>
+  );
+}
 
 // Tom da pílula de prazo a partir do texto (o prazo vem como foi dito).
 function dueTone(due) {
@@ -45,7 +86,7 @@ const REF_META = {
   other: { tone: 'yellow', icon: 'bulb' },
 };
 
-function ReferenceRow({ ref, onAsk, onSeen, seen }) {
+function ReferenceRow({ ref, onAsk, onSeen, seen, onRemove, dismiss }) {
   const meta = REF_META[ref.kind] ?? REF_META.other;
   const isUrl = /^https?:\/\//i.test(ref.title);
   return (
@@ -68,13 +109,14 @@ function ReferenceRow({ ref, onAsk, onSeen, seen }) {
       </span>
       <span className="q-actions">
         <AskButton topic={[ref.title, ref.description].filter(Boolean).join(' — ')} onAsk={onAsk} />
-        <SeenButton topic={ref.title} onSeen={onSeen} seen={seen} />
+        <SeenButton topic={ref.title} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+        <RemoveButton topic={ref.title} onRemove={onRemove} />
       </span>
     </div>
   );
 }
 
-function AcronymRow({ item, onAsk, onSeen, seen }) {
+function AcronymRow({ item, onAsk, onSeen, seen, onRemove, dismiss }) {
   return (
     <div className="q-card q-card--row">
       <span className="q-row__icon q-row__icon--blue">
@@ -86,7 +128,8 @@ function AcronymRow({ item, onAsk, onSeen, seen }) {
       </span>
       <span className="q-actions">
         <AskButton topic={[item.term, item.meaning].filter(Boolean).join(' — ')} onAsk={onAsk} />
-        <SeenButton topic={item.term} onSeen={onSeen} seen={seen} />
+        <SeenButton topic={item.term} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+        <RemoveButton topic={item.term} onRemove={onRemove} />
       </span>
     </div>
   );
@@ -165,9 +208,11 @@ function CopyButton({ text, label = 'Copiar' }) {
   };
   const name = copied ? 'Copiado' : label;
   return (
-    <button type="button" className="q-copy" title={name} aria-label={name} onClick={copy}>
-      <Icon name={copied ? 'check' : 'copy'} />
-    </button>
+    <Tooltip label={name}>
+      <button type="button" className="q-copy" aria-label={name} onClick={copy}>
+        <Icon name={copied ? 'check' : 'copy'} />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -175,29 +220,37 @@ function CopyButton({ text, label = 'Copiar' }) {
 function AskButton({ topic, onAsk }) {
   if (!onAsk) return null;
   return (
-    <button type="button" className="q-copy q-ask" title="Pedir detalhes à IA" aria-label="Pedir detalhes à IA" onClick={() => onAsk(topic)}>
-      <Icon name="sparkles" />
-    </button>
+    <Tooltip label="Pedir detalhes à IA">
+      <button type="button" className="q-copy q-ask" aria-label="Pedir detalhes à IA" onClick={() => onAsk(topic)}>
+        <Icon name="sparkles" />
+      </button>
+    </Tooltip>
   );
 }
 
 // Marks this card as seen, which hides it from the list until the user shows all again. Estilo
 // WhatsApp: um único check significa não visto; dois checks (azul) significa visto. Clicar de novo
-// desmarca.
-function SeenButton({ topic, onSeen, seen }) {
+// desmarca. Quando a marcação vai esconder o card (dismiss), anima a saída antes de avisar o pai.
+function SeenButton({ topic, onSeen, seen, dismiss = true }) {
   if (!onSeen) return null;
   const on = Boolean(seen?.has(topic));
+  const label = on ? 'Visto — clique para desmarcar' : 'Marcar como visto';
+  const click = (e) => {
+    if (dismiss && !on) return dismissThen(e, () => onSeen(topic));
+    onSeen(topic);
+  };
   return (
-    <button
-      type="button"
-      className={on ? 'q-copy q-seen q-seen--on' : 'q-copy q-seen'}
-      title={on ? 'Visto — clique para desmarcar' : 'Marcar como visto'}
-      aria-label={on ? 'Visto, clique para desmarcar' : 'Marcar como visto'}
-      aria-pressed={String(on)}
-      onClick={() => onSeen(topic)}
-    >
-      <Icon name={on ? 'check-double' : 'check'} />
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        className={on ? 'q-copy q-seen q-seen--on' : 'q-copy q-seen'}
+        aria-label={on ? 'Visto, clique para desmarcar' : 'Marcar como visto'}
+        aria-pressed={String(on)}
+        onClick={click}
+      >
+        <Icon name={on ? 'check-double' : 'check'} />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -209,22 +262,18 @@ function MarkAllButton({ keys, onMarkAll, seen }) {
   const pending = keys.filter((k) => !seen?.has(k));
   if (!pending.length) return null;
   return (
-    <button
-      type="button"
-      className="section__mark"
-      title="Marcar todos como vistos"
-      aria-label="Marcar todos como vistos"
-      onClick={() => onMarkAll(keys)}
-    >
-      <Icon name="check-double" />
-      Marcar todos
-    </button>
+    <Tooltip label="Marcar todos como vistos">
+      <button type="button" className="section__mark" aria-label="Marcar todos como vistos" onClick={() => onMarkAll(keys)}>
+        <Icon name="check-double" />
+        Marcar todos
+      </button>
+    </Tooltip>
   );
 }
 
 // A top-level question card made only of a labelled bar with its actions and one line of text —
 // shared by the orphan-reply and the proposal cards, which differ only in accent, icon and labels.
-function CopyCard({ variant, icon, label, text, time, copyLabel, onAsk, onSeen, seen }) {
+function CopyCard({ variant, icon, label, text, time, copyLabel, onAsk, onSeen, seen, onRemove, dismiss }) {
   return (
     <div className={`q-card q-card--${variant}`}>
       <div className="q-bar">
@@ -235,7 +284,8 @@ function CopyCard({ variant, icon, label, text, time, copyLabel, onAsk, onSeen, 
           {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={text} onAsk={onAsk} />
           <CopyButton text={text} label={copyLabel} />
-          <SeenButton topic={text} onSeen={onSeen} seen={seen} />
+          <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+          <RemoveButton topic={text} onRemove={onRemove} />
         </span>
       </div>
       <p className="q-card__text">{text}</p>
@@ -288,7 +338,7 @@ const Q_STATE_LABEL = {
 // One question, carrying whatever the meeting knows about it: an answer said in the call, a
 // ready-to-paste reply, and/or a past-meeting match. The dominant facet sets the state accent.
 // `memory` is only ever a loading or a resolved hit (empty/error recalls surface as orphan cards).
-function QuestionCard({ question, reply, memory, time, utterances, onOpenSource, onAsk, onSeen, seen }) {
+function QuestionCard({ question, reply, memory, time, utterances, onOpenSource, onAsk, onSeen, seen, onRemove, dismiss }) {
   const [expanded, setExpanded] = useState(false);
   const showAnswer = Boolean(question.answer);
   const memoryDone = memory && memory.status === 'done' && memory.result?.found;
@@ -305,18 +355,20 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
         <span className="q-card__meta">
           {time && <span className="muted small">{time}</span>}
           <AskButton topic={question.text} onAsk={onAsk} />
-          <SeenButton topic={question.text} onSeen={onSeen} seen={seen} />
+          <SeenButton topic={question.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+          <RemoveButton topic={question.text} onRemove={onRemove} />
           {hasBody && (
-            <button
-              type="button"
-              className="q-copy q-chevbtn"
-              aria-expanded={String(expanded)}
-              aria-label={expanded ? 'Recolher' : 'Expandir'}
-              title={expanded ? 'Recolher' : 'Expandir'}
-              onClick={toggle}
-            >
-              <Icon name={expanded ? 'chevron-up' : 'chevron-down'} />
-            </button>
+            <Tooltip label={expanded ? 'Recolher' : 'Expandir'}>
+              <button
+                type="button"
+                className="q-copy q-chevbtn"
+                aria-expanded={String(expanded)}
+                aria-label={expanded ? 'Recolher' : 'Expandir'}
+                onClick={toggle}
+              >
+                <Icon name={expanded ? 'chevron-up' : 'chevron-down'} />
+              </button>
+            </Tooltip>
           )}
         </span>
       </div>
@@ -357,8 +409,9 @@ function QuestionCard({ question, reply, memory, time, utterances, onOpenSource,
 
 // The merged "Perguntas" section: every open question with its answer/reply/memory woven in, then
 // look-backs with no matching question, orphan replies, and things the user could raise.
-function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen, deck }) {
-  const hidden = (key) => !showAllSeen && seen?.has(key);
+function QuestionsSection({ data, utterances, huddle, now, detect, contextCards, onOpenSource, onDismissContext, onAsk, seen, showAllSeen, onMarkSeen, onMarkAllSeen, removed, onRemove, deckOn, onToggleDeck }) {
+  const dismiss = !showAllSeen;
+  const hidden = (key) => removed?.has(key) || (!showAllSeen && seen?.has(key));
   const questions = oldestFirst((detect.questions ? data.open_questions ?? [] : []).filter((q) => !hidden(q.text)));
   const replies = detect.replies ? data.replies ?? [] : [];
   const suggestions = (detect.suggestions ? data.suggestions ?? [] : []).filter((text) => !hidden(text));
@@ -395,6 +448,8 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
       onAsk={onAsk}
       onSeen={onMarkSeen}
       seen={seen}
+      onRemove={onRemove}
+      dismiss={dismiss}
     />
   ));
 
@@ -419,25 +474,33 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
       <div key={`m:${c.key}`} className="q-card q-card--memory">
         <div className="q-card__head">
           <span className="q-state q-state--memory">De reuniões passadas</span>
-          <button className="q-card__close" type="button" aria-label="Dispensar" title="Dispensar" onClick={() => onDismissContext(c.key)}>
-            <Icon name="close" />
-          </button>
+          <Tooltip label="Dispensar">
+            <button className="q-card__close" type="button" aria-label="Dispensar" onClick={() => onDismissContext(c.key)}>
+              <Icon name="close" />
+            </button>
+          </Tooltip>
         </div>
         <p className="q-card__text">{c.about || c.query}</p>
         <MemoryFacet card={c} onOpenSource={onOpenSource} />
       </div>
     )),
     ...orphanReplies.map((r, i) => (
-      <CopyCard key={`r:${i}`} variant="reply" icon="chat" label="Resposta sugerida" text={r.text} copyLabel="Copiar resposta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
+      <CopyCard key={`r:${i}`} variant="reply" icon="chat" label="Resposta sugerida" text={r.text} copyLabel="Copiar resposta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
     )),
     ...suggestions.map((text) => (
-      <CopyCard key={`s:${text}`} variant="proposable" icon="spark" label="Você poderia levantar" text={text} copyLabel="Copiar pergunta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} />
+      <CopyCard key={`s:${text}`} variant="proposable" icon="spark" label="Você poderia levantar" text={text} copyLabel="Copiar pergunta" onAsk={onAsk} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
     )),
   ];
 
+  const tools = (
+    <span className="section__tools">
+      <DeckToggle on={deckOn} onToggle={onToggleDeck} count={allCards.length} />
+      <MarkAllButton keys={markKeys} onMarkAll={onMarkAllSeen} seen={seen} />
+    </span>
+  );
   return (
-    <Section title="Perguntas" count={total} action={<MarkAllButton keys={markKeys} onMarkAll={onMarkAllSeen} seen={seen} />}>
-      {deck && allCards.length > 1 ? (
+    <Section title="Perguntas" count={total} action={tools}>
+      {deckOn && allCards.length > 1 ? (
         <div className={`deck deck--${Math.min(allCards.length, 3)}`}>{allCards[0]}</div>
       ) : (
         <div className="q-list">{allCards}</div>
@@ -447,7 +510,7 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
 }
 
 // A short list item (point, decision) in the same card style as the questions, with a copy action.
-function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen }) {
+function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen, onRemove, dismiss }) {
   return (
     <div className="q-card q-card--row">
       <span className={`q-row__icon q-row__icon--${tone}`}>
@@ -458,7 +521,8 @@ function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen }) {
         {time && <span className="q-time muted small">{time}</span>}
         <AskButton topic={text} onAsk={onAsk} />
         <CopyButton text={text} label={copyLabel} />
-        <SeenButton topic={text} onSeen={onSeen} seen={seen} />
+        <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+        <RemoveButton topic={text} onRemove={onRemove} />
       </span>
     </div>
   );
@@ -466,7 +530,7 @@ function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen }) {
 
 // An action in the card style. A check button marks it done — replacing the old checkbox — and the
 // owner/due sit below; a done action dims and strikes through.
-function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen }) {
+function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen, onRemove, dismiss }) {
   return (
     <div className={checked ? 'q-card q-card--action q-card--done' : 'q-card q-card--action'}>
       <div className="q-bar">
@@ -476,17 +540,19 @@ function ActionCard({ action, checked, time, onToggle, onAsk, onSeen, seen }) {
         <span className="q-actions">
           {time && <span className="q-time muted small">{time}</span>}
           <AskButton topic={action.text} onAsk={onAsk} />
-          <SeenButton topic={action.text} onSeen={onSeen} seen={seen} />
-          <button
-            type="button"
-            className={checked ? 'q-copy q-check q-check--done' : 'q-copy q-check'}
-            aria-pressed={String(checked)}
-            aria-label={checked ? 'Marcar como não feita' : 'Marcar como feita'}
-            title={checked ? 'Feita' : 'Marcar como feita'}
-            onClick={() => onToggle(action.text, !checked)}
-          >
-            <Icon name={checked ? 'seen' : 'circle'} />
-          </button>
+          <SeenButton topic={action.text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+          <RemoveButton topic={action.text} onRemove={onRemove} />
+          <Tooltip label={checked ? 'Feita' : 'Marcar como feita'}>
+            <button
+              type="button"
+              className={checked ? 'q-copy q-check q-check--done' : 'q-copy q-check'}
+              aria-pressed={String(checked)}
+              aria-label={checked ? 'Marcar como não feita' : 'Marcar como feita'}
+              onClick={() => onToggle(action.text, !checked)}
+            >
+              <Icon name={checked ? 'seen' : 'circle'} />
+            </button>
+          </Tooltip>
         </span>
       </div>
       <p className="q-card__text">{action.text}</p>
@@ -550,16 +616,17 @@ function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggl
         <span className="q-card__meta">
           <span className="muted" id="updated-ago">{ago(updatedAt, now)}</span>
           {canExpand && (
-            <button
-              type="button"
-              className="q-copy q-chevbtn"
-              aria-expanded={String(isExpanded)}
-              aria-label={isExpanded ? 'Ocultar tópicos discutidos' : 'Ver tópicos discutidos'}
-              title={isExpanded ? 'Ocultar tópicos discutidos' : 'Ver tópicos discutidos'}
-              onClick={onToggle}
-            >
-              <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} />
-            </button>
+            <Tooltip label={isExpanded ? 'Ocultar tópicos discutidos' : 'Ver tópicos discutidos'}>
+              <button
+                type="button"
+                className="q-copy q-chevbtn"
+                aria-expanded={String(isExpanded)}
+                aria-label={isExpanded ? 'Ocultar tópicos discutidos' : 'Ver tópicos discutidos'}
+                onClick={onToggle}
+              >
+                <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} />
+              </button>
+            </Tooltip>
           )}
         </span>
       </div>
@@ -578,6 +645,77 @@ function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggl
       )}
       {isExpanded && <TopicTimeline topics={topics} active={active} utterances={utterances} />}
     </section>
+  );
+}
+
+// Uma linha de participante: mostra o nome (o corrigido quando há correção) e, ao clicar, vira um
+// campo para o usuário corrigir a grafia. A correção volta por onRename(original, corrigido) e passa
+// a valer nas próximas análises e na ata.
+function PersonRow({ name, override, onRename }) {
+  const display = override || name;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(display);
+  const start = () => {
+    setValue(display);
+    setEditing(true);
+  };
+  const commit = () => {
+    const v = value.trim();
+    onRename(name, v && v !== name ? v : '');
+    setEditing(false);
+  };
+  const onKey = (e) => {
+    if (e.key === 'Enter') commit();
+    else if (e.key === 'Escape') setEditing(false);
+  };
+  return (
+    <div className="q-card q-card--row person">
+      <Avatar name={display} size="xs" />
+      {editing ? (
+        <input
+          className="person__input"
+          type="text"
+          value={value}
+          autoFocus
+          aria-label={`Corrigir o nome de ${name}`}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={onKey}
+        />
+      ) : (
+        <Tooltip label="Clique para corrigir o nome">
+          <button type="button" className="person__name" onClick={start}>
+            {display}
+            {override && override !== name && <span className="muted small person__from">{` (era "${name}")`}</span>}
+          </button>
+        </Tooltip>
+      )}
+      <span className="q-actions">
+        {!editing && (
+          <Tooltip label="Corrigir nome">
+            <button type="button" className="q-copy" aria-label={`Corrigir o nome de ${name}`} onClick={start}>
+              <Icon name="pencil" />
+            </button>
+          </Tooltip>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// Participantes encontrados na reunião (falantes das legendas + quem a IA identificou). Permite
+// corrigir a grafia do nome, já que a legenda às vezes erra — a correção alimenta as próximas
+// análises e a ata.
+function PeopleSection({ people, overrides, onRename }) {
+  if (!onRename || !people?.length) return null;
+  return (
+    <Section title="Participantes" count={people.length}>
+      <div className="q-list">
+        {people.map((name) => (
+          <PersonRow key={name} name={name} override={overrides?.[name]} onRename={onRename} />
+        ))}
+      </div>
+    </Section>
   );
 }
 
@@ -603,7 +741,13 @@ export function InsightsView({
   showAllSeen,
   onMarkSeen,
   onMarkAllSeen,
-  deck,
+  removed,
+  onRemove,
+  people,
+  nameOverrides,
+  onRenamePerson,
+  deckSections,
+  onToggleDeckSection,
 }) {
   if (!current) {
     if (!hasKeyForModel(settings)) {
@@ -623,7 +767,27 @@ export function InsightsView({
     );
   }
   const data = current.data;
-  const hiddenCard = (key) => !showAllSeen && seen?.has(key);
+  const dismiss = !showAllSeen;
+  const hiddenCard = (key) => removed?.has(key) || (!showAllSeen && seen?.has(key));
+  // Deck + "marcar todos" no cabeçalho de cada seção. `count` é quantos cards estão visíveis; o deck
+  // só aparece a partir de 2.
+  const tools = (key, count, markKeys) => (
+    <span className="section__tools">
+      <DeckToggle on={deckSections?.has(key)} onToggle={() => onToggleDeckSection(key)} count={count} />
+      <MarkAllButton keys={markKeys} onMarkAll={onMarkAllSeen} seen={seen} />
+    </span>
+  );
+
+  const points = oldestFirst(
+    data.points.map((p) => (typeof p === 'string' ? { text: p, line: 0 } : p)).filter((p) => !hiddenCard(p.text)),
+  );
+  const actions = oldestFirst((data.actions ?? []).filter((action) => !hiddenCard(action.text)));
+  const decisions = oldestFirst(
+    data.decisions.map((d) => (typeof d === 'string' ? { text: d, line: 0 } : d)).filter((d) => !hiddenCard(d.text)),
+  );
+  const references = (data.references ?? []).filter((ref) => !hiddenCard(ref.title));
+  const acronyms = (data.acronyms ?? []).filter((item) => !hiddenCard(item.term));
+
   return (
     <div className="stack stack--insights">
       {settings.detect.alerts && (
@@ -644,6 +808,7 @@ export function InsightsView({
         expanded={topicExpanded}
         onToggle={onToggleTopic}
       />
+      <PeopleSection people={people} overrides={nameOverrides} onRename={onRenamePerson} />
       <QuestionsSection
         data={data}
         utterances={utterances}
@@ -658,67 +823,66 @@ export function InsightsView({
         showAllSeen={showAllSeen}
         onMarkSeen={onMarkSeen}
         onMarkAllSeen={onMarkAllSeen}
-        deck={deck}
+        removed={removed}
+        onRemove={onRemove}
+        deckOn={deckSections?.has('questions')}
+        onToggleDeck={() => onToggleDeckSection('questions')}
       />
       <Section
         title="Pontos levantados"
-        count={data.points.length}
-        deck={deck}
-        action={<MarkAllButton keys={data.points.map((p) => (typeof p === 'string' ? p : p.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
+        count={points.length}
+        deck={deckSections?.has('points')}
+        action={tools('points', points.length, points.map((p) => p.text))}
       >
-        {oldestFirst(
-          data.points.map((p) => (typeof p === 'string' ? { text: p, line: 0 } : p)).filter((p) => !hiddenCard(p.text)),
-        ).map((p) => (
-          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={cardAgo(p.line, utterances, huddle, now)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+        {points.map((p) => (
+          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={cardAgo(p.line, utterances, huddle, now)} copyLabel="Copiar ponto" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
         ))}
       </Section>
       {settings.detect.actions && (
         <Section
           title="Ações"
-          count={data.actions.length}
-          deck={deck}
-          action={<MarkAllButton keys={data.actions.map((a) => a.text)} onMarkAll={onMarkAllSeen} seen={seen} />}
+          count={actions.length}
+          deck={deckSections?.has('actions')}
+          action={tools('actions', actions.length, actions.map((a) => a.text))}
         >
-          {oldestFirst(data.actions.filter((action) => !hiddenCard(action.text))).map((action) => (
-            <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={cardAgo(action.line, utterances, huddle, now)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {actions.map((action) => (
+            <ActionCard key={action.text} action={action} checked={done.has(action.text)} time={cardAgo(action.line, utterances, huddle, now)} onToggle={onToggleDone} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
       {settings.detect.decisions && (
         <Section
           title="Decisões"
-          count={data.decisions.length}
-          deck={deck}
-          action={<MarkAllButton keys={data.decisions.map((d) => (typeof d === 'string' ? d : d.text))} onMarkAll={onMarkAllSeen} seen={seen} />}
+          count={decisions.length}
+          deck={deckSections?.has('decisions')}
+          action={tools('decisions', decisions.length, decisions.map((d) => d.text))}
         >
-          {oldestFirst(
-            data.decisions.map((d) => (typeof d === 'string' ? { text: d, line: 0 } : d)).filter((d) => !hiddenCard(d.text)),
-          ).map((d) => (
-            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={cardAgo(d.line, utterances, huddle, now)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {decisions.map((d) => (
+            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={cardAgo(d.line, utterances, huddle, now)} copyLabel="Copiar decisão" onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
       {settings.detect.references && (
         <Section
           title="Referências mencionadas"
-          count={(data.references ?? []).length}
-          deck={deck}
-          action={<MarkAllButton keys={(data.references ?? []).map((r) => r.title)} onMarkAll={onMarkAllSeen} seen={seen} />}
+          count={references.length}
+          deck={deckSections?.has('references')}
+          action={tools('references', references.length, references.map((r) => r.title))}
         >
-          {(data.references ?? []).filter((ref) => !hiddenCard(ref.title)).map((ref) => (
-            <ReferenceRow key={ref.title} ref={ref} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {references.map((ref) => (
+            <ReferenceRow key={ref.title} ref={ref} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
       {settings.detect.acronyms && (
         <Section
           title="Siglas"
-          count={(data.acronyms ?? []).length}
-          deck={deck}
-          action={<MarkAllButton keys={(data.acronyms ?? []).map((a) => a.term)} onMarkAll={onMarkAllSeen} seen={seen} />}
+          count={acronyms.length}
+          deck={deckSections?.has('acronyms')}
+          action={tools('acronyms', acronyms.length, acronyms.map((a) => a.term))}
         >
-          {(data.acronyms ?? []).filter((item) => !hiddenCard(item.term)).map((item) => (
-            <AcronymRow key={item.term} item={item} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} />
+          {acronyms.map((item) => (
+            <AcronymRow key={item.term} item={item} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}

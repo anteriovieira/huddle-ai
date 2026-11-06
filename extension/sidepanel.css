@@ -245,6 +245,26 @@ select {
   color: var(--muted);
 }
 
+/* Análise em andamento: o ícone fica numa cor de "carregando" e pulsa, mesmo desabilitado. */
+.icon-button--loading,
+.icon-button--loading:disabled,
+.icon-button--loading:disabled:hover {
+  color: var(--blue);
+  opacity: 1;
+  cursor: default;
+  animation: pulse-loading 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse-loading {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* Tabs */
 
 .tabs {
@@ -1990,6 +2010,78 @@ select {
 /* Visto: dois checks azuis estilo WhatsApp (um único check quando não visto). */
 .q-seen--on {
   color: var(--blue);
+}
+
+/* Remover: destaca em vermelho no hover (ação destrutiva, tira o card de vez). */
+.q-remove:hover {
+  color: var(--danger);
+}
+
+/* Toggle de empilhar (deck) no cabeçalho da seção fica azul quando ligado. */
+.section__deck--on {
+  color: var(--blue);
+}
+
+/* Saída animada: ao marcar visto ou remover, o card desliza e some antes de sair da lista. */
+.q-card.is-leaving,
+.alert.is-leaving {
+  animation: card-leave 0.22s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes card-leave {
+  to {
+    opacity: 0;
+    transform: translateX(18px) scale(0.98);
+  }
+}
+
+/* Ferramentas no cabeçalho da seção (empilhar + marcar todos), lado a lado. */
+.section__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Seção de participantes: nome editável para corrigir a grafia. */
+.person {
+  align-items: center;
+  gap: 10px;
+}
+
+.person__name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text-strong);
+  font: inherit;
+  cursor: text;
+  border-radius: var(--radius);
+  padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person__name:hover {
+  background: var(--surface-hover);
+}
+
+.person__from {
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+.person__input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--blue);
+  background: var(--bg);
+  color: var(--text-strong);
+  border-radius: var(--radius);
+  padding: 3px 6px;
 }
 
 .q-card--done .q-card__text {

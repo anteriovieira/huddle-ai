@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS = {
   model: 'claude-haiku-5-5',
   // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
   modelProvider: '',
-  language: 'Português',
+  language: 'English',
   // Tamanho das respostas do modelo: 'curto' | 'normal' | 'detalhado' (ver insights.js VERBOSITY).
   verbosity: 'normal',
   freq: 30,
@@ -77,8 +77,10 @@ let chatSeq = 0;
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
 const ASK_DETAIL_PROMPT = {
-  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
   English: (text) => `Briefly explain this in 1-2 sentences, based on the meeting: "${text}"`,
+  Portuguese: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
+  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
+  Spanish: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
   Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
 };
 
@@ -146,9 +148,14 @@ export function App() {
   // Insight cards the user marked as seen (hidden from the list), and whether to show them anyway.
   const [seen, setSeen] = useState(() => new Set());
   const [showAllSeen, setShowAllSeen] = useState(false);
-  // Modo "deck": empilha os cards de cada seção de insight, mostrando um por vez (o mais recente no
-  // topo). Marcar como visto remove da pilha e revela o próximo.
-  const [deckMode, setDeckMode] = useState(false);
+  // Cards que o usuário removeu de vez (diferente de "visto": não voltam nem com "ver todos").
+  const [removed, setRemoved] = useState(() => new Set());
+  // Correções de nome dos participantes: { nomeComoVeioNaLegenda: nomeCorrigido }. O usuário conserta
+  // a grafia na seção Participantes e isso passa a valer nas próximas análises e na geração da ata.
+  const [nameOverrides, setNameOverrides] = useState({});
+  // Modo "deck" por seção: cada seção de insight pode empilhar seus cards, mostrando um por vez. O
+  // Set guarda as chaves das seções empilhadas ('points', 'actions', 'decisions', 'questions'…).
+  const [deckSections, setDeckSections] = useState(() => new Set());
   // The insight item shown when a caption badge is clicked (what was decided/asked/assigned).
   const [markDialog, setMarkDialog] = useState(null);
   // Context-recall cards: one per look-back question detected live, with the subagent's answer.
@@ -319,7 +326,7 @@ export function App() {
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused };
+  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused, nameOverrides };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
@@ -365,6 +372,7 @@ export function App() {
         utterances: u,
         previous: ci?.data,
         sinceLine: ctl.lastCount ?? 0,
+        nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -411,6 +419,7 @@ export function App() {
         utterances: u,
         previous: ci?.data,
         sinceLine: ctl.lastCount ?? 0,
+        nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
         onPartial: (d) => applyPartial(h.id, d),
       });
@@ -460,7 +469,7 @@ export function App() {
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
       const meta = minutesMeta(h, u);
-      const data = await generateMinutes({ settings: s, meta, utterances: u });
+      const data = await generateMinutes({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
       await chromeApi?.storage.session.set({ minutes: record });
@@ -639,6 +648,43 @@ export function App() {
     [],
   );
   const toggleShowAllSeen = useCallback(() => setShowAllSeen((v) => !v), []);
+
+  // Remove um card de vez (o usuário decidiu que não precisa dele). Guardado por chave de texto, como
+  // o "visto", mas sem volta.
+  const removeItem = useCallback(
+    (key) =>
+      setRemoved((prev) => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      }),
+    [],
+  );
+
+  // Corrige (ou limpa) o nome de um participante. Corrigido vazio ou igual ao original remove a
+  // correção.
+  const renamePerson = useCallback(
+    (original, corrected) =>
+      setNameOverrides((prev) => {
+        const next = { ...prev };
+        if (!corrected || corrected === original) delete next[original];
+        else next[original] = corrected;
+        return next;
+      }),
+    [],
+  );
+
+  // Liga/desliga o empilhamento (deck) de uma seção de insight.
+  const toggleDeckSection = useCallback(
+    (key) =>
+      setDeckSections((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
 
   // Resolve a caption badge (transcript line + kind) to the matching insight item and open it in a
   // dialog. Decisions/actions/questions carry their line; falls back to the caption text if none.
@@ -855,6 +901,7 @@ export function App() {
           settings: s,
           utterances: latest.current.utterances,
           previous: null,
+          nameOverrides: latest.current.nameOverrides,
           abortSignal: ctrl.signal,
           onPartial: (d) => applyPartial(huddleId, d),
         });
@@ -1178,7 +1225,7 @@ export function App() {
         flash('Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.');
         return;
       }
-      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.Português;
+      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
       const question = build(text);
       const chat = newChat();
       setChats((prev) => ({
@@ -1349,7 +1396,15 @@ export function App() {
         ...(currentInsights.data.acronyms ?? []).map((a) => a.term),
       ]
     : [];
-  const hiddenSeen = seenKeys.filter((k) => seen.has(k)).length;
+  const hiddenSeen = seenKeys.filter((k) => seen.has(k) && !removed.has(k)).length;
+  // Participantes: os falantes das legendas (verdade do Slack) mais quem a IA identificou, sem
+  // repetir. É o que a seção Participantes mostra para o usuário corrigir a grafia.
+  const peopleList = [
+    ...new Set([
+      ...utterances.map((u) => u.speaker).filter(Boolean),
+      ...(currentInsights?.data.people ?? []).map((p) => p.name).filter(Boolean),
+    ]),
+  ];
   const copySummary = () => currentInsights && copyToClipboard(insightsAsText(currentInsights.data, settings.detect));
   const postSummary = () => currentInsights && postToThread(insightsAsText(currentInsights.data, settings.detect));
 
@@ -1379,8 +1434,6 @@ export function App() {
     showAllSeen,
     hiddenSeen,
     onToggleShowAll: toggleShowAllSeen,
-    deckMode,
-    onToggleDeck: () => setDeckMode((v) => !v),
     onOpenSettings: openSettings,
     onDownloadTranscript: downloadTranscript,
     onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
@@ -1414,7 +1467,13 @@ export function App() {
           showAllSeen={showAllSeen}
           onMarkSeen={markSeen}
           onMarkAllSeen={markAllSeen}
-          deck={deckMode && !showAllSeen}
+          removed={removed}
+          onRemove={removeItem}
+          people={peopleList}
+          nameOverrides={nameOverrides}
+          onRenamePerson={renamePerson}
+          deckSections={deckSections}
+          onToggleDeckSection={toggleDeckSection}
         />
       );
     }

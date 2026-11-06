@@ -352,6 +352,22 @@ test('normalizeInsights parses decisions and action lines, with string back-comp
   ]);
 });
 
+test('normalizeInsights keeps acronyms only when they have a meaning, and lists people', () => {
+  const d = normalizeInsights({
+    acronyms: [
+      { term: 'SLA', meaning: 'Service Level Agreement' },
+      { term: 'IRT', meaning: '' },
+      { term: 'PCI', meaning: '   ' },
+    ],
+    people: [{ name: 'Ana', note: 'PO' }, { name: '', note: 'x' }, { name: 'Lucas' }],
+  });
+  assert.deepEqual(d.acronyms, [{ term: 'SLA', meaning: 'Service Level Agreement' }]);
+  assert.deepEqual(d.people, [
+    { name: 'Ana', note: 'PO' },
+    { name: 'Lucas', note: '' },
+  ]);
+});
+
 test('mergeInsights returns the incoming object when there is no previous', () => {
   const next = { points: ['a'], actions: [{ text: 'fazer', owner: 'Ana', line: 3 }] };
   assert.deepEqual(mergeInsights(null, next), normalizeInsights(next));

@@ -113,8 +113,6 @@ function SummaryActions({
   analyzing,
   paused,
   onTogglePause,
-  deckMode,
-  onToggleDeck,
   tickerHidden,
   hasRecent,
   onToggleTicker,
@@ -124,20 +122,6 @@ function SummaryActions({
 }) {
   return (
     <div className="info__actions">
-      {onToggleDeck && (
-        <Tooltip label={showAllSeen ? 'Deck indisponível com “ver todos” ligado' : deckMode ? 'Ver cards em lista' : 'Empilhar cards (deck)'}>
-          <button
-            className={deckMode && !showAllSeen ? 'icon-button icon-button--on' : 'icon-button'}
-            type="button"
-            aria-label={deckMode ? 'Ver cards em lista' : 'Empilhar cards em deck'}
-            aria-pressed={String(Boolean(deckMode && !showAllSeen))}
-            disabled={showAllSeen}
-            onClick={onToggleDeck}
-          >
-            <Icon name="deck" />
-          </button>
-        </Tooltip>
-      )}
       {onTogglePause && (
         <Tooltip label={paused ? 'Retomar análise automática' : 'Pausar análise automática'}>
           <button
@@ -166,7 +150,13 @@ function SummaryActions({
       )}
       {onAnalyzeNow && (
         <Tooltip label={analyzing ? 'Analisando…' : 'Analisar agora'}>
-          <button className="icon-button" type="button" aria-label="Analisar agora" disabled={analyzing} onClick={onAnalyzeNow}>
+          <button
+            className={analyzing ? 'icon-button icon-button--loading' : 'icon-button'}
+            type="button"
+            aria-label={analyzing ? 'Analisando…' : 'Analisar agora'}
+            disabled={analyzing}
+            onClick={onAnalyzeNow}
+          >
             <Icon name="sparkles" />
           </button>
         </Tooltip>
@@ -185,7 +175,7 @@ function SummaryActions({
             aria-pressed={String(!tickerHidden)}
             onClick={onToggleTicker}
           >
-            <Icon name="subtitles" />
+            <Icon name="panel-down" />
           </button>
         </Tooltip>
       )}
@@ -223,8 +213,6 @@ export function InfoBar({
   showAllSeen,
   hiddenSeen,
   onToggleShowAll,
-  deckMode,
-  onToggleDeck,
 }) {
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
@@ -250,8 +238,6 @@ export function InfoBar({
         analyzing={analysis.running}
         paused={live ? analysisPaused : false}
         onTogglePause={live ? onTogglePause : undefined}
-        deckMode={deckMode}
-        onToggleDeck={onToggleDeck}
         tickerHidden={tickerHidden}
         hasRecent={hasRecent}
         onToggleTicker={onToggleTicker}

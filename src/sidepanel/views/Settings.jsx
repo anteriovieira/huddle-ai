@@ -3,7 +3,47 @@ import { MODELS, PROVIDERS, PROVIDER_IDS, providerOf, hasKeyForModel } from '../
 import { Icon } from '../ui/Icon.jsx';
 import { Field, Select, Toggle } from '../ui/primitives.jsx';
 
-const LANGUAGES = ['Português', 'English', 'Español'];
+// A linguagem escolhida vale para o app todo: o modelo escreve insights, chat e ata nela. O valor é
+// usado direto no prompt ("Write every field in <idioma>"), então guardamos o nome em inglês, que o
+// modelo entende sem ambiguidade, e mostramos o nome nativo pro usuário. Padrão: English.
+const LANGUAGES = [
+  ['English', 'English'],
+  ['Portuguese', 'Português'],
+  ['Spanish', 'Español'],
+  ['French', 'Français'],
+  ['German', 'Deutsch'],
+  ['Italian', 'Italiano'],
+  ['Dutch', 'Nederlands'],
+  ['Portuguese (Portugal)', 'Português (Portugal)'],
+  ['Catalan', 'Català'],
+  ['Galician', 'Galego'],
+  ['Polish', 'Polski'],
+  ['Czech', 'Čeština'],
+  ['Slovak', 'Slovenčina'],
+  ['Hungarian', 'Magyar'],
+  ['Romanian', 'Română'],
+  ['Swedish', 'Svenska'],
+  ['Norwegian', 'Norsk'],
+  ['Danish', 'Dansk'],
+  ['Finnish', 'Suomi'],
+  ['Greek', 'Ελληνικά'],
+  ['Russian', 'Русский'],
+  ['Ukrainian', 'Українська'],
+  ['Turkish', 'Türkçe'],
+  ['Arabic', 'العربية'],
+  ['Hebrew', 'עברית'],
+  ['Hindi', 'हिन्दी'],
+  ['Bengali', 'বাংলা'],
+  ['Indonesian', 'Bahasa Indonesia'],
+  ['Malay', 'Bahasa Melayu'],
+  ['Vietnamese', 'Tiếng Việt'],
+  ['Thai', 'ไทย'],
+  ['Filipino', 'Filipino'],
+  ['Chinese (Simplified)', '简体中文'],
+  ['Chinese (Traditional)', '繁體中文'],
+  ['Japanese', '日本語'],
+  ['Korean', '한국어'],
+];
 const CAPTION_SOURCES = [
   ['auto', 'Automático (recomendado)'],
   ['panel', 'Painel de legendas (aba Captions)'],
@@ -175,7 +215,7 @@ export function SettingsView({
             </details>
             <div className="field-row">
               <Field label="Idioma" htmlFor="language">
-                <Select id="language" options={LANGUAGES.map((l) => [l, l])} value={draft.language} onChange={(v) => set('language', v)} />
+                <Select id="language" options={LANGUAGES} value={draft.language} onChange={(v) => set('language', v)} />
               </Field>
               <Field label="Analisar a cada" htmlFor="freq">
                 <div className="segmented" role="radiogroup" aria-label="Analisar a cada">
