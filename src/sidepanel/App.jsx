@@ -10,6 +10,8 @@ import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
 import { CaptionsPanel } from './views/Captions.jsx';
 import { ChatDock } from './views/Chat.jsx';
+import { ThreadBar } from './views/Thread.jsx';
+import { threadStatus } from './lib/thread.js';
 import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
@@ -37,6 +39,8 @@ const DEFAULT_SETTINGS = {
   saveHistory: true,
   autoMinutes: true,
   captionSource: 'auto',
+  // Whether the huddle's Slack thread goes into the AI's context (chat lookups).
+  threadContext: true,
 };
 // Migração one-time: leva instalações já existentes para o modelo padrão atual
 // (Haiku) uma única vez. Depois disso o usuário fica livre para escolher.
@@ -179,6 +183,10 @@ export function App() {
 
   const huddle = extState.huddle;
   const utterances = extState.utterances;
+  const thread = extState.thread ?? null;
+  const threadState = threadStatus(thread, { enabled: settings.threadContext !== false });
+  // What the chat may read from the thread: nothing unless the user keeps it in context.
+  const threadForAI = threadState === 'off' ? null : thread?.messages ?? null;
 
   const currentInsights = insights?.huddleId === huddle?.id ? insights : null;
   const currentMinutes = minutes?.huddleId === huddle?.id ? minutes : null;
@@ -326,7 +334,7 @@ export function App() {
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused, nameOverrides };
+  latest.current = { huddle, utterances, threadForAI, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused, nameOverrides };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
@@ -618,6 +626,26 @@ export function App() {
     },
     [flash],
   );
+
+  // Selects the huddle's Thread tab in Slack so the scanner can read the thread again.
+  const openThread = useCallback(async () => {
+    const tabId = latest.current.huddle?.tabId;
+    if (!tabId || !chromeApi?.tabs) return flash(tr('toast.huddleWindowNotFound'));
+    try {
+      const result = await chromeApi.tabs.sendMessage(tabId, { type: 'thread:open' });
+      if (!result?.ok) throw new Error(result?.error ?? 'sem resposta da janela do huddle');
+    } catch (error) {
+      flash(tr('toast.threadOpenFailed', { error: error.message }));
+    }
+  }, [flash]);
+
+  const setThreadContext = useCallback((value) => {
+    setSettings((prev) => {
+      const next = { ...prev, threadContext: value };
+      chromeApi?.storage.local.set({ settings: next }).catch(() => {});
+      return next;
+    });
+  }, []);
 
   const goToSlack = useCallback(async () => {
     if (!chromeApi?.tabs) return;
@@ -1244,10 +1272,11 @@ export function App() {
     appendMessage(chat.id, { role: 'user', text: question });
     setDraft(chat.id, '');
     setChatBusy((b) => new Set(b).add(chat.id));
-    setChatStream({ chatId: chat.id, text: '' });
+    setChatStream({ chatId: chat.id, text: '', steps: [] });
 
     if (firstQuestion && /^Chat \d+$/.test(chat.title)) nameChat(chat.id, question);
     logEvent('info', `Pergunta ao huddle (${latest.current.utterances.length} falas)`);
+    const steps = [];
     try {
       const answer = await askMeeting({
         settings: latest.current.settings,
@@ -1255,10 +1284,15 @@ export function App() {
         history: histTurns,
         question,
         sessions: latest.current.pastSessions,
+        thread: latest.current.threadForAI,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+        onStep: (step) => {
+          steps.push(step);
+          setChatStream((s) => (s?.chatId === chat.id ? { ...s, steps: [...steps] } : s));
+        },
         log: logEvent,
       });
-      appendMessage(chat.id, { role: 'assistant', text: answer });
+      appendMessage(chat.id, { role: 'assistant', text: answer, ...(steps.length && { steps }) });
     } catch (error) {
       appendMessage(chat.id, { role: 'error', text: error.message });
       logEvent('error', `Falha no chat: ${error.message}`);
@@ -1292,9 +1326,10 @@ export function App() {
       }));
       setActiveChatId(chat.id);
       setChatBusy((b) => new Set(b).add(chat.id));
-      setChatStream({ chatId: chat.id, text: '' });
+      setChatStream({ chatId: chat.id, text: '', steps: [] });
       nameChat(chat.id, question);
       logEvent('info', `Detalhar insight no chat (${latest.current.utterances.length} falas)`);
+      const steps = [];
       try {
         const answer = await askMeeting({
           settings: latest.current.settings,
@@ -1302,10 +1337,15 @@ export function App() {
           history: [],
           question,
           sessions: latest.current.pastSessions,
+          thread: latest.current.threadForAI,
           onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+          onStep: (step) => {
+            steps.push(step);
+            setChatStream((s) => (s?.chatId === chat.id ? { ...s, steps: [...steps] } : s));
+          },
           log: logEvent,
         });
-        appendMessage(chat.id, { role: 'assistant', text: answer });
+        appendMessage(chat.id, { role: 'assistant', text: answer, ...(steps.length && { steps }) });
       } catch (error) {
         appendMessage(chat.id, { role: 'error', text: error.message });
         logEvent('error', `Falha no chat: ${error.message}`);
@@ -1504,6 +1544,17 @@ export function App() {
   const panelContent = (section) => {
     if (section === 'insights') {
       return (
+        <>
+          {huddle?.active && threadState !== 'none' && (
+            <ThreadBar
+              status={threadState}
+              count={thread?.messages.length ?? 0}
+              readAt={thread?.readAt}
+              now={now}
+              onOpen={openThread}
+              onToggleContext={setThreadContext}
+            />
+          )}
         <InsightsView
           current={currentInsights}
           settings={settings}
@@ -1534,6 +1585,7 @@ export function App() {
           deckSections={deckSections}
           onToggleDeckSection={toggleDeckSection}
         />
+        </>
       );
     }
     if (section === 'captions') {
@@ -1674,6 +1726,7 @@ export function App() {
           expanded={chatExpanded}
           floating={cols >= 2}
           streamText={chatStream?.chatId === activeChatId ? chatStream.text : ''}
+          streamSteps={chatStream?.chatId === activeChatId ? chatStream.steps : undefined}
           onSelectChat={selectChat}
           onCloseChat={closeChat}
           onAddChat={addChat}

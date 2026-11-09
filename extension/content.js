@@ -42,7 +42,7 @@
       sendResponse({ ok: true });
       return false;
     }
-    if (message?.type !== 'thread:draft' && message?.type !== 'debug:dump') return false;
+    if (!['thread:draft', 'thread:open', 'debug:dump'].includes(message?.type)) return false;
     const id = ++nextId;
     pending.set(id, sendResponse);
     window.postMessage({ __huddleAi: 'extension', id, request: message }, origin);

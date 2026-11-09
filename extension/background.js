@@ -107,6 +107,12 @@ function onCaption(state, message) {
   return { ...state, utterances };
 }
 
+// The huddle's Slack thread, as last read by the scanner: { messages, visible, readAt }.
+function onThread(state, message) {
+  if (state.huddle?.id !== message.huddleId) return null;
+  return { ...state, thread: { messages: message.messages, visible: message.visible, readAt: Date.now() } };
+}
+
 // Injects the capture scripts into an already-open Slack tab (one loaded before the
 // extension, so the manifest content scripts never ran there). Mirrors the manifest:
 // scanner + page-hook in the page's own JS world, then the isolated-world bridge.
@@ -144,6 +150,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     update((state) => onStatus(state, message, sender.tab?.id));
   } else if (message?.type === 'caption:upsert') {
     update((state) => onCaption(state, message));
+  } else if (message?.type === 'thread:snapshot') {
+    update((state) => onThread(state, message));
   } else if (message?.type === 'log') {
     addLog({ source: message.source, level: message.level, message: message.message, data: message.data });
   }

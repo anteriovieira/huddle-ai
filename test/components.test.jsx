@@ -373,3 +373,23 @@ test('IdleView shows the connect action and the reload fallback', () => {
   assert.match(html, /ou recarregar a aba/);
   assert.match(html, /Sessões anteriores \(3\)/);
 });
+
+test('ChatDock shows the thread searches behind an answer, with the messages it used', async () => {
+  const { ChatDock } = await import('../src/sidepanel/views/Chat.jsx');
+  const steps = [
+    {
+      tool: 'search_thread',
+      query: 'user id',
+      messages: [{ id: '1.3', author: 'Leandro Ximenes', time: 'Tuesday at 10:14', text: 'Yes, the user id is saved.' }],
+    },
+  ];
+  const chat = { id: 'c1', title: 'Chat 1', messages: [{ role: 'user', text: 'e o user id?' }, { role: 'assistant', text: 'Sim.', steps }] };
+  const html = render(
+    h(TooltipProvider, null, h(ChatDock, { chats: [chat], activeChatId: 'c1', activeChat: chat, draft: '', onSubmit() {}, onDraftChange() {} })),
+  );
+  assert.match(html, /Buscou na thread/);
+  assert.match(html, /“user id”/);
+  assert.match(html, /1 mensagem/);
+  assert.match(html, /Leandro Ximenes/);
+  assert.match(html, /Yes, the user id is saved\./);
+});

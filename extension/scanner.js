@@ -16,6 +16,12 @@
   const OVERLAY_NAME_SELECTOR = '.p-huddle_closed_caption_event__member_name';
   const OVERLAY_TEXT_SELECTOR = '.p-huddle_closed_caption_event__transcription, [data-qa="huddle_closed_caption_event"]';
   const THREAD_TAB_TEXT = /thread|conversa|hilo/i;
+  // Slack's message markup inside the Thread panel (the same markup as channel messages).
+  const THREAD_MESSAGE_SELECTOR = '[data-qa="message_container"]';
+  const THREAD_SENDER_SELECTOR = '[data-qa="message_sender_name"]';
+  const THREAD_TIMESTAMP_SELECTOR = '.c-timestamp';
+  const THREAD_TEXT_SELECTOR = '[data-qa="message-text"], .c-message_kit__blocks, .c-message__body';
+  const THREAD_LIMIT = 300;
   const CAPTIONS_LANGUAGE = /(?:generated in|geradas em|generan en|generadas en)\s+([^.]+?)\./i;
   const CAPTIONS_NOTE = /captions are being generated|legendas (?:estão sendo|são) geradas|subt[ií]tulos se est[aá]n generando/i;
   const MAX_AVATAR_SIZE = 80; // caption avatars are ~36px; the video tile is much larger
@@ -128,6 +134,31 @@
     return [...scope.querySelectorAll('[role="tab"]')].find((tab) => pattern.test(tab.textContent)) ?? null;
   }
 
+  // The huddle's Slack thread, read from the Thread tab's panel while that tab is selected
+  // (Slack only renders the selected tab). Grouped messages carry no sender of their own, so
+  // the previous sender is carried forward. Returns { visible, messages: [{ id, author, time, text }] },
+  // or null when the huddle has no Thread tab at all.
+  function readThread(scope) {
+    const tab = findTab(scope, THREAD_TAB_TEXT);
+    if (!tab) return null;
+    const panelId = tab.getAttribute('aria-selected') === 'true' && tab.getAttribute('aria-controls');
+    const panel = panelId && scope.ownerDocument.getElementById(panelId);
+    if (!panel) return { visible: false, messages: [] };
+    const messages = [];
+    let author = '';
+    for (const el of panel.querySelectorAll(THREAD_MESSAGE_SELECTOR)) {
+      author = el.querySelector(THREAD_SENDER_SELECTOR)?.textContent.trim() || author;
+      const stamp = el.querySelector(THREAD_TIMESTAMP_SELECTOR);
+      const text = el.querySelector(THREAD_TEXT_SELECTOR)?.textContent.replace(/\s+/g, ' ').trim();
+      if (!author || !text) continue;
+      const id = stamp?.getAttribute('data-ts') || el.closest('[data-item-key]')?.getAttribute('data-item-key') || `${author}:${text.slice(0, 60)}`;
+      const time = stamp?.getAttribute('aria-label')?.trim() || stamp?.textContent.trim() || '';
+      messages.push({ id, author, time, text });
+    }
+    return { visible: true, messages };
+  }
+  globalThis.__huddleAiReadThread = readThread;
+
   // `win` is the window to read; `emit` receives huddle:status and caption:upsert messages;
   // `log(level, message, data)` records what the scanner sees, for the panel's log view.
   globalThis.__huddleAiCreateScanner = function createScanner(win, emit, log = () => {}, label = 'janela') {
@@ -141,6 +172,8 @@
     let stopped = false;
     let observedDoc = null;
     let lastDiagnosis = '';
+    const threadMessages = new Map(); // message id -> { id, author, time, text }, every one read so far
+    let lastThread = '';
     let parseFailures = 0;
 
     const doc = () => win.document;
@@ -269,6 +302,22 @@
       if (recent.length > RECENT_LIMIT) recent.shift();
     }
 
+    // Slack's virtual list only renders the messages in view, so everything read is kept and
+    // sent whole (ordered by Slack's ts ids) whenever it or the Thread tab's visibility changes.
+    function syncThread() {
+      const read = readThread(panelScope());
+      if (!read) return;
+      for (const message of read.messages) threadMessages.set(message.id, message);
+      const messages = [...threadMessages.values()]
+        .sort((a, b) => (Number(a.id) && Number(b.id) ? Number(a.id) - Number(b.id) : 0))
+        .slice(-THREAD_LIMIT);
+      const key = JSON.stringify([read.visible, messages]);
+      if (key === lastThread) return;
+      if (!lastThread) log('info', `Thread do huddle encontrada (${label})`, { visivel: read.visible, mensagens: messages.length });
+      lastThread = key;
+      emit({ type: 'thread:snapshot', huddleId, visible: read.visible, messages });
+    }
+
     function scan() {
       if (stopped) return;
       if (win.closed) {
@@ -295,6 +344,7 @@
         const rows = rowsFor(found);
         if (huddleRoot) diagnose(panelScope(), found, rows.length);
         logSample(found, rows.length);
+        if (huddleRoot) syncThread();
         if (!captionsRoot) return;
 
         const claimed = new Set();
@@ -391,6 +441,16 @@
       return { ok: true };
     }
 
+    // Selects the huddle's Thread tab so Slack renders the thread and the next scan reads it.
+    function openThread() {
+      if (!findHuddleRoot()) return { ok: false, error: 'Janela do huddle não encontrada.' };
+      const tab = findTab(panelScope(), THREAD_TAB_TEXT);
+      if (!tab) return { ok: false, error: 'Aba Thread não encontrada.' };
+      if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+      scheduleScan();
+      return { ok: true };
+    }
+
     function dump() {
       const huddleRoot = findHuddleRoot();
       const scope = panelScope();
@@ -428,6 +488,7 @@
     return {
       isActive: () => active && !stopped,
       draftInThread,
+      openThread,
       dump,
     };
   };

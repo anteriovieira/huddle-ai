@@ -4,6 +4,40 @@ import { Icon } from '../ui/Icon.jsx';
 import { Markdown } from '../ui/Markdown.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
 
+// What the model looked up before answering: one collapsible row per thread search, opening to
+// the messages it read, so the user can see where an answer came from.
+function ChatSteps({ steps }) {
+  const t = useT();
+  if (!steps?.length) return null;
+  return (
+    <div className="chat-steps">
+      {steps.map((step, i) => (
+        <details key={i} className="chat-step">
+          <summary className="chat-step__summary">
+            <Icon name="search" />
+            <span className="chat-step__label">
+              {step.query ? t('chat.stepThreadSearch', { query: `“${step.query}”` }) : t('chat.stepThreadLatest')}
+            </span>
+            <span className="chat-step__count">
+              {step.messages.length === 1 ? t('chat.stepMessage') : t('chat.stepMessages', { count: step.messages.length })}
+            </span>
+          </summary>
+          <ul className="chat-step__messages">
+            {step.messages.map((m) => (
+              <li key={m.id} className="chat-step__message">
+                <span className="chat-step__meta">
+                  <b>{m.author}</b> {m.time}
+                </span>
+                <span>{m.text}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ))}
+    </div>
+  );
+}
+
 function ChatMessage({ message }) {
   if (message.role === 'error') {
     return <div className="chat-msg chat-msg--error">{message.text}</div>;
@@ -17,6 +51,7 @@ function ChatMessage({ message }) {
   }
   return (
     <div className="chat-msg chat-msg--bot">
+      <ChatSteps steps={message.steps} />
       <Markdown text={message.text} className="chat-bubble chat-bubble--md" />
     </div>
   );
@@ -24,24 +59,32 @@ function ChatMessage({ message }) {
 
 // While a reply is in flight: the streaming answer, or — before the first token — a
 // "Thinking" indicator.
-function ChatPending({ streamText }) {
+function ChatPending({ streamText, streamSteps }) {
   const t = useT();
   if (streamText) {
     return (
       <div className="chat-msg chat-msg--bot">
+        <ChatSteps steps={streamSteps} />
         <Markdown text={streamText} className="chat-bubble chat-bubble--md" />
       </div>
     );
   }
   return (
-    <div className="chat-thinking" role="status" aria-label={t('chat.thinking')}>
+    <>
+      {streamSteps?.length > 0 && (
+        <div className="chat-msg chat-msg--bot">
+          <ChatSteps steps={streamSteps} />
+        </div>
+      )}
+      <div className="chat-thinking" role="status" aria-label={t('chat.thinking')}>
       <span className="chat-thinking__dots" aria-hidden="true">
         <span className="chat-thinking__dot" />
         <span className="chat-thinking__dot" />
         <span className="chat-thinking__dot" />
       </span>
       <span className="chat-thinking__label">{t('chat.thinking')}</span>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -54,6 +97,7 @@ export function ChatDock({
   expanded,
   floating,
   streamText,
+  streamSteps,
   onSelectChat,
   onCloseChat,
   onAddChat,
@@ -72,7 +116,7 @@ export function ChatDock({
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [messages.length, streamText, busy]);
+  }, [messages.length, streamText, streamSteps?.length, busy]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -168,7 +212,7 @@ export function ChatDock({
             {messages.map((message, i) => (
               <ChatMessage key={i} message={message} />
             ))}
-            {busy && <ChatPending streamText={streamText} />}
+            {busy && <ChatPending streamText={streamText} streamSteps={streamSteps} />}
           </>
         ) : (
           <div className="chatdock__empty">

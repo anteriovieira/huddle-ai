@@ -67,6 +67,7 @@ export function SettingsView({
       freq: Number(draft.freq),
       userName: draft.userName.trim(),
       captionSource: draft.captionSource,
+      threadContext: draft.threadContext,
       detect: { ...draft.detect },
       autoMinutes: draft.autoMinutes,
       saveHistory: draft.saveHistory,

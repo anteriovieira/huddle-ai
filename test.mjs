@@ -23,7 +23,7 @@ const mockInsights = {
 };
 
 await esbuild.build({
-  entryPoints: ['test/lib.test.js', 'test/components.test.jsx', 'test/app.test.jsx', 'test/chat.test.jsx'],
+  entryPoints: ['test/lib.test.js', 'test/components.test.jsx', 'test/app.test.jsx', 'test/chat.test.jsx', 'test/thread.test.js', 'test/scanner.test.js'],
   outdir,
   bundle: true,
   format: 'esm',

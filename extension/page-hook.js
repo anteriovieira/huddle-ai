@@ -74,6 +74,8 @@
     let response;
     if (request.type === 'thread:draft') {
       response = scanner ? await scanner.draftInThread(request.text) : { ok: false, error: 'Janela do huddle não encontrada.' };
+    } else if (request.type === 'thread:open') {
+      response = scanner ? scanner.openThread() : { ok: false, error: 'Janela do huddle não encontrada.' };
     } else if (request.type === 'debug:dump') {
       response = { ...(scanner ?? main).dump(), popupsTracked: popups.size };
     }
