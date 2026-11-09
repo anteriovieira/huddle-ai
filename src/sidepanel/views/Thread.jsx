@@ -1,9 +1,11 @@
 import { ago } from '../lib/format.js';
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
+import { Tooltip } from '../ui/Tooltip.jsx';
 
-// The strip above the insights that says whether the huddle's Slack thread is being read and
-// whether the AI may use it. `status` comes from threadStatus(): live | stale | empty | off.
+// One quiet line above the insights: whether the huddle's Slack thread is being read and whether
+// the AI may use it. `status` comes from threadStatus(): live | stale | empty | off. The dot says
+// it is in the AI's context (green: read now, yellow: last copy); actions are icon buttons.
 export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext }) {
   const t = useT();
   const readAgo = readAt ? ago(readAt, now) : '';
@@ -13,27 +15,36 @@ export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext 
     empty: t('thread.empty'),
     off: t('thread.off'),
   }[status];
+  const inContext = status === 'live' || (status === 'stale' && count > 0);
   return (
     <div className={`threadbar threadbar--${status}`} role="status">
       <Icon name="chat" />
-      <span className="threadbar__title">{t('thread.title')}</span>
-      <span className="threadbar__detail">{detail}</span>
-      {(status === 'live' || (status === 'stale' && count > 0)) && <span className="threadbar__badge">{t('thread.inContext')}</span>}
-      <span className="threadbar__spacer" />
+      <span className="threadbar__text">
+        <span className="threadbar__title">{t('thread.title')}</span> · {detail}
+      </span>
+      {inContext && (
+        <Tooltip label={t('thread.inContext')}>
+          <span className="threadbar__dot" role="img" aria-label={t('thread.inContext')} tabIndex={0} />
+        </Tooltip>
+      )}
       {status === 'stale' && (
-        <button className="button button--small button--primary" type="button" onClick={onOpen}>
-          {t('thread.open')}
-        </button>
+        <Tooltip label={t('thread.open')}>
+          <button className="icon-button icon-button--sm" type="button" aria-label={t('thread.open')} onClick={onOpen}>
+            <Icon name="open" />
+          </button>
+        </Tooltip>
       )}
-      {status === 'off' ? (
-        <button className="button button--small" type="button" onClick={() => onToggleContext(true)}>
-          {t('thread.include')}
+      <Tooltip label={status === 'off' ? t('thread.include') : t('thread.exclude')}>
+        <button
+          className="icon-button icon-button--sm"
+          type="button"
+          aria-label={status === 'off' ? t('thread.include') : t('thread.exclude')}
+          aria-pressed={status !== 'off'}
+          onClick={() => onToggleContext(status === 'off')}
+        >
+          <Icon name={status === 'off' ? 'eyeOff' : 'eye'} />
         </button>
-      ) : (
-        <button className="button button--small threadbar__exclude" type="button" onClick={() => onToggleContext(false)}>
-          {t('thread.exclude')}
-        </button>
-      )}
+      </Tooltip>
     </div>
   );
 }

@@ -3555,61 +3555,52 @@ a.ref__title {
   padding-bottom: 232px;
 }
 
-/* --- Huddle thread strip (above the insights) --- */
+/* --- Huddle thread line (above the insights): one quiet row, icon-only actions --- */
 .threadbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
-  margin-bottom: 12px;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  background: var(--blue-bg);
+  gap: 6px;
+  min-height: 28px;
+  margin: -4px 0 8px;
+  color: var(--muted);
   font-size: 13px;
 }
-.threadbar .icon {
-  width: 15px;
-  height: 15px;
-  color: var(--blue);
+.threadbar > .icon {
+  width: 14px;
+  height: 14px;
+}
+.threadbar__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .threadbar__title {
-  color: var(--text-strong);
+  color: var(--text);
   font-weight: 700;
 }
-.threadbar__detail {
-  color: var(--muted);
+.threadbar__dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  margin: 0 4px;
+  border-radius: 50%;
+  background: var(--green);
 }
-.threadbar__badge {
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: var(--green-bg);
-  color: var(--green);
-  font-size: 12px;
-  font-weight: 700;
+.threadbar--stale .threadbar__dot {
+  background: var(--yellow);
 }
-.threadbar__spacer {
-  flex: 1 1 0;
+.threadbar .icon-button--sm {
+  width: 26px;
+  height: 26px;
 }
-.threadbar__exclude {
-  background: transparent;
+.threadbar .icon-button--sm .icon {
+  width: 14px;
+  height: 14px;
 }
-.threadbar--stale {
-  background: var(--yellow-bg);
-}
-.threadbar--stale .icon {
-  color: var(--yellow);
-}
-.threadbar--empty,
-.threadbar--off {
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-.threadbar--off {
-  border-style: dashed;
-}
-.threadbar--empty .icon,
-.threadbar--off .icon {
-  color: var(--muted);
+.threadbar--off .threadbar__text {
+  opacity: 0.7;
 }
 
 /* --- Chat: lookups the model made before answering ---
