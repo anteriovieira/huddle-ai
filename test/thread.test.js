@@ -45,4 +45,5 @@ test('threadStatus tells what the side panel can say about the thread', () => {
   assert.equal(threadStatus({ messages: [], visible: false }, { enabled: true }), 'stale');
   assert.equal(threadStatus(null, { enabled: true }), 'none');
   assert.equal(threadStatus(thread, { enabled: false }), 'off');
+  assert.equal(threadStatus(null, { enabled: false }), 'none');
 });

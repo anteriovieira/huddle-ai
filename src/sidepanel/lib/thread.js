@@ -37,8 +37,8 @@ export function formatThread(messages) {
 // 'none' (no thread read for this huddle), 'empty' (only the huddle's own message), 'stale' (Slack
 // is not showing the Thread panel, so this is the last copy read) or 'live'.
 export function threadStatus(thread, { enabled }) {
-  if (!enabled) return 'off';
   if (!thread) return 'none';
+  if (!enabled) return 'off';
   if (!thread.visible) return 'stale';
   return thread.messages.length ? 'live' : 'empty';
 }

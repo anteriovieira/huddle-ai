@@ -23,8 +23,8 @@ function ChatSteps({ steps }) {
             </span>
           </summary>
           <ul className="chat-step__messages">
-            {step.messages.map((m) => (
-              <li key={m.id} className="chat-step__message">
+            {step.messages.map((m, j) => (
+              <li key={j} className="chat-step__message">
                 <span className="chat-step__meta">
                   <b>{m.author}</b> {m.time}
                 </span>

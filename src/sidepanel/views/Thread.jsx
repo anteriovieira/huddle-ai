@@ -6,9 +6,10 @@ import { Icon } from '../ui/Icon.jsx';
 // whether the AI may use it. `status` comes from threadStatus(): live | stale | empty | off.
 export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext }) {
   const t = useT();
+  const readAgo = readAt ? ago(readAt, now) : '';
   const detail = {
-    live: t('thread.live', { count, ago: readAt ? ago(readAt, now) : '' }),
-    stale: count ? t('thread.stale', { ago: readAt ? ago(readAt, now) : '' }) : t('thread.staleEmpty'),
+    live: t('thread.live', { count, ago: readAgo }),
+    stale: count ? t('thread.stale', { ago: readAgo }) : t('thread.staleEmpty'),
     empty: t('thread.empty'),
     off: t('thread.off'),
   }[status];
@@ -17,7 +18,7 @@ export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext 
       <Icon name="chat" />
       <span className="threadbar__title">{t('thread.title')}</span>
       <span className="threadbar__detail">{detail}</span>
-      {status === 'live' && <span className="threadbar__badge">{t('thread.inContext')}</span>}
+      {(status === 'live' || (status === 'stale' && count > 0)) && <span className="threadbar__badge">{t('thread.inContext')}</span>}
       <span className="threadbar__spacer" />
       {status === 'stale' && (
         <button className="button button--small button--primary" type="button" onClick={onOpen}>

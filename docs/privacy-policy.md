@@ -1,6 +1,6 @@
 # Política de Privacidade — Huddle AI
 
-_Última atualização: 2026-11-05_
+_Última atualização: 2026-11-09_
 
 O Huddle AI é uma extensão do Chrome que lê as legendas de um huddle do Slack e gera insights, transcrição e ata num painel lateral, usando um provedor de inteligência artificial escolhido por você.
 
@@ -11,14 +11,16 @@ O Huddle AI é uma extensão do Chrome que lê as legendas de um huddle do Slack
 ## Quais dados a extensão processa
 
 - **Legendas do huddle**: o texto das falas e os nomes dos participantes exibidos pelo Slack, enquanto você está numa reunião com legendas ativadas.
+- **Thread do huddle**: as mensagens escritas na thread do Slack ligada ao huddle (autor, horário e texto), lidas enquanto o painel Thread está aberto no Slack. Você pode tirar a thread do contexto da IA no painel da extensão.
 - **Chave de API**: a credencial do provedor de IA que você informa.
 - **Configurações e histórico**: preferências, transcrições, insights e atas das sessões.
 
 ## Como os dados são usados e para onde vão
 
 - As legendas são enviadas **diretamente do seu navegador para o provedor de IA que você escolheu** (Anthropic, OpenAI, Google, Groq, OpenRouter, Cerebras ou Mistral), autenticadas com a sua chave de API, para gerar os insights e a ata. Consulte a política de privacidade do provedor escolhido para saber como ele trata esses dados.
+- Quando a thread está no contexto da IA, as mensagens que o chat busca nela também são enviadas ao provedor de IA, do mesmo jeito que as legendas. Com a thread fora do contexto, nada dela é enviado.
 - A **ata é enviada ao seu Google Drive apenas quando você clica para enviá-la**. A extensão usa o escopo `drive.file`, que dá acesso somente aos arquivos que ela mesma cria.
-- **Todo o resto fica armazenado localmente** no seu navegador, via `chrome.storage` (a chave de API e as configurações, o huddle atual e suas legendas, e o histórico de sessões).
+- **Todo o resto fica armazenado localmente** no seu navegador, via `chrome.storage` (a chave de API e as configurações, o huddle atual com suas legendas e a thread, as conversas do chat, e o histórico de sessões).
 
 ## O que a extensão NÃO faz
 

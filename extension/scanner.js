@@ -22,6 +22,8 @@
   const THREAD_TIMESTAMP_SELECTOR = '.c-timestamp';
   const THREAD_TEXT_SELECTOR = '[data-qa="message-text"], .c-message_kit__blocks, .c-message__body';
   const THREAD_LIMIT = 300;
+  // A live thread that did not change is re-sent this often, so the panel's "read Xs ago" stays true.
+  const THREAD_HEARTBEAT_MS = 20000;
   const CAPTIONS_LANGUAGE = /(?:generated in|geradas em|generan en|generadas en)\s+([^.]+?)\./i;
   const CAPTIONS_NOTE = /captions are being generated|legendas (?:estão sendo|são) geradas|subt[ií]tulos se est[aá]n generando/i;
   const MAX_AVATAR_SIZE = 80; // caption avatars are ~36px; the video tile is much larger
@@ -174,6 +176,7 @@
     let lastDiagnosis = '';
     const threadMessages = new Map(); // message id -> { id, author, time, text }, every one read so far
     let lastThread = '';
+    let lastThreadAt = 0;
     let parseFailures = 0;
 
     const doc = () => win.document;
@@ -308,13 +311,19 @@
       const read = readThread(panelScope());
       if (!read) return;
       for (const message of read.messages) threadMessages.set(message.id, message);
-      const messages = [...threadMessages.values()]
-        .sort((a, b) => (Number(a.id) && Number(b.id) ? Number(a.id) - Number(b.id) : 0))
-        .slice(-THREAD_LIMIT);
+      // Slack ts ids in time order; fallback ids (no ts) after them, in the order they were read.
+      const ts = (message) => Number(message.id) || Infinity;
+      const messages = [...threadMessages.values()].sort((a, b) => (ts(a) === ts(b) ? 0 : ts(a) - ts(b))).slice(-THREAD_LIMIT);
+      if (threadMessages.size > messages.length) {
+        threadMessages.clear();
+        for (const message of messages) threadMessages.set(message.id, message);
+      }
       const key = JSON.stringify([read.visible, messages]);
-      if (key === lastThread) return;
+      const heartbeat = read.visible && Date.now() - lastThreadAt > THREAD_HEARTBEAT_MS;
+      if (key === lastThread && !heartbeat) return;
       if (!lastThread) log('info', `Thread do huddle encontrada (${label})`, { visivel: read.visible, mensagens: messages.length });
       lastThread = key;
+      lastThreadAt = Date.now();
       emit({ type: 'thread:snapshot', huddleId, visible: read.visible, messages });
     }
 
@@ -333,6 +342,11 @@
         const language = captionsRoot ? findCaptionsLanguage(captionsRoot) : null;
         if (!!huddleRoot !== active) {
           log('info', huddleRoot ? `Janela do huddle encontrada (${label})` : `Janela do huddle sumiu (${label})`, { titulo: title });
+        }
+        // A huddle ended: forget its thread so the next huddle in this window starts clean.
+        if (active && !huddleRoot) {
+          threadMessages.clear();
+          lastThread = '';
         }
         active = !!huddleRoot;
 
