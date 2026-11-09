@@ -2,6 +2,8 @@
 
 Chrome extension that reads the live captions of a Slack huddle and shows insights (current topic, points raised, action items, decisions, open questions) in Chrome's side panel, using Claude.
 
+![Huddle AI — live insights in Chrome's side panel while a Slack huddle happens](docs/store/insights.png)
+
 ## Setup
 
 ```bash
