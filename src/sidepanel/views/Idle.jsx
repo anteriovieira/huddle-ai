@@ -1,7 +1,10 @@
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 
+// Off Slack: one "Go to Slack" button, which also connects the tab. On a Slack tab the
+// extension can't reach yet: "Connect to this tab". On a connected Slack tab: just the hint.
 export function IdleView({
+  onSlackTab,
   slackOpen,
   slackReloadTabId,
   savedCount,
@@ -28,7 +31,7 @@ export function IdleView({
           {enterPost}
         </p>
       </div>
-      {slackReloadTabId != null && (
+      {onSlackTab && slackReloadTabId != null && (
         <div className="idle__reload">
           <p className="muted small">{t('idle.reloadHint')}</p>
           <button className="button button--block" type="button" onClick={onConnectSlackTab}>
@@ -40,13 +43,15 @@ export function IdleView({
           </button>
         </div>
       )}
-      {slackOpen && slackReloadTabId == null && (
+      {onSlackTab && slackReloadTabId == null && (
         <p className="muted small center">{t('idle.alreadyOpen')}</p>
       )}
       <div className="idle__footer">
-        <button className="button button--primary button--block" type="button" onClick={onGoToSlack}>
-          {t('idle.goToSlack')}
-        </button>
+        {!onSlackTab && (
+          <button className="button button--primary button--block" type="button" onClick={onGoToSlack}>
+            {t('idle.goToSlack')}
+          </button>
+        )}
         <button className="button button--block" type="button" onClick={onOpenImport}>
           <Icon name="upload" />
           {t('idle.import')}

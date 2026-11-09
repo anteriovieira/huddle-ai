@@ -312,8 +312,18 @@ export function App() {
     if (!chromeApi?.tabs) return;
     const tabs = await chromeApi.tabs.query({ url: 'https://app.slack.com/*' });
     const next = tabs.length > 0;
+    let active = null;
+    try {
+      [active] = await chromeApi.tabs.query({ active: true, currentWindow: true });
+    } catch {
+      // no active tab known: treated as off Slack
+    }
+    const activeIsSlack = active ? /^https:\/\/app\.slack\.com\//.test(active.url ?? '') : false;
+    // The tab to connect: the Slack tab being looked at, when it is one; else any Slack tab
+    // whose content scripts don't answer (open since before the extension was installed/reloaded).
+    const candidates = activeIsSlack ? tabs.filter((t) => t.id === active.id) : tabs;
     let staleTab = null;
-    for (const t of tabs) {
+    for (const t of candidates) {
       try {
         const pong = await chromeApi.tabs.sendMessage(t.id, { type: 'huddle:ping' });
         if (!pong?.ok) staleTab = t.id;
@@ -324,12 +334,7 @@ export function App() {
     const nextStale = extStateRef.current.huddle?.active ? null : staleTab;
     setSlackOpen(next);
     setSlackReloadTabId(nextStale);
-    try {
-      const [active] = await chromeApi.tabs.query({ active: true, currentWindow: true });
-      setOnSlackTab(/^https:\/\/app\.slack\.com\//.test(active?.url ?? ''));
-    } catch {
-      setOnSlackTab(true);
-    }
+    setOnSlackTab(activeIsSlack);
   }, []);
 
   // --- Analysis loop: refs track latest values for the interval callback ---
@@ -647,16 +652,40 @@ export function App() {
     });
   }, []);
 
+  // Injects the capture scripts into a Slack tab that was open before the extension, so it
+  // connects without a reload. `quiet` skips the success toast (used when going to Slack).
+  const connectTab = useCallback(
+    async (tabId, { quiet = false } = {}) => {
+      try {
+        const res = await chromeApi.runtime.sendMessage({ type: 'connect:tab', tabId });
+        if (!res?.ok) throw new Error(res?.error ?? 'sem resposta do serviço');
+        if (!quiet) flash(tr('toast.tabConnected'));
+        loadSlackOpen();
+        return true;
+      } catch (error) {
+        flash(tr('toast.tabConnectFailed', { error: error.message }));
+        return false;
+      }
+    },
+    [flash, loadSlackOpen],
+  );
+
+  // Brings a Slack tab forward (the one not connected yet, if any) and always leaves it connected:
+  // a tab opened here gets the content scripts from the manifest; an existing one that doesn't
+  // answer the ping gets them injected.
   const goToSlack = useCallback(async () => {
     if (!chromeApi?.tabs) return;
-    const [t] = await chromeApi.tabs.query({ url: 'https://app.slack.com/*' });
-    if (t) {
-      await chromeApi.tabs.update(t.id, { active: true });
-      await chromeApi.windows.update(t.windowId, { focused: true });
-    } else {
+    const tabs = await chromeApi.tabs.query({ url: 'https://app.slack.com/*' });
+    const t = tabs.find((tab) => tab.id === slackReloadTabId) ?? tabs[0];
+    if (!t) {
       await chromeApi.tabs.create({ url: 'https://app.slack.com/' });
+      return;
     }
-  }, []);
+    await chromeApi.tabs.update(t.id, { active: true });
+    await chromeApi.windows.update(t.windowId, { focused: true });
+    const pong = await chromeApi.tabs.sendMessage(t.id, { type: 'huddle:ping' }).catch(() => null);
+    if (!pong?.ok && chromeApi.runtime) await connectTab(t.id, { quiet: true });
+  }, [slackReloadTabId, connectTab]);
 
   const reloadSlackTab = useCallback(async () => {
     if (slackReloadTabId == null) return goToSlack();
@@ -675,17 +704,8 @@ export function App() {
   // a página. O usuário só precisa reabrir o huddle para o hook capturar.
   const connectSlackTab = useCallback(async () => {
     if (slackReloadTabId == null || !chromeApi?.runtime) return goToSlack();
-    try {
-      const res = await chromeApi.runtime.sendMessage({ type: 'connect:tab', tabId: slackReloadTabId });
-      if (!res?.ok) throw new Error(res?.error ?? 'sem resposta do serviço');
-      await chromeApi.tabs.update(slackReloadTabId, { active: true });
-      const t = await chromeApi.tabs.get(slackReloadTabId);
-      if (t?.windowId != null) await chromeApi.windows.update(t.windowId, { focused: true });
-      flash(tr('toast.tabConnected'));
-    } catch (error) {
-      flash(tr('toast.tabConnectFailed', { error: error.message }));
-    }
-  }, [slackReloadTabId, goToSlack, flash]);
+    await connectTab(slackReloadTabId);
+  }, [slackReloadTabId, goToSlack, connectTab]);
 
   // --- Alerts ---
   const acceptAlert = useCallback((alert) => {
@@ -1465,6 +1485,7 @@ export function App() {
           onOpenSettings={openSettings}
         />
         <IdleView
+          onSlackTab={onSlackTab}
           slackOpen={slackOpen}
           slackReloadTabId={slackReloadTabId}
           savedCount={allMinutes.length}

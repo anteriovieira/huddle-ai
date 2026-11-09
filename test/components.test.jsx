@@ -355,9 +355,33 @@ test('AtasList renders Slack-like rows: title, icon, avatars and a kebab menu', 
   assert.doesNotMatch(html, /próximo passo/); // old meta line removed
 });
 
+const idleProps = {
+  slackOpen: true,
+  slackReloadTabId: null,
+  savedCount: 0,
+  onConnectSlackTab() {},
+  onReloadSlackTab() {},
+  onGoToSlack() {},
+  onOpenImport() {},
+  onOpenAtas() {},
+};
+
+test('IdleView off Slack offers only Go to Slack (which connects the tab), never Connect', () => {
+  const html = render(h(IdleView, { ...idleProps, onSlackTab: false, slackReloadTabId: 7 }));
+  assert.match(html, /Ir para o Slack/);
+  assert.doesNotMatch(html, /Conectar a esta aba/);
+});
+
+test('IdleView on a connected Slack tab shows neither Go to Slack nor Connect', () => {
+  const html = render(h(IdleView, { ...idleProps, onSlackTab: true }));
+  assert.doesNotMatch(html, /Ir para o Slack/);
+  assert.doesNotMatch(html, /Conectar a esta aba/);
+});
+
 test('IdleView shows the connect action and the reload fallback', () => {
   const html = render(
     h(IdleView, {
+      onSlackTab: true,
       slackOpen: true,
       slackReloadTabId: 7,
       savedCount: 3,
@@ -371,6 +395,7 @@ test('IdleView shows the connect action and the reload fallback', () => {
   assert.match(html, /Nenhum huddle ativo/);
   assert.match(html, /Conectar a esta aba/);
   assert.match(html, /ou recarregar a aba/);
+  assert.doesNotMatch(html, /Ir para o Slack/);
   assert.match(html, /Sessões anteriores \(3\)/);
 });
 
