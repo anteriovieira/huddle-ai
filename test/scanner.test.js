@@ -52,3 +52,26 @@ test('readThread returns null when the huddle has no Thread tab', () => {
   const win = load('<div role="tablist"><button role="tab" aria-selected="true">Captions</button></div>');
   assert.equal(win.__huddleAiReadThread(win.document.body), null);
 });
+
+// Slack's huddle window: the Thread tab has an id but no aria-controls; its panel is labelled "Thread".
+// Huddle system messages ("You joined the huddle") have no sender and must not inherit the last one.
+test('readThread finds the panel by its label and skips huddle system messages', () => {
+  const win = load(`
+    <div role="tablist">
+      <button role="tab" id="threads" aria-selected="true">Thread</button>
+      <button role="tab" id="captions" aria-selected="false">Captions</button>
+    </div>
+    <div role="tabpanel" aria-label="Thread">
+      ${row('1793022864.904909', 'Good morning, Onezino.', 'Paul').replace('Tuesday at 08:32', 'Oct 26th at 10:54:24. Open in channel')}
+      <div role="listitem" data-item-key="1794234064.349319">
+        <div data-qa="message_container" class="c-message_kit__background c-message_kit__background--huddle">
+          <span data-qa="huddle_message_user_name">You joined the huddle</span>
+          <a class="c-timestamp" data-ts="1794234064.349319" aria-label="Today at 11:21:04"></a>
+          <div class="c-message_kit__blocks">Enjoy the tranquility, or invite someone.</div>
+        </div>
+      </div>
+    </div>`);
+  const thread = win.__huddleAiReadThread(win.document.body);
+  assert.equal(thread.visible, true);
+  assert.deepEqual([...thread.messages].map((m) => `${m.author} (${m.time}): ${m.text}`), ['Paul (Oct 26th at 10:54:24): Good morning, Onezino.']);
+});

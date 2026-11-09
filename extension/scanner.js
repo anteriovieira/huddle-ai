@@ -21,6 +21,8 @@
   const THREAD_SENDER_SELECTOR = '[data-qa="message_sender_name"]';
   const THREAD_TIMESTAMP_SELECTOR = '.c-timestamp';
   const THREAD_TEXT_SELECTOR = '[data-qa="message-text"], .c-message_kit__blocks, .c-message__body';
+  // Slack's own system rows in the thread ("You joined the huddle", "A huddle happened").
+  const THREAD_SYSTEM_SELECTOR = '[data-qa="huddle_message_user_name"]';
   const THREAD_LIMIT = 300;
   // A live thread that did not change is re-sent this often, so the panel's "read Xs ago" stays true.
   const THREAD_HEARTBEAT_MS = 20000;
@@ -136,6 +138,26 @@
     return [...scope.querySelectorAll('[role="tab"]')].find((tab) => pattern.test(tab.textContent)) ?? null;
   }
 
+  // A tab's panel: the one it names in aria-controls, else (Slack's huddle window leaves
+  // aria-controls out) the tab panel labelled like the tab or by it.
+  function findTabPanel(scope, tab, pattern) {
+    const byId = tab.getAttribute('aria-controls') && scope.ownerDocument.getElementById(tab.getAttribute('aria-controls'));
+    if (byId) return byId;
+    const panels = [...scope.querySelectorAll('[role="tabpanel"]')];
+    return (
+      panels.find((panel) => tab.id && panel.getAttribute('aria-labelledby') === tab.id) ??
+      panels.find((panel) => pattern.test(panel.getAttribute('aria-label') ?? '')) ??
+      null
+    );
+  }
+
+  // An element's text with line breaks between blocks (innerText, in a rendered page), whitespace
+  // collapsed. textContent glues blocks together ("merge.if I"), so it is only the fallback.
+  function readableText(el) {
+    if (!el) return '';
+    return (el.innerText ?? el.textContent).replace(/\s+/g, ' ').trim();
+  }
+
   // The huddle's Slack thread, read from the Thread tab's panel while that tab is selected
   // (Slack only renders the selected tab). Grouped messages carry no sender of their own, so
   // the previous sender is carried forward. Returns { visible, messages: [{ id, author, time, text }] },
@@ -143,18 +165,22 @@
   function readThread(scope) {
     const tab = findTab(scope, THREAD_TAB_TEXT);
     if (!tab) return null;
-    const panelId = tab.getAttribute('aria-selected') === 'true' && tab.getAttribute('aria-controls');
-    const panel = panelId && scope.ownerDocument.getElementById(panelId);
+    const panel = tab.getAttribute('aria-selected') === 'true' ? findTabPanel(scope, tab, THREAD_TAB_TEXT) : null;
     if (!panel) return { visible: false, messages: [] };
     const messages = [];
     let author = '';
     for (const el of panel.querySelectorAll(THREAD_MESSAGE_SELECTOR)) {
+      if (el.querySelector(THREAD_SYSTEM_SELECTOR)) {
+        author = '';
+        continue;
+      }
       author = el.querySelector(THREAD_SENDER_SELECTOR)?.textContent.trim() || author;
       const stamp = el.querySelector(THREAD_TIMESTAMP_SELECTOR);
-      const text = el.querySelector(THREAD_TEXT_SELECTOR)?.textContent.replace(/\s+/g, ' ').trim();
+      const text = readableText(el.querySelector(THREAD_TEXT_SELECTOR));
       if (!author || !text) continue;
       const id = stamp?.getAttribute('data-ts') || el.closest('[data-item-key]')?.getAttribute('data-item-key') || `${author}:${text.slice(0, 60)}`;
-      const time = stamp?.getAttribute('aria-label')?.trim() || stamp?.textContent.trim() || '';
+      // aria-label reads "Oct 26th at 10:24:34. Open in channel": keep the date part.
+      const time = (stamp?.getAttribute('aria-label') || stamp?.textContent || '').split('. ')[0].trim();
       messages.push({ id, author, time, text });
     }
     return { visible: true, messages };
