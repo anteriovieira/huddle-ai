@@ -2820,9 +2820,10 @@ select {
 }
 
 .chat-msg--bot {
-  align-self: flex-start;
+  align-self: stretch;
+  max-width: none;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .chat-msg--error {
@@ -2849,11 +2850,11 @@ select {
   border-bottom-right-radius: 3px;
 }
 
+/* Answers read as plain text, like a document; only the user's own messages get a bubble. */
 .chat-msg--bot .chat-bubble {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 0;
+  border-radius: 0;
   color: var(--text-strong);
-  border-bottom-left-radius: 3px;
 }
 
 .chat-bubble--typing {
@@ -3611,66 +3612,60 @@ a.ref__title {
   color: var(--muted);
 }
 
-/* --- Chat: lookups the model made before answering --- */
+/* --- Chat: lookups the model made before answering ---
+   Quiet one-line rows above the answer (no card), opening to the messages read. */
 .chat-steps {
   align-self: stretch;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
+  gap: 2px;
+  margin-bottom: 4px;
   font-size: 13px;
 }
 .chat-step__summary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-height: 24px;
+  color: var(--muted);
   cursor: pointer;
   list-style: none;
 }
 .chat-step__summary::-webkit-details-marker {
   display: none;
 }
-.chat-step__summary .icon {
-  width: 14px;
-  height: 14px;
+.chat-step__summary:hover {
+  color: var(--text);
+}
+.chat-step__chevron {
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  color: var(--blue);
+  transform: rotate(180deg);
+  transition: transform 0.15s ease;
 }
-.chat-step__label {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.chat-step__count {
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
+.chat-step[open] .chat-step__chevron {
+  transform: rotate(270deg);
 }
 .chat-step__messages {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 6px 0 2px 22px;
-  padding: 0;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 0 0 0 10px;
+  border-left: 2px solid var(--border);
   list-style: none;
+  color: var(--muted);
+  line-height: 1.4;
 }
 .chat-step__message {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  line-height: 1.4;
+  gap: 1px;
 }
 .chat-step__meta {
-  color: var(--muted);
   font-size: 12px;
 }
 .chat-step__meta b {
-  color: var(--text-strong);
+  color: var(--text);
 }

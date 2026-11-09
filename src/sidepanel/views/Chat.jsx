@@ -14,13 +14,12 @@ function ChatSteps({ steps }) {
       {steps.map((step, i) => (
         <details key={i} className="chat-step">
           <summary className="chat-step__summary">
-            <Icon name="search" />
             <span className="chat-step__label">
               {step.query ? t('chat.stepThreadSearch', { query: `“${step.query}”` }) : t('chat.stepThreadLatest')}
-            </span>
-            <span className="chat-step__count">
+              {' · '}
               {step.messages.length === 1 ? t('chat.stepMessage') : t('chat.stepMessages', { count: step.messages.length })}
             </span>
+            <Icon name="back" className="icon chat-step__chevron" />
           </summary>
           <ul className="chat-step__messages">
             {step.messages.map((m, j) => (
