@@ -215,11 +215,31 @@ test('AtaContent renders classification, summary and next steps', () => {
       next_steps: [{ text: 'Entregar billing', owner: 'Lucas', due: 'sex' }],
     },
   };
-  const html = render(h(AtaContent, { record, done: new Set(), onCopy() {}, onToggleStep() {} }));
+  const html = render(h(TooltipProvider, null, h(AtaContent, { record, done: new Set(), onCopy() {}, onToggleStep() {} })));
   assert.match(html, /Planejamento do Q4/);
   assert.match(html, /Entregar billing/);
   assert.match(html, /80%/);
   assert.match(html, /Copiar ata/);
+});
+
+test('AtaContent shows the classification as a compact chip; its reasons stay in a closed modal', () => {
+  const record = {
+    huddleId: 'h1',
+    meta: { startedAt: 0, endedAt: 60000, source: 'Slack', participants: ['Ana'] },
+    data: {
+      title: 't',
+      summary: 's',
+      classification: { category: 'Daily', confidence: 70, description: 'status de cada pessoa' },
+      tags: [],
+      signals: ['cada um disse o que fez ontem'],
+      key_points: [],
+      next_steps: [],
+    },
+  };
+  const html = render(h(TooltipProvider, null, h(AtaContent, { record, done: new Set(), onCopy() {}, onToggleStep() {} })));
+  assert.match(html, /<button[^>]*class="ata-class[^"]*"[^>]*>.*Daily.*70%/s);
+  assert.doesNotMatch(html, /status de cada pessoa/);
+  assert.doesNotMatch(html, /cada um disse o que fez ontem/);
 });
 
 test('AtaEmpty disables generation without a key', () => {

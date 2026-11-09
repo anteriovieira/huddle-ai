@@ -2686,9 +2686,53 @@ select {
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
+/* Expanded: the chat takes the whole side panel, docked or floating. */
+.chatdock--expanded,
 .chatdock--floating.chatdock--expanded {
-  top: 12px;
+  inset: 0;
+  width: auto;
   height: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+/* Edges the user drags to resize the dock (top: height; left and top-left corner: width when it
+   floats). Invisible until hovered, then a thin highlight on that edge. */
+.chatdock__resize {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+}
+.chatdock__resize--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+.chatdock__resize--left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+.chatdock__resize--corner {
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+}
+.chatdock__resize--top:hover,
+.chatdock__resize--left:hover {
+  background: var(--border-strong);
+}
+body.is-resizing {
+  user-select: none;
+}
+.chatdock__resize:active {
+  background: var(--blue);
 }
 
 .chatdock__bar {
@@ -3659,4 +3703,53 @@ a.ref__title {
 }
 .chat-step__meta b {
   color: var(--text);
+}
+
+/* --- Minutes: classification as a quiet chip in the header ("● Daily 70%"), details in a modal --- */
+.ata-class {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ata-class:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.ata-class__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.ata-class--blue .ata-class__dot {
+  background: var(--blue);
+}
+.ata-class--green .ata-class__dot {
+  background: var(--green);
+}
+.ata-class--yellow .ata-class__dot {
+  background: var(--yellow);
+}
+.ata-class--purple .ata-class__dot {
+  background: var(--purple);
+}
+.ata-class__conf {
+  color: var(--muted);
+  font-weight: 400;
+}
+.dialog--wide {
+  max-width: 420px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }

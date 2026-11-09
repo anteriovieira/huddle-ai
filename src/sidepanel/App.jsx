@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fileStamp, formatTranscript } from './lib/format.js';
 import { logsAsText } from './lib/logs.js';
-import { insightsAsText, minutesAsText, minutesMeta, sessionDigests } from './lib/minutes.js';
+import { insightsAsText, minutesAsText, minutesMeta, participantsOf, sessionDigests } from './lib/minutes.js';
 import { parseTranscript } from './lib/transcript.js';
 import * as drive from './drive.js';
 import { analyze, askMeeting, generateMinutes, recallContextBatch, titleChat } from './insights.js';
@@ -12,6 +12,7 @@ import { CaptionsPanel } from './views/Captions.jsx';
 import { ChatDock } from './views/Chat.jsx';
 import { ThreadBar } from './views/Thread.jsx';
 import { threadStatus } from './lib/thread.js';
+import { chatAfterClose } from './lib/chats.js';
 import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
@@ -156,6 +157,7 @@ export function App() {
   const [removed, setRemoved] = useState(() => new Set());
   // Correções de nome dos participantes: { nomeComoVeioNaLegenda: nomeCorrigido }. O usuário conserta
   // a grafia na seção Participantes e isso passa a valer nas próximas análises e na geração da ata.
+  // Salvas em storage.local, então valem também nos próximos huddles com a mesma pessoa.
   const [nameOverrides, setNameOverrides] = useState({});
   // Modo "deck" por seção: cada seção de insight pode empilhar seus cards, mostrando um por vez. O
   // Set guarda as chaves das seções empilhadas ('points', 'actions', 'decisions', 'questions'…).
@@ -218,7 +220,7 @@ export function App() {
     let mounted = true;
     (async () => {
       const session = await chromeApi.storage.session.get(['state', 'insights', 'minutes', 'logs', 'chats']);
-      const local = await chromeApi.storage.local.get(['settings', 'history', 'modelMigration']);
+      const local = await chromeApi.storage.local.get(['settings', 'history', 'modelMigration', 'nameOverrides']);
       if (!mounted) return;
       if (session.state) setExtState(session.state);
       setInsights(session.insights ?? null);
@@ -229,6 +231,7 @@ export function App() {
         setActiveChatId(session.chats.list[0]?.id ?? null);
       }
       setHistory(local.history ?? []);
+      setNameOverrides(local.nameOverrides ?? {});
       let merged = {
         ...DEFAULT_SETTINGS,
         ...local.settings,
@@ -270,6 +273,7 @@ export function App() {
           });
         }
         if (changes.history) setHistory(changes.history.newValue ?? []);
+        if (changes.nameOverrides) setNameOverrides(changes.nameOverrides.newValue ?? {});
       }
     };
     chromeApi.storage.onChanged.addListener(onChanged);
@@ -539,7 +543,7 @@ export function App() {
     setTab('ata');
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
-      const meta = minutesMeta(h, u);
+      const meta = minutesMeta(h, u, latest.current.nameOverrides);
       const data = await generateMinutes({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
@@ -775,10 +779,24 @@ export function App() {
         const next = { ...prev };
         if (!corrected || corrected === original) delete next[original];
         else next[original] = corrected;
+        chromeApi?.storage.local.set({ nameOverrides: next }).catch(() => {});
         return next;
       }),
     [],
   );
+
+  // A name fixed after the minutes were generated also fixes their participant list (the minutes'
+  // text keeps the old spelling until they are regenerated).
+  useEffect(() => {
+    const { minutes: record, huddle: h, utterances: u } = latest.current;
+    if (!record || record.huddleId !== h?.id || !u.length) return;
+    const participants = participantsOf(u, nameOverrides);
+    if (JSON.stringify(participants) === JSON.stringify(record.meta.participants)) return;
+    const next = { ...record, meta: { ...record.meta, participants } };
+    setMinutes(next);
+    chromeApi?.storage.session.set({ minutes: next }).catch(() => {});
+    saveMinutesToHistory(next).catch(() => {});
+  }, [nameOverrides, saveMinutesToHistory]);
 
   // Liga/desliga o empilhamento (deck) de uma seção de insight.
   const toggleDeckSection = useCallback(
@@ -1231,7 +1249,10 @@ export function App() {
   }, []);
   // The activeChatId effect reselects the first tab when the active one is removed, so the
   // updater here stays pure (no setActiveChatId inside it).
+  // Closing a tab moves to the chat before it (or the next one); with none left, a fresh chat.
   const closeChat = useCallback((id) => {
+    const nextId = chatAfterClose(chats.list, id, activeChatId);
+    if (nextId !== activeChatId) setActiveChatId(nextId);
     setChatDrafts((d) => {
       const next = { ...d };
       delete next[id];
@@ -1246,7 +1267,7 @@ export function App() {
       const list = prev.list.filter((c) => c.id !== id);
       return { ...prev, list: list.length ? list : [seedChat(prev.huddleId)] };
     });
-  }, []);
+  }, [chats.list, activeChatId]);
   const selectChat = useCallback((id) => setActiveChatId(id), []);
   const setDraft = useCallback((id, value) => setChatDrafts((d) => ({ ...d, [id]: value })), []);
 

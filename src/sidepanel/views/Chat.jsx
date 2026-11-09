@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Markdown } from '../ui/Markdown.jsx';
@@ -87,6 +87,72 @@ function ChatPending({ streamText, streamSteps }) {
   );
 }
 
+// The dock's size after the user drags its edges, remembered per browser (a convenience: losing
+// it just brings back the default size).
+const SIZE_KEY = 'huddle-ai:chat-size';
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 280;
+const EDGE_GAP = 12;
+
+function readSize() {
+  try {
+    const size = JSON.parse(localStorage.getItem(SIZE_KEY) ?? 'null');
+    return size && typeof size === 'object' ? size : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSize(size) {
+  try {
+    localStorage.setItem(SIZE_KEY, JSON.stringify(size));
+  } catch {
+    // private window or blocked storage: the size just isn't remembered
+  }
+}
+
+const clamp = (value, min, max) => Math.round(Math.min(Math.max(value, min), Math.max(min, max)));
+
+// Drag handles on the dock's top edge (height) and, when it floats, its left edge and top-left
+// corner (width). Double-click a handle to go back to the default size.
+function useDockResize(floating) {
+  const [size, setSize] = useState(readSize);
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+  const dockRef = useRef(null);
+
+  const start = (edges) => (e) => {
+    if (e.button !== 0 || !dockRef.current) return;
+    e.preventDefault();
+    const rect = dockRef.current.getBoundingClientRect();
+    const from = { x: e.clientX, y: e.clientY, width: rect.width, height: rect.height };
+    const move = (ev) => {
+      const next = { ...sizeRef.current };
+      if (edges.includes('top')) next.height = clamp(from.height + from.y - ev.clientY, MIN_HEIGHT, window.innerHeight - EDGE_GAP);
+      if (edges.includes('left')) next.width = clamp(from.width + from.x - ev.clientX, MIN_WIDTH, window.innerWidth - 2 * EDGE_GAP);
+      setSize(next);
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      document.body.classList.remove('is-resizing');
+      document.body.style.cursor = '';
+      saveSize(sizeRef.current);
+    };
+    document.body.classList.add('is-resizing');
+    // Keep the edge's resize cursor while the pointer runs ahead of the handle.
+    document.body.style.cursor = getComputedStyle(e.currentTarget).cursor;
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+  };
+  const reset = () => {
+    setSize({});
+    saveSize({});
+  };
+  const style = { height: size.height, width: floating ? size.width : undefined };
+  return { dockRef, style, start, reset };
+}
+
 export function ChatDock({
   chats,
   activeChatId,
@@ -112,6 +178,7 @@ export function ChatDock({
   const prevCount = useRef(chats.length);
   const messages = activeChat?.messages ?? [];
   const activeTitle = chats.find((c) => c.id === activeChatId)?.title;
+  const resize = useDockResize(floating);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -151,9 +218,22 @@ export function ChatDock({
 
   return (
     <section
+      ref={resize.dockRef}
       className={['chatdock', expanded && 'chatdock--expanded', floating && 'chatdock--floating'].filter(Boolean).join(' ')}
+      style={expanded ? undefined : resize.style}
       aria-label={t('chat.withMeeting')}
     >
+      {!expanded && (
+        <>
+          <div className="chatdock__resize chatdock__resize--top" aria-hidden="true" onPointerDown={resize.start(['top'])} onDoubleClick={resize.reset} />
+          {floating && (
+            <>
+              <div className="chatdock__resize chatdock__resize--left" aria-hidden="true" onPointerDown={resize.start(['left'])} onDoubleClick={resize.reset} />
+              <div className="chatdock__resize chatdock__resize--corner" aria-hidden="true" onPointerDown={resize.start(['top', 'left'])} onDoubleClick={resize.reset} />
+            </>
+          )}
+        </>
+      )}
       <div className="chatdock__bar">
         <div className="chatdock__tabs" role="tablist" ref={tabsRef}>
           {chats.map((item) => (

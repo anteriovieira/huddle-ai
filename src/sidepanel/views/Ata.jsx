@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ago, formatDateTime, formatDuration } from '../lib/format.js';
 import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minutes.js';
 import { useT } from '../lib/i18n.js';
@@ -74,20 +74,84 @@ function AtaStep({ record, step, done, onToggle }) {
   );
 }
 
+// Why the meeting got its category: the confidence bar, the description of its themes and the
+// transcript signals behind it. Opened from the classification chip in the minutes' header.
+function ClassificationDialog({ classification, signals, tone, onClose }) {
+  const t = useT();
+  const closeRef = useRef(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="dialog dialog--wide" role="dialog" aria-modal="true" aria-label={t('ata.classification')}>
+        <div className="card__meta">
+          <span className="muted strong-muted">{t('ata.classification')}</span>
+          <span className="muted">
+            {t('ata.confidence')} <b className="text-strong">{`${classification.confidence}%`}</b>
+          </span>
+        </div>
+        <div className="classification">
+          <span className={`chip chip--lg ${tone ? `chip--${tone}` : ''}`}>{classification.category}</span>
+          <div className="confidence" role="img" aria-label={t('ata.confidenceAria', { n: classification.confidence })}>
+            <div className={`confidence__bar confidence__bar--${tone ?? 'grey'}`} style={{ width: `${classification.confidence}%` }} />
+          </div>
+        </div>
+        {classification.description && <p className="muted small card__body">{classification.description}</p>}
+        {signals.length > 0 && (
+          <div className="stack stack--compact" aria-label={t('ata.signalsAria')}>
+            <span className="muted small strong">{t('ata.signals')}</span>
+            <p className="muted small">{t('ata.signalsIntro')}</p>
+            <ul className="bullets bullets--plain">
+              {signals.map((text, i) => (
+                <li key={i}>{text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="dialog__actions">
+          <button ref={closeRef} className="button button--small" type="button" onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // The full minutes. `done` remembers ticked next steps (keyed `huddleId:text`).
 export function AtaContent({ record, done, onCopy, onToggleStep }) {
   const t = useT();
   const { meta, data } = record;
   const tone = CATEGORY_TONES[data.classification.category];
-  // A classificação começa colapsada: o chip e a confiança ficam sempre visíveis, e o usuário
-  // expande para ver o que a sustentou (descrição dos temas + sinais da transcrição).
+  // A classificação é um chip discreto no cabeçalho ("Daily · 70%"); o que a sustentou (descrição
+  // dos temas + sinais da transcrição) abre num modal.
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const hasDetails = Boolean(data.classification.description) || data.signals.length > 0;
   return (
     <div className="stack ata">
       <section className="stack stack--compact" aria-label={t('ata.infoAria')}>
         <div className="section__row">
           <Heading>{t('ata.meetingInfo')}</Heading>
+          <Tooltip label={t('ata.whyClassified')}>
+            <button
+              className={`ata-class ${tone ? `ata-class--${tone}` : ''}`}
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => setDetailsOpen(true)}
+            >
+              <span className="ata-class__dot" aria-hidden="true" />
+              {data.classification.category}
+              <span className="ata-class__conf">{`${data.classification.confidence}%`}</span>
+            </button>
+          </Tooltip>
           <button className="button button--small" type="button" onClick={onCopy}>
             <Icon name="copy" />
             {t('ata.copy')}
@@ -111,45 +175,14 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
         )}
       </section>
 
-      <section className="card" aria-label={t('ata.classificationAria')}>
-        <div className="card__meta">
-          <span className="muted strong-muted">{t('ata.classification')}</span>
-          <span className="muted">
-            {t('ata.confidence')} <b className="text-strong">{`${data.classification.confidence}%`}</b>
-          </span>
-        </div>
-        <div className="classification">
-          <span className={`chip chip--lg ${tone ? `chip--${tone}` : ''}`}>{data.classification.category}</span>
-          <div className="confidence" role="img" aria-label={t('ata.confidenceAria', { n: data.classification.confidence })}>
-            <div
-              className={`confidence__bar confidence__bar--${tone ?? 'grey'}`}
-              style={{ width: `${data.classification.confidence}%` }}
-            />
-          </div>
-        </div>
-        {detailsOpen && hasDetails && (
-          <div className="stack stack--compact">
-            {data.classification.description && <p className="muted small card__body">{data.classification.description}</p>}
-            {data.signals.length > 0 && (
-              <div className="stack stack--compact" aria-label={t('ata.signalsAria')}>
-                <span className="muted small strong">{t('ata.signals')}</span>
-                <p className="muted small">{t('ata.signalsIntro')}</p>
-                <ul className="bullets bullets--plain">
-                  {data.signals.map((text, i) => (
-                    <li key={i}>{text}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-        {hasDetails && (
-          <button className="topic__toggle" type="button" aria-expanded={String(detailsOpen)} onClick={() => setDetailsOpen((v) => !v)}>
-            <Icon name={detailsOpen ? 'collapse' : 'expand'} />
-            {detailsOpen ? t('ata.hideDetails') : t('ata.whyClassified')}
-          </button>
-        )}
-      </section>
+      {detailsOpen && (
+        <ClassificationDialog
+          classification={data.classification}
+          signals={data.signals}
+          tone={tone}
+          onClose={() => setDetailsOpen(false)}
+        />
+      )}
 
       {data.tags.length > 0 && (
         <section className="stack stack--compact" aria-label={t('ata.tagsAria')}>

@@ -22,14 +22,20 @@ export function sourceFromTitle(title) {
   return 'Slack';
 }
 
-export function minutesMeta(huddle, utterances) {
+// Who spoke, in order of first line, with the user's spelling fixes applied ({ captionName: fixed }).
+// Two caption names fixed to the same person count once.
+export function participantsOf(utterances, nameOverrides = {}) {
+  return [...new Set(utterances.map((u) => nameOverrides[u.speaker] || u.speaker))];
+}
+
+export function minutesMeta(huddle, utterances, nameOverrides) {
   const endedAt = huddle.endedAt ?? Date.now();
   return {
     title: huddle.title ?? null,
     startedAt: huddle.startedAt,
     endedAt,
     source: sourceFromTitle(huddle.title),
-    participants: [...new Set(utterances.map((u) => u.speaker))],
+    participants: participantsOf(utterances, nameOverrides),
     utterances: utterances.length,
   };
 }

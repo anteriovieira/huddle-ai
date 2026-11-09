@@ -156,6 +156,16 @@ test('sourceFromTitle maps channel and DM titles', () => {
   assert.equal(sourceFromTitle(null), 'Slack');
 });
 
+test('minutesMeta lists participants with the user\'s name corrections, merging duplicates', () => {
+  const utterances = [
+    { speaker: 'bignerve123.', text: 'a', at: 0 },
+    { speaker: 'Paul', text: 'b', at: 1 },
+    { speaker: 'Cam', text: 'c', at: 2 },
+  ];
+  const meta = minutesMeta({ title: 'Huddle in general', startedAt: 1000 }, utterances, { 'bignerve123.': 'Cam' });
+  assert.deepEqual(meta.participants, ['Cam', 'Paul']);
+});
+
 test('minutesMeta derives participants and source', () => {
   const meta = minutesMeta(
     { title: 'Huddle in general', startedAt: 1000, endedAt: 2000 },
