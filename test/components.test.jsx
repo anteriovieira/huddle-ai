@@ -73,6 +73,44 @@ const settings = {
   detect: { alerts: true, actions: true, decisions: true, questions: true, suggestions: true, replies: true, references: true, acronyms: true },
 };
 
+test('alerts use the regular card style and their section header can acknowledge them all', () => {
+  const current = {
+    ...insightsCurrent,
+    data: {
+      ...insightsCurrent.data,
+      alerts: [
+        { kind: 'mention', text: 'Ana citou você', from: 'Ana', line: 1 },
+        { kind: 'action', text: 'Revisar o PR', from: 'Leo', line: 1 },
+      ],
+    },
+  };
+  const html = render(
+    h(
+      TooltipProvider,
+      null,
+      h(InsightsView, {
+        current,
+        settings,
+        huddle: { active: true, startedAt: Date.now() - 1000 },
+        utterances: [{ speaker: 'Ana', text: 'oi', at: 0 }],
+        now: Date.now(),
+        acked: new Set(),
+        done: new Set(),
+        topicExpanded: false,
+        onToggleTopic() {},
+        onAcceptAlert() {},
+        onAcceptAllAlerts() {},
+        onEditAlert() {},
+        onToggleDone() {},
+        onOpenSettings() {},
+      }),
+    ),
+  );
+  assert.match(html, /class="q-card q-card--alert[^"]*"[^]*Ana citou você/);
+  assert.doesNotMatch(html, /class="alert /);
+  assert.match(html, /aria-label="Alertas pra você"[^]*Marcar todos/);
+});
+
 test('InsightsView renders topic, sections and alerts from data', () => {
   const html = render(
     h(

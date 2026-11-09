@@ -7,11 +7,11 @@ import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
 import { Avatar, Section } from '../ui/primitives.jsx';
 
-// Anima o card (o .q-card/.alert mais próximo do botão) deslizando para fora e, após a animação,
+// Anima o card (o .q-card mais próximo do botão) deslizando para fora e, após a animação,
 // aplica a mudança de estado que o remove da lista — para marcar visto e para remover. Sem o card no
 // DOM (ex.: testes de render estático) aplica na hora.
 function dismissThen(event, fn) {
-  const card = event.currentTarget.closest('.q-card, .alert');
+  const card = event.currentTarget.closest('.q-card');
   if (!card) return fn();
   card.classList.add('is-leaving');
   setTimeout(fn, 200);
@@ -149,49 +149,78 @@ function driftMinutes(focus, utterances, huddle, now) {
   return ms >= DRIFT_THRESHOLD_MS ? Math.round(ms / 60000) : null;
 }
 
-function AlertsSection({ alerts, acked, utterances, onAccept, onEdit }) {
+// A personal alert in the regular card style: a labelled bar (kind, when · who) with icon actions —
+// ask AI, edit (actions only) and acknowledge — and the alert text below. Acknowledging slides it out.
+function AlertCard({ alert, time, onAccept, onEdit, onAsk }) {
+  const t = useT();
+  const meta = ALERT_META[alert.kind] ?? ALERT_META.mention;
+  const accept = alert.kind === 'action' ? t('alert.accept') : t('alert.ok');
+  return (
+    <div className={`q-card q-card--alert q-card--alert-${meta.tone}`}>
+      <div className="q-bar">
+        <span className={`q-state q-state--alert-${meta.tone}`}>
+          <Icon name={meta.icon} /> {t(`alert.${alert.kind}.title`)}
+        </span>
+        <span className="q-actions">
+          {time && <span className="q-time muted small">{time}</span>}
+          <AskButton topic={alert.text} onAsk={onAsk} />
+          {alert.kind === 'action' && (
+            <Tooltip label={t('alert.edit')}>
+              <button type="button" className="q-copy" aria-label={t('alert.edit')} onClick={() => onEdit(alert)}>
+                <Icon name="pencil" />
+              </button>
+            </Tooltip>
+          )}
+          <Tooltip label={accept}>
+            <button type="button" className="q-copy q-seen" aria-label={accept} onClick={(e) => dismissThen(e, () => onAccept(alert))}>
+              <Icon name="check" />
+            </button>
+          </Tooltip>
+        </span>
+      </div>
+      <p className="q-card__text">{alert.text}</p>
+    </div>
+  );
+}
+
+// Header action: acknowledge every pending alert at once.
+function AckAllButton({ alerts, onAcceptAll }) {
+  const t = useT();
+  if (!onAcceptAll || !alerts.length) return null;
+  return (
+    <Tooltip label={t('markAll.tip')}>
+      <button type="button" className="section__mark" aria-label={t('markAll.tip')} onClick={() => onAcceptAll(alerts)}>
+        <Icon name="check-double" />
+        {t('markAll.label')}
+      </button>
+    </Tooltip>
+  );
+}
+
+function AlertsSection({ alerts, acked, utterances, huddle, now, onAccept, onAcceptAll, onEdit, onAsk, deckOn, onToggleDeck }) {
   const t = useT();
   const pending = alerts.filter((alert) => !acked.has(alert.text));
-  if (!pending.length) return null;
+  const timeFor = (alert) => {
+    const at = utterances[alert.line - 1];
+    const when = huddle.active ? cardAgo(alert.line, utterances, huddle, now) : at ? formatClock(at.at) : null;
+    return [when, alert.from].filter(Boolean).join(' · ') || null;
+  };
   return (
-    <section className="section" aria-label={t('alerts.title')}>
-      <h3 className="section__title">
-        {t('alerts.title')}<span className="count">{String(pending.length)}</span>
-      </h3>
-      {pending.map((alert) => {
-        const meta = ALERT_META[alert.kind];
-        const at = utterances[alert.line - 1];
-        return (
-          <article key={`${alert.kind}:${alert.text}`} className={`alert alert--${meta.tone}`}>
-            <div className="alert__head">
-              <span className={`badge-icon badge-icon--${meta.tone}`}>
-                <Icon name={meta.icon} />
-              </span>
-              <span className="alert__title">{t(`alert.${alert.kind}.title`)}</span>
-              <span className="muted small alert__when">
-                {[at ? formatClock(at.at) : null, alert.from].filter(Boolean).join(' · ')}
-              </span>
-            </div>
-            <p className="alert__text">{alert.text}</p>
-            <div className="alert__foot">
-              <span className={`tag tag--${alert.kind}`}>{t(`alert.${alert.kind}.tag`)}</span>
-              <div className="alert__actions">
-                {alert.kind === 'action' && (
-                  <button className="button button--small" type="button" onClick={() => onEdit(alert)}>
-                    <Icon name="pencil" />
-                    {t('alert.edit')}
-                  </button>
-                )}
-                <button className="button button--small button--accept" type="button" onClick={() => onAccept(alert)}>
-                  <Icon name="check" />
-                  {alert.kind === 'action' ? t('alert.accept') : t('alert.ok')}
-                </button>
-              </div>
-            </div>
-          </article>
-        );
-      })}
-    </section>
+    <Section
+      title={t('alerts.title')}
+      count={pending.length}
+      deck={deckOn}
+      action={
+        <span className="section__tools">
+          <DeckToggle on={deckOn} onToggle={onToggleDeck} count={pending.length} />
+          <AckAllButton alerts={pending} onAcceptAll={onAcceptAll} />
+        </span>
+      }
+    >
+      {pending.map((alert) => (
+        <AlertCard key={`${alert.kind}:${alert.text}`} alert={alert} time={timeFor(alert)} onAccept={onAccept} onEdit={onEdit} onAsk={onAsk} />
+      ))}
+    </Section>
   );
 }
 
@@ -741,6 +770,7 @@ export function InsightsView({
   topicExpanded,
   onToggleTopic,
   onAcceptAlert,
+  onAcceptAllAlerts,
   onEditAlert,
   onToggleDone,
   onDismissContext,
@@ -804,15 +834,6 @@ export function InsightsView({
 
   return (
     <div className="stack stack--insights">
-      {settings.detect.alerts && (
-        <AlertsSection
-          alerts={data.alerts ?? []}
-          acked={acked}
-          utterances={utterances}
-          onAccept={onAcceptAlert}
-          onEdit={onEditAlert}
-        />
-      )}
       <TopicCard
         data={data}
         updatedAt={current.updatedAt}
@@ -822,6 +843,21 @@ export function InsightsView({
         expanded={topicExpanded}
         onToggle={onToggleTopic}
       />
+      {settings.detect.alerts && (
+        <AlertsSection
+          alerts={data.alerts ?? []}
+          acked={acked}
+          utterances={utterances}
+          huddle={huddle}
+          now={now}
+          onAccept={onAcceptAlert}
+          onAcceptAll={onAcceptAllAlerts}
+          onEdit={onEditAlert}
+          onAsk={onAskAI}
+          deckOn={deckSections?.has('alerts')}
+          onToggleDeck={onToggleDeckSection ? () => onToggleDeckSection('alerts') : undefined}
+        />
+      )}
       <QuestionsSection
         data={data}
         utterances={utterances}

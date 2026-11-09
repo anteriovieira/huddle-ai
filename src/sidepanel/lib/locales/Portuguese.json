@@ -84,6 +84,7 @@
   "alert.question.title": "Pergunta em aberto",
   "alert.question.tag": "pergunta",
   "alerts.title": "Alertas pra você",
+  "toast.newAlerts": "{n} alertas novos pra você",
   "alert.edit": "Editar",
   "alert.accept": "Aceitar",
   "alert.ok": "Ok",

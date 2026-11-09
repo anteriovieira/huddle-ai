@@ -158,6 +158,7 @@ export const STRINGS = {
   'alert.question.title': 'Open question',
   'alert.question.tag': 'question',
   'alerts.title': 'Alerts for you',
+  'toast.newAlerts': '{n} new alerts for you',
   'alert.edit': 'Edit',
   'alert.accept': 'Accept',
   'alert.ok': 'Ok',

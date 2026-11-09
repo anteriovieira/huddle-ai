@@ -2018,8 +2018,7 @@ select {
 }
 
 /* Saída animada: ao marcar visto ou remover, o card desliza e some antes de sair da lista. */
-.q-card.is-leaving,
-.alert.is-leaving {
+.q-card.is-leaving {
   animation: card-leave 0.22s ease forwards;
   pointer-events: none;
 }
@@ -2494,56 +2493,15 @@ select {
   text-overflow: ellipsis;
 }
 
-/* Alertas pra você */
-
-.alert {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+/* Alertas pra você: cards no estilo dos demais (q-card), com a cor do tipo no rótulo. */
+.q-state--alert-purple {
+  color: var(--purple);
 }
-
-.alert__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.q-state--alert-green {
+  color: var(--green);
 }
-
-.alert__title {
-  font-weight: 900;
-  color: var(--text-strong);
-}
-
-.alert__when {
-  margin-left: auto;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.alert__text {
-  margin: 0;
-  color: var(--text-strong);
-  overflow-wrap: anywhere;
-}
-
-.alert__foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.alert__foot .tag {
-  align-self: center;
-  margin: 0;
-}
-
-.alert__actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
+.q-state--alert-yellow {
+  color: var(--yellow);
 }
 
 .button--accept {

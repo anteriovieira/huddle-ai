@@ -49,7 +49,7 @@ const DEFAULT_SETTINGS = {
 const MODEL_MIGRATION = 1;
 const MIN_UTTERANCES_FOR_MINUTES = 3;
 // Seções de insight que podem ser empilhadas (deck). Usadas pelo toggle global do info bar.
-const DECK_SECTION_KEYS = ['questions', 'points', 'actions', 'decisions', 'references', 'acronyms'];
+const DECK_SECTION_KEYS = ['alerts', 'questions', 'points', 'actions', 'decisions', 'references', 'acronyms'];
 const EMPTY_STATE = { huddle: null, utterances: [] };
 
 // Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
@@ -720,6 +720,35 @@ export function App() {
       return next;
     });
     flash(alert.kind === 'action' ? tr('toast.actionAccepted') : tr('toast.alertSeen'));
+  }, [flash]);
+
+  // Live: a toast for each alert the analysis brings in, so it is noticed even on another tab or
+  // with the list scrolled. Alerts already there when a huddle loads (or the panel reopens) stay quiet.
+  const alertsKnown = useRef({ huddleId: null, texts: new Set() });
+  useEffect(() => {
+    const list = currentInsights?.data.alerts ?? [];
+    const huddleId = huddle?.id ?? null;
+    if (alertsKnown.current.huddleId !== huddleId) {
+      alertsKnown.current = { huddleId, texts: new Set(list.map((a) => a.text)) };
+      return;
+    }
+    const fresh = list.filter((a) => !alertsKnown.current.texts.has(a.text));
+    for (const a of fresh) alertsKnown.current.texts.add(a.text);
+    if (!fresh.length || !huddle?.active || !settings.detect.alerts) return;
+    flash(
+      fresh.length === 1
+        ? `${tr(`alert.${fresh[0].kind}.title`)}: ${fresh[0].text}`
+        : tr('toast.newAlerts', { n: fresh.length }),
+    );
+  }, [currentInsights, huddle?.id, huddle?.active, settings.detect.alerts, flash]);
+
+  const acceptAllAlerts = useCallback((alerts) => {
+    setAcked((prev) => {
+      const next = new Set(prev);
+      for (const alert of alerts) next.add(alert.text);
+      return next;
+    });
+    flash(tr('toast.alertSeen'));
   }, [flash]);
 
   const editAlert = useCallback((alert) => {
@@ -1609,6 +1638,7 @@ export function App() {
           topicExpanded={topicExpanded}
           onToggleTopic={() => setTopicExpanded((v) => !v)}
           onAcceptAlert={acceptAlert}
+          onAcceptAllAlerts={acceptAllAlerts}
           onEditAlert={editAlert}
           onToggleDone={toggleDone}
           onDismissContext={dismissContext}
