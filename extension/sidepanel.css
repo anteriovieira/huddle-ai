@@ -3115,6 +3115,8 @@ body.is-resizing {
 
 .chatdock__input {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px;
   border-top: 1px solid var(--border);
 }
@@ -3899,7 +3901,6 @@ a.ref__title {
 /* No composer: ocupa a largura toda, acima do campo, com o × para remover. */
 .chat-context--chip {
   display: flex;
-  margin-bottom: 8px;
 }
 
 .chat-context--chip .chat-context__label {
