@@ -86,12 +86,14 @@ let chatSeq = 0;
 // updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
-const ASK_DETAIL_PROMPT = {
-  English: (text) => `Context: "${text}"\n\nGive me more details about this topic.`,
-  Portuguese: (text) => `Contexto: "${text}"\n\nMe dê mais detalhes sobre esse tema.`,
-  Português: (text) => `Contexto: "${text}"\n\nMe dê mais detalhes sobre esse tema.`,
-  Spanish: (text) => `Contexto: "${text}"\n\nDame más detalles sobre este tema.`,
-  Español: (text) => `Contexto: "${text}"\n\nDame más detalles sobre este tema.`,
+// A pergunta enviada ao pedir "mais detalhes" sobre um item. O item em si vai como CONTEXTO
+// anexado à mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight.
+const ASK_DETAIL_QUESTION = {
+  English: 'Give me more details about this topic.',
+  Portuguese: 'Me dê mais detalhes sobre esse tema.',
+  Português: 'Me dê mais detalhes sobre esse tema.',
+  Spanish: 'Dame más detalles sobre este tema.',
+  Español: 'Dame más detalles sobre este tema.',
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
@@ -1535,7 +1537,7 @@ export function App() {
   // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
   // decision, action, question, reference…). Posts the question and streams the answer right away.
   const askInChat = useCallback(
-    async (question) => {
+    async (question, context = null) => {
       if (!question) return;
       setChatOpen(true);
       if (!hasKeyForModel(latest.current.settings)) {
@@ -1543,14 +1545,18 @@ export function App() {
         return;
       }
       const chat = newChat();
+      // O contexto (ex.: o item de insight) vai como metadado da mensagem (chip/citação); o texto
+      // exibido é só a pergunta. O modelo recebe contexto + pergunta.
+      const userMessage = { role: 'user', text: question, ...(context ? { context: context.label } : null) };
       setChats((prev) => ({
         ...prev,
-        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [{ role: 'user', text: question }] }],
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [userMessage] }],
       }));
       setActiveChatId(chat.id);
       setChatBusy((b) => new Set(b).add(chat.id));
       setChatStream({ chatId: chat.id, text: '', steps: [] });
-      nameChat(chat.id, question);
+      nameChat(chat.id, context ? context.text : question);
+      const modelQuestion = context ? `${context.text}\n\n${question}` : question;
       logEvent('info', `Pergunta no chat (${latest.current.utterances.length} falas)`);
       const steps = [];
       try {
@@ -1558,7 +1564,7 @@ export function App() {
           settings: latest.current.settings,
           utterances: latest.current.utterances,
           history: [],
-          question,
+          question: modelQuestion,
           sessions: latest.current.pastSessions,
           thread: latest.current.threadForAI,
           onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
@@ -1601,8 +1607,8 @@ export function App() {
     (topic) => {
       const text = String(topic ?? '').trim();
       if (!text) return;
-      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
-      askInChat(build(text));
+      const q = ASK_DETAIL_QUESTION[latest.current.settings.language] ?? ASK_DETAIL_QUESTION.English;
+      askInChat(q, { label: text, text });
     },
     [askInChat],
   );
