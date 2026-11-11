@@ -811,6 +811,8 @@ export function InsightsView({
   threadState,
   threadCount,
   onOpenThread,
+  hiddenSeen,
+  onToggleShowAll,
 }) {
   const t = useT();
   if (!current) {
@@ -962,6 +964,17 @@ export function InsightsView({
         </Section>
       )}
       <PeopleSection people={people} overrides={nameOverrides} onRename={onRenamePerson} />
+      {onToggleShowAll && (hiddenSeen > 0 || showAllSeen) && (
+        <button
+          className="button button--block button--showseen"
+          type="button"
+          aria-pressed={String(showAllSeen)}
+          onClick={onToggleShowAll}
+        >
+          <Icon name={showAllSeen ? 'eye' : 'eye-off'} />
+          {showAllSeen ? t('info.hideSeen') : t('info.showAll', { n: hiddenSeen })}
+        </button>
+      )}
     </div>
   );
 }

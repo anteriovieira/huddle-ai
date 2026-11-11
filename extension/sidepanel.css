@@ -3853,3 +3853,17 @@ a.ref__title {
     animation: none;
   }
 }
+
+/* Botão "mostrar vistos" no rodapé da aba Insights: discreto, com ícone de olho. */
+.button--showseen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.button--showseen .icon {
+  width: 15px;
+  height: 15px;
+}

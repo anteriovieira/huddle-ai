@@ -1840,6 +1840,8 @@ export function App() {
           onAskAI={askAboutInsight}
           seen={seen}
           showAllSeen={showAllSeen}
+          hiddenSeen={hiddenSeen}
+          onToggleShowAll={toggleShowAllSeen}
           onMarkSeen={markSeen}
           onMarkAllSeen={markAllSeen}
           removed={removed}

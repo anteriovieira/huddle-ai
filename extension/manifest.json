@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsf9uqpR+XJeyUxcGN+uTEiAFFpoS//tLW7WFuq/vlJ2JXXHl+u2PTGiMpj5Xc+gZYEylTBKsPESRkLFMMM2I5xgUUytpY15K92Syuy0uSjix1X2cTzbLsb1r3xIqw0v113sfCxitAohOBDuwZHa472493Vj4PZg1gB2OfsscMJjWPpjjeFTAbp7YRT2jVpkWY2i1KkzR9zNxdAeWZWqQHj3vsMtff6wcsQYOjVKJCQrkwK+Vcfav9nfOi2dUDMMZzzw1nQfTVhcXCjwzEaphx3KplzmLO3E5AboqMQLDRWWfHwdzHOggybgOTd8Tg0OufEPQIu3EF7sepTOSsMcsPwIDAQAB",
   "name": "Huddle AI",
-  "version": "0.1.208",
+  "version": "0.1.209",
   "description": "Insights ao vivo das legendas dos huddles do Slack, num painel lateral.",
   "minimum_chrome_version": "116",
   "icons": {
