@@ -1166,7 +1166,7 @@ export function App() {
         return;
       }
       const hud = { ...entry.huddle, active: false, archived: true, loaded: true };
-      const nextState = { huddle: hud, utterances: entry.utterances ?? [] };
+      const nextState = { huddle: hud, utterances: entry.utterances ?? [], thread: entry.thread ?? null };
       const nextInsights = entry.insights
         ? { huddleId: hud.id, updatedAt: entry.minutes?.generatedAt ?? Date.now(), data: entry.insights }
         : null;
@@ -1654,6 +1654,10 @@ export function App() {
     onCopyCaptions: () => copyToClipboard(formatTranscript(utterances)),
     onRegenerate: runMinutes,
     onOpenAtas: openAtas,
+    onCopyMinutes: () => currentMinutes && copyToClipboard(minutesAsText(currentMinutes)),
+    onDriveMinutes: currentMinutes ? () => uploadToDrive(currentMinutes) : undefined,
+    minutesUploaded: currentMinutes?.drive ?? null,
+    minutesDriveBusy: !!currentMinutes && driveBusy === currentMinutes.huddleId,
   };
 
   // Conteúdo de uma seção — os painéis em si não mudam com a largura.
@@ -1733,7 +1737,9 @@ export function App() {
   // ações do resumo seguem na própria InfoBar de cada painel.
   const renderFooter = (section) => {
     if (section === 'ata') {
-      return currentMinutes && !minutesRunning ? <AtaFooter record={currentMinutes} {...footerProps(currentMinutes)} /> : null;
+      return currentMinutes && !minutesRunning ? (
+        <AtaFooter record={currentMinutes} {...footerProps(currentMinutes)} showCopy={false} showDrive={false} />
+      ) : null;
     }
     if (section === 'insights') {
       return (

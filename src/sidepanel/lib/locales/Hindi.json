@@ -56,7 +56,7 @@
   "captions.slackPrefs": "Slack प्राथमिकताओं",
   "captions.enablePost": " में चालू करें।",
   "captions.readingLang": "huddle से {lang} कैप्शन पढ़े जा रहे हैं · {n} {unit}।",
-  "captions.reading": "huddle से कैप्शन पढ़े जा रहे हैं · {n} {unit}।",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "कैप्शन कॉपी करें",
   "captions.download": "ट्रांसक्रिप्ट डाउनलोड करें",
   "mark.action": "कार्य",

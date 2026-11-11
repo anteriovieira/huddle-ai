@@ -1541,8 +1541,10 @@ select {
   color: var(--text-strong);
 }
 
-.icon-button--lg.is-done {
+.icon-button.is-done,
+.icon-button.is-done:hover {
   border-color: var(--green);
+  background: var(--green-bg);
   color: var(--green);
 }
 

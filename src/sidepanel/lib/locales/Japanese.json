@@ -56,7 +56,7 @@
   "captions.slackPrefs": "Slack の環境設定",
   "captions.enablePost": " で有効にしてください。",
   "captions.readingLang": "ハドルから {lang} の字幕を読み取り中 · {n} {unit}。",
-  "captions.reading": "ハドルから字幕を読み取り中 · {n} {unit}。",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "字幕をコピー",
   "captions.download": "文字起こしをダウンロード",
   "mark.action": "アクション",

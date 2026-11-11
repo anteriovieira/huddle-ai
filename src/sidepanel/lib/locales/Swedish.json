@@ -8,7 +8,6 @@
   "common.send": "Skicka",
   "common.collapse": "Fäll ihop",
   "common.expand": "Expandera",
-
   "unit.caption.one": "textrad",
   "unit.caption.other": "textrader",
   "unit.participant.one": "deltagare",
@@ -17,7 +16,6 @@
   "unit.session.other": "sessioner",
   "unit.event.one": "händelse",
   "unit.event.other": "händelser",
-
   "header.ended": "Avslutad",
   "header.backToSlack": "Tillbaka till Slack",
   "header.home": "Startsida",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chatta med mötet",
   "header.logs": "Loggar",
   "header.settings": "Inställningar",
-
   "tabs.aria": "Sektioner",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Mötesanteckningar",
-
   "info.unstackAll": "Dela upp alla deck",
   "info.stackAll": "Stapla alla sektioner",
   "info.stackAllAria": "Stapla alla sektioner i ett deck",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analyserar var {n}:e sekund.",
   "infobar.nextIn": "Nästa analys om {n}s.",
   "infobar.onNextUtterance": "Analyserar vid nästa textrad…",
-
   "captions.enablePre": "Syns inte textningen? Slå på den i huddlen (textningsknappen) eller i dina ",
   "captions.slackPrefs": "Slack-inställningar",
   "captions.enablePost": ".",
   "captions.readingLang": "Läser {lang} textning från huddlen · {n} {unit}.",
-  "captions.reading": "Läser textning från huddlen · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Kopiera textning",
   "captions.download": "Ladda ner transkription",
-
   "mark.action": "Åtgärd",
   "mark.decision": "Beslut",
   "mark.question": "Fråga",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Inställningar › Ljud och video).",
   "captions.followingLive": "Följer live",
   "captions.backToLive": "Tillbaka till live",
-
   "insights.deckView": "Visa som lista",
   "insights.deckStack": "Stapla korten",
   "insights.deckViewAria": "Visa kort som en lista",
@@ -149,7 +142,6 @@
   "copy.decision": "Kopiera beslut",
   "section.references": "Omnämnda referenser",
   "section.acronyms": "Förkortningar",
-
   "ata.step.task": "Uppgift",
   "ata.meetingInfo": "Mötesinformation",
   "ata.copy": "Kopiera anteckningar",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Förlopp",
   "ata.loading.title": "Skriver huddlens mötesanteckningar",
   "ata.loading.note": "Det tar oftast under en minut. Håll panelen öppen tills det är klart; anteckningarna sparas.",
-
   "atas.title": "Tidigare sessioner",
   "atas.count": "{n} {unit}",
   "atas.import": "Importera transkription",
@@ -233,7 +224,6 @@
   "session.load": "Ladda session",
   "session.delete": "Ta bort session",
   "session.deleteTitle": "Ta bort den här sessionen?",
-
   "chat.thinking": "Tänker",
   "chat.withMeeting": "Chatta med mötet",
   "chat.closeConversation": "Stäng den här konversationen",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Ställ en snabb fråga",
   "chat.inputAria": "Fråga till mötet",
   "chat.send": "Skicka fråga",
-
   "idle.noHuddle": "Ingen aktiv huddle",
   "idle.enterHuddle": "Gå med i en huddle i Slack i webbläsaren och öppna fliken {tab}. Insights visas här.",
   "idle.reloadHint": "Har du redan en huddle igång? Anslut den här fliken och öppna huddlen igen — utan att ladda om sidan.",
@@ -260,7 +249,6 @@
   "idle.import": "Importera transkription",
   "idle.previousCount": "Tidigare sessioner ({n})",
   "idle.privacy": "Textningen stannar i din webbläsare. Endast den analyserade texten skickas till Anthropic API för att generera insights.",
-
   "import.title": "Importera transkription",
   "import.intro": "Klistra in transkriptionen av ett möte som inte gått genom tillägget här. Den blir en session laddad i appen, med anteckningar och insights genererade. Rader i formatet {fmt} delas upp per person.",
   "import.introFmt": "Namn: textrad",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Genererar anteckningar och insights.",
   "import.needKey": "Lägg till API-nyckeln för att generera.",
   "import.submit": "Importera",
-
   "logs.title": "Loggar",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Kopiera alla loggar",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Kopiera den här händelsen",
   "logs.empty": "Inga händelser ännu. Ladda om Slack-fliken efter att du laddat om tillägget för att loggarna ska börja.",
   "logs.copy": "Kopiera loggar",
-
   "ticker.aria": "Senaste textrader",
-
   "menu.actions": "Åtgärder",
-
   "settings.title": "Inställningar",
   "settings.intelligence": "Intelligens",
   "settings.model": "Modell",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Radera historik",
   "settings.diagnostics": "Diagnostik",
   "settings.viewLogs": "Visa loggar",
-
   "toast.copied": "Kopierat.",
   "toast.copyFailed": "Kunde inte kopiera.",
   "toast.huddleWindowNotFound": "Huddlefönstret hittades inte.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Session laddad. Fråga om den i chatten eller kolla flikarna.",
   "toast.sessionDeleted": "Session raderad.",
   "toast.chatNeedKey": "Lägg till API-nyckeln för den valda modellen i inställningarna för att chatta med mötet.",
-
   "mark.label.question": "Fråga",
   "mark.label.decision": "Beslut",
   "mark.label.action": "Åtgärd",
   "mark.label.detected": "Upptäckt",
-
   "session.importedTitle": "Importerad session"
 }

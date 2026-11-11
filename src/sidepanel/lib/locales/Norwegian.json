@@ -8,7 +8,6 @@
   "common.send": "Send",
   "common.collapse": "Slå sammen",
   "common.expand": "Utvid",
-
   "unit.caption.one": "tekstlinje",
   "unit.caption.other": "tekstlinjer",
   "unit.participant.one": "deltaker",
@@ -17,7 +16,6 @@
   "unit.session.other": "økter",
   "unit.event.one": "hendelse",
   "unit.event.other": "hendelser",
-
   "header.ended": "Avsluttet",
   "header.backToSlack": "Tilbake til Slack",
   "header.home": "Startside",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat med møtet",
   "header.logs": "Logger",
   "header.settings": "Innstillinger",
-
   "tabs.aria": "Seksjoner",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Møtereferat",
-
   "info.unstackAll": "Del opp alle deck",
   "info.stackAll": "Stable alle seksjoner",
   "info.stackAllAria": "Stable alle seksjoner i et deck",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analyserer hvert {n}. sekund.",
   "infobar.nextIn": "Neste analyse om {n}s.",
   "infobar.onNextUtterance": "Analyserer ved neste tekstlinje…",
-
   "captions.enablePre": "Vises ikke tekstingen? Slå den på i huddelen (tekstingsknappen) eller i dine ",
   "captions.slackPrefs": "Slack-innstillinger",
   "captions.enablePost": ".",
   "captions.readingLang": "Leser {lang} teksting fra huddelen · {n} {unit}.",
-  "captions.reading": "Leser teksting fra huddelen · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Kopier teksting",
   "captions.download": "Last ned transkripsjon",
-
   "mark.action": "Oppgave",
   "mark.decision": "Beslutning",
   "mark.question": "Spørsmål",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Innstillinger › Lyd og video).",
   "captions.followingLive": "Følger live",
   "captions.backToLive": "Tilbake til live",
-
   "insights.deckView": "Vis som liste",
   "insights.deckStack": "Stable kortene",
   "insights.deckViewAria": "Vis kort som en liste",
@@ -149,7 +142,6 @@
   "copy.decision": "Kopier beslutning",
   "section.references": "Nevnte referanser",
   "section.acronyms": "Forkortelser",
-
   "ata.step.task": "Oppgave",
   "ata.meetingInfo": "Møteinformasjon",
   "ata.copy": "Kopier referat",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Fremdrift",
   "ata.loading.title": "Skriver huddelens møtereferat",
   "ata.loading.note": "Det tar vanligvis under et minutt. Hold panelet åpent til det er ferdig; referatet lagres.",
-
   "atas.title": "Tidligere økter",
   "atas.count": "{n} {unit}",
   "atas.import": "Importer transkripsjon",
@@ -233,7 +224,6 @@
   "session.load": "Last inn økt",
   "session.delete": "Slett økt",
   "session.deleteTitle": "Slette denne økten?",
-
   "chat.thinking": "Tenker",
   "chat.withMeeting": "Chat med møtet",
   "chat.closeConversation": "Lukk denne samtalen",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Still et kjapt spørsmål",
   "chat.inputAria": "Spørsmål til møtet",
   "chat.send": "Send spørsmål",
-
   "idle.noHuddle": "Ingen aktiv huddle",
   "idle.enterHuddle": "Bli med i en huddle i Slack i nettleseren og åpne fanen {tab}. Insights dukker opp her.",
   "idle.reloadHint": "Har du allerede en huddle i gang? Koble til denne fanen og åpne huddelen på nytt — uten å laste siden på nytt.",
@@ -260,7 +249,6 @@
   "idle.import": "Importer transkripsjon",
   "idle.previousCount": "Tidligere økter ({n})",
   "idle.privacy": "Tekstingen blir værende i nettleseren din. Bare den analyserte teksten sendes til Anthropic API for å generere insights.",
-
   "import.title": "Importer transkripsjon",
   "import.intro": "Lim inn transkripsjonen av et møte som ikke gikk gjennom utvidelsen her. Det blir en økt lastet inn i appen, med referat og insights generert. Linjer i formatet {fmt} deles opp per person.",
   "import.introFmt": "Navn: tekstlinje",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Genererer referatet og insights.",
   "import.needKey": "Legg til API-nøkkelen for å generere.",
   "import.submit": "Importer",
-
   "logs.title": "Logger",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Kopier alle logger",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Kopier denne hendelsen",
   "logs.empty": "Ingen hendelser ennå. Last Slack-fanen på nytt etter at du har lastet utvidelsen på nytt for at loggene skal starte.",
   "logs.copy": "Kopier logger",
-
   "ticker.aria": "Siste tekstlinjer",
-
   "menu.actions": "Handlinger",
-
   "settings.title": "Innstillinger",
   "settings.intelligence": "Intelligens",
   "settings.model": "Modell",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Slett logg",
   "settings.diagnostics": "Diagnostikk",
   "settings.viewLogs": "Vis logger",
-
   "toast.copied": "Kopiert.",
   "toast.copyFailed": "Kunne ikke kopiere.",
   "toast.huddleWindowNotFound": "Huddelvinduet ble ikke funnet.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Økt lastet inn. Spør om den i chatten eller sjekk fanene.",
   "toast.sessionDeleted": "Økt slettet.",
   "toast.chatNeedKey": "Legg til API-nøkkelen for den valgte modellen i innstillingene for å chatte med møtet.",
-
   "mark.label.question": "Spørsmål",
   "mark.label.decision": "Beslutning",
   "mark.label.action": "Oppgave",
   "mark.label.detected": "Oppdaget",
-
   "session.importedTitle": "Importert økt"
 }

@@ -8,7 +8,6 @@
   "common.send": "Trimite",
   "common.collapse": "Restrânge",
   "common.expand": "Extinde",
-
   "unit.caption.one": "subtitrare",
   "unit.caption.other": "subtitrări",
   "unit.participant.one": "participant",
@@ -17,7 +16,6 @@
   "unit.session.other": "sesiuni",
   "unit.event.one": "eveniment",
   "unit.event.other": "evenimente",
-
   "header.ended": "Încheiat",
   "header.backToSlack": "Înapoi la Slack",
   "header.home": "Pagina principală",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat cu ședința",
   "header.logs": "Jurnale",
   "header.settings": "Setări",
-
   "tabs.aria": "Secțiuni",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Minută",
-
   "info.unstackAll": "Desfă toate teancurile",
   "info.stackAll": "Grupează toate secțiunile într-un teanc",
   "info.stackAllAria": "Grupează toate secțiunile într-un singur teanc",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analiză la fiecare {n}s.",
   "infobar.nextIn": "Următoarea analiză în {n}s.",
   "infobar.onNextUtterance": "Se analizează la următoarea subtitrare…",
-
   "captions.enablePre": "Subtitrările nu apar? Activează-le în huddle (butonul de subtitrări) sau în ",
   "captions.slackPrefs": "preferințele Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Se citesc subtitrările în {lang} din huddle · {n} {unit}.",
-  "captions.reading": "Se citesc subtitrările din huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Copiază subtitrările",
   "captions.download": "Descarcă transcrierea",
-
   "mark.action": "Acțiune",
   "mark.decision": "Decizie",
   "mark.question": "Întrebare",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Preferințe › Audio și video).",
   "captions.followingLive": "Se urmărește live",
   "captions.backToLive": "Înapoi la live",
-
   "insights.deckView": "Vezi ca listă",
   "insights.deckStack": "Grupează cardurile",
   "insights.deckViewAria": "Vezi cardurile ca listă",
@@ -149,7 +142,6 @@
   "copy.decision": "Copiază decizia",
   "section.references": "Referințe menționate",
   "section.acronyms": "Acronime",
-
   "ata.step.task": "Sarcină",
   "ata.meetingInfo": "Informații despre ședință",
   "ata.copy": "Copiază minuta",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Progres",
   "ata.loading.title": "Se scrie minuta huddle-ului",
   "ata.loading.note": "De obicei durează sub un minut. Ține panoul deschis până se termină; minuta se salvează.",
-
   "atas.title": "Sesiuni anterioare",
   "atas.count": "{n} {unit}",
   "atas.import": "Importă transcrierea",
@@ -233,7 +224,6 @@
   "session.load": "Încarcă sesiunea",
   "session.delete": "Șterge sesiunea",
   "session.deleteTitle": "Ștergi această sesiune?",
-
   "chat.thinking": "Se gândește",
   "chat.withMeeting": "Chat cu ședința",
   "chat.closeConversation": "Închide această conversație",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Pune o întrebare rapidă",
   "chat.inputAria": "Întrebare pentru ședință",
   "chat.send": "Trimite întrebarea",
-
   "idle.noHuddle": "Niciun huddle activ",
   "idle.enterHuddle": "Alătură-te unui huddle în Slack în browser și deschide fila {tab}. Insights-urile apar aici.",
   "idle.reloadHint": "Ai deja un huddle în desfășurare? Conectează această filă și redeschide huddle-ul — fără a reîncărca pagina.",
@@ -260,7 +249,6 @@
   "idle.import": "Importă transcrierea",
   "idle.previousCount": "Sesiuni anterioare ({n})",
   "idle.privacy": "Subtitrările rămân în browserul tău. Doar textul analizat este trimis către API-ul Anthropic pentru a genera insights-urile.",
-
   "import.title": "Importă transcrierea",
   "import.intro": "Lipește aici transcrierea unei ședințe care nu a trecut prin extensie. Devine o sesiune încărcată în aplicație, cu minută și insights generate. Rândurile în formatul {fmt} sunt împărțite pe persoane.",
   "import.introFmt": "Nume: subtitrare",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Generează minuta și insights-urile.",
   "import.needKey": "Adaugă cheia API pentru a genera.",
   "import.submit": "Importă",
-
   "logs.title": "Jurnale",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Copiază toate jurnalele",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Copiază acest eveniment",
   "logs.empty": "Încă niciun eveniment. Reîncarcă fila Slack după reîncărcarea extensiei pentru ca jurnalele să înceapă.",
   "logs.copy": "Copiază jurnalele",
-
   "ticker.aria": "Ultimele subtitrări",
-
   "menu.actions": "Acțiuni",
-
   "settings.title": "Setări",
   "settings.intelligence": "Inteligență",
   "settings.model": "Model",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Șterge istoricul",
   "settings.diagnostics": "Diagnosticare",
   "settings.viewLogs": "Vezi jurnalele",
-
   "toast.copied": "Copiat.",
   "toast.copyFailed": "Nu s-a putut copia.",
   "toast.huddleWindowNotFound": "Fereastra huddle-ului nu a fost găsită.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Sesiune încărcată. Întreabă despre ea în chat sau verifică filele.",
   "toast.sessionDeleted": "Sesiune ștearsă.",
   "toast.chatNeedKey": "Adaugă cheia API a modelului ales în setări pentru a conversa cu ședința.",
-
   "mark.label.question": "Întrebare",
   "mark.label.decision": "Decizie",
   "mark.label.action": "Acțiune",
   "mark.label.detected": "Detectat",
-
   "session.importedTitle": "Sesiune importată"
 }

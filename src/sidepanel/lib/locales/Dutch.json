@@ -8,7 +8,6 @@
   "common.send": "Versturen",
   "common.collapse": "Inklappen",
   "common.expand": "Uitklappen",
-
   "unit.caption.one": "ondertitel",
   "unit.caption.other": "ondertitels",
   "unit.participant.one": "deelnemer",
@@ -17,7 +16,6 @@
   "unit.session.other": "sessies",
   "unit.event.one": "gebeurtenis",
   "unit.event.other": "gebeurtenissen",
-
   "header.ended": "Beëindigd",
   "header.backToSlack": "Terug naar Slack",
   "header.home": "Home",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat met de meeting",
   "header.logs": "Logs",
   "header.settings": "Instellingen",
-
   "tabs.aria": "Secties",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Notulen",
-
   "info.unstackAll": "Alle stapels uit elkaar",
   "info.stackAll": "Alle secties stapelen",
   "info.stackAllAria": "Alle secties tot één stapel samenvoegen",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analyse elke {n}s.",
   "infobar.nextIn": "Volgende analyse over {n}s.",
   "infobar.onNextUtterance": "Analyse bij de volgende ondertitel…",
-
   "captions.enablePre": "Geen ondertitels te zien? Zet ze aan in de huddle (ondertitelknop) of in je ",
   "captions.slackPrefs": "Slack-voorkeuren",
   "captions.enablePost": ".",
   "captions.readingLang": "Ondertitels in {lang} lezen uit de huddle · {n} {unit}.",
-  "captions.reading": "Ondertitels lezen uit de huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Ondertitels kopiëren",
   "captions.download": "Transcript downloaden",
-
   "mark.action": "Actie",
   "mark.decision": "Besluit",
   "mark.question": "Vraag",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Voorkeuren › Audio en video).",
   "captions.followingLive": "Live volgen",
   "captions.backToLive": "Terug naar live",
-
   "insights.deckView": "Als lijst tonen",
   "insights.deckStack": "Kaarten stapelen",
   "insights.deckViewAria": "Kaarten als lijst tonen",
@@ -149,7 +142,6 @@
   "copy.decision": "Besluit kopiëren",
   "section.references": "Genoemde referenties",
   "section.acronyms": "Afkortingen",
-
   "ata.step.task": "Taak",
   "ata.meetingInfo": "Meetinginfo",
   "ata.copy": "Notulen kopiëren",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Voortgang",
   "ata.loading.title": "De notulen van de huddle schrijven",
   "ata.loading.note": "Duurt meestal minder dan een minuut. Houd het paneel open tot het klaar is; de notulen worden opgeslagen.",
-
   "atas.title": "Eerdere sessies",
   "atas.count": "{n} {unit}",
   "atas.import": "Transcript importeren",
@@ -233,7 +224,6 @@
   "session.load": "Sessie laden",
   "session.delete": "Sessie verwijderen",
   "session.deleteTitle": "Deze sessie verwijderen?",
-
   "chat.thinking": "Aan het denken",
   "chat.withMeeting": "Chat met de meeting",
   "chat.closeConversation": "Dit gesprek sluiten",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Stel een korte vraag",
   "chat.inputAria": "Vraag voor de meeting",
   "chat.send": "Vraag versturen",
-
   "idle.noHuddle": "Geen actieve huddle",
   "idle.enterHuddle": "Neem in de browser deel aan een huddle in Slack en open het tabblad {tab}. De insights verschijnen hier.",
   "idle.reloadHint": "Heb je al een huddle lopen? Verbind dit tabblad en open de huddle opnieuw — zonder de pagina te herladen.",
@@ -260,7 +249,6 @@
   "idle.import": "Transcript importeren",
   "idle.previousCount": "Eerdere sessies ({n})",
   "idle.privacy": "De ondertitels blijven in je browser. Alleen de geanalyseerde tekst wordt naar de Anthropic-API gestuurd om de insights te genereren.",
-
   "import.title": "Transcript importeren",
   "import.intro": "Plak hier het transcript van een meeting die niet via de extensie liep. Het wordt een sessie in de app, met gegenereerde notulen en insights. Regels in het formaat {fmt} worden per persoon gesplitst.",
   "import.introFmt": "Naam: ondertitel",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Genereert de notulen en de insights.",
   "import.needKey": "Voeg de API-sleutel toe om te genereren.",
   "import.submit": "Importeren",
-
   "logs.title": "Logs",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Alle logs kopiëren",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Deze gebeurtenis kopiëren",
   "logs.empty": "Nog geen gebeurtenissen. Herlaad het Slack-tabblad na het herladen van de extensie om de logs te starten.",
   "logs.copy": "Logs kopiëren",
-
   "ticker.aria": "Laatste ondertitels",
-
   "menu.actions": "Acties",
-
   "settings.title": "Instellingen",
   "settings.intelligence": "Intelligentie",
   "settings.model": "Model",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Geschiedenis verwijderen",
   "settings.diagnostics": "Diagnostiek",
   "settings.viewLogs": "Logs bekijken",
-
   "toast.copied": "Gekopieerd.",
   "toast.copyFailed": "Kopiëren mislukt.",
   "toast.huddleWindowNotFound": "Huddle-venster niet gevonden.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Sessie geladen. Vraag ernaar in de chat of bekijk de tabbladen.",
   "toast.sessionDeleted": "Sessie verwijderd.",
   "toast.chatNeedKey": "Voeg in de instellingen de API-sleutel van het gekozen model toe om met de meeting te chatten.",
-
   "mark.label.question": "Vraag",
   "mark.label.decision": "Besluit",
   "mark.label.action": "Actie",
   "mark.label.detected": "Gedetecteerd",
-
   "session.importedTitle": "Geïmporteerde sessie"
 }

@@ -56,7 +56,7 @@
   "captions.slackPrefs": "preferências do Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "A ler legendas em {lang} do huddle · {n} {unit}.",
-  "captions.reading": "A ler legendas do huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Copiar legendas",
   "captions.download": "Transferir transcrição",
   "mark.action": "Ação",

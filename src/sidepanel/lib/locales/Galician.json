@@ -56,7 +56,7 @@
   "captions.slackPrefs": "preferencias de Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Lendo subtítulos en {lang} do huddle · {n} {unit}.",
-  "captions.reading": "Lendo subtítulos do huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Copiar os subtítulos",
   "captions.download": "Descargar a transcrición",
   "mark.action": "Acción",

@@ -56,7 +56,7 @@
   "captions.slackPrefs": "налаштуваннях Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Читаю субтитри мовою {lang} з гадла · {n} {unit}.",
-  "captions.reading": "Читаю субтитри з гадла · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Копіювати субтитри",
   "captions.download": "Завантажити транскрипт",
   "mark.action": "Дія",

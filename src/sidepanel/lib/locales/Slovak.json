@@ -8,7 +8,6 @@
   "common.send": "Odoslať",
   "common.collapse": "Zbaliť",
   "common.expand": "Rozbaliť",
-
   "unit.caption.one": "titulok",
   "unit.caption.other": "titulkov",
   "unit.participant.one": "účastník",
@@ -17,7 +16,6 @@
   "unit.session.other": "relácií",
   "unit.event.one": "udalosť",
   "unit.event.other": "udalostí",
-
   "header.ended": "Ukončené",
   "header.backToSlack": "Späť do Slacku",
   "header.home": "Domov",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat so stretnutím",
   "header.logs": "Logy",
   "header.settings": "Nastavenia",
-
   "tabs.aria": "Sekcie",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Zápisnica",
-
   "info.unstackAll": "Rozložiť všetky stohy",
   "info.stackAll": "Zbaliť všetky sekcie do stohu",
   "info.stackAllAria": "Zbaliť všetky sekcie do jedného stohu",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analýza každých {n}s.",
   "infobar.nextIn": "Ďalšia analýza o {n}s.",
   "infobar.onNextUtterance": "Analýza pri ďalšom titulku…",
-
   "captions.enablePre": "Titulky sa nezobrazujú? Zapnite ich v huddle (tlačidlo titulkov) alebo v ",
   "captions.slackPrefs": "predvoľbách Slacku",
   "captions.enablePost": ".",
   "captions.readingLang": "Čítam titulky v jazyku {lang} z huddle · {n} {unit}.",
-  "captions.reading": "Čítam titulky z huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Kopírovať titulky",
   "captions.download": "Stiahnuť prepis",
-
   "mark.action": "Úloha",
   "mark.decision": "Rozhodnutie",
   "mark.question": "Otázka",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Predvoľby › Zvuk a video).",
   "captions.followingLive": "Sledujem naživo",
   "captions.backToLive": "Späť na naživo",
-
   "insights.deckView": "Zobraziť ako zoznam",
   "insights.deckStack": "Zbaliť karty do stohu",
   "insights.deckViewAria": "Zobraziť karty ako zoznam",
@@ -149,7 +142,6 @@
   "copy.decision": "Kopírovať rozhodnutie",
   "section.references": "Spomenuté odkazy",
   "section.acronyms": "Skratky",
-
   "ata.step.task": "Úloha",
   "ata.meetingInfo": "Informácie o stretnutí",
   "ata.copy": "Kopírovať zápisnicu",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Priebeh",
   "ata.loading.title": "Píšem zápisnicu huddle",
   "ata.loading.note": "Zvyčajne to trvá menej ako minútu. Nechajte panel otvorený až do konca; zápisnica sa uloží.",
-
   "atas.title": "Predchádzajúce relácie",
   "atas.count": "{n} {unit}",
   "atas.import": "Importovať prepis",
@@ -233,7 +224,6 @@
   "session.load": "Načítať reláciu",
   "session.delete": "Odstrániť reláciu",
   "session.deleteTitle": "Odstrániť túto reláciu?",
-
   "chat.thinking": "Premýšľam",
   "chat.withMeeting": "Chat so stretnutím",
   "chat.closeConversation": "Zavrieť túto konverzáciu",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Položte rýchlu otázku",
   "chat.inputAria": "Otázka pre stretnutie",
   "chat.send": "Odoslať otázku",
-
   "idle.noHuddle": "Žiadny aktívny huddle",
   "idle.enterHuddle": "Pripojte sa k huddle v Slacku v prehliadači a otvorte kartu {tab}. Insights sa objavia tu.",
   "idle.reloadHint": "Už máte huddle spustený? Pripojte túto kartu a znova otvorte huddle — bez obnovenia stránky.",
@@ -260,7 +249,6 @@
   "idle.import": "Importovať prepis",
   "idle.previousCount": "Predchádzajúce relácie ({n})",
   "idle.privacy": "Titulky zostávajú vo vašom prehliadači. Do API Anthropic sa odosiela len analyzovaný text na generovanie insights.",
-
   "import.title": "Importovať prepis",
   "import.intro": "Sem vložte prepis stretnutia, ktoré neprešlo cez rozšírenie. Stane sa z neho relácia načítaná v aplikácii, s vygenerovanou zápisnicou a insights. Riadky vo formáte {fmt} sa delia podľa osoby.",
   "import.introFmt": "Meno: titulok",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Vytvorí zápisnicu a insights.",
   "import.needKey": "Na vytvorenie pridajte kľúč API.",
   "import.submit": "Importovať",
-
   "logs.title": "Logy",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Kopírovať všetky logy",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Kopírovať túto udalosť",
   "logs.empty": "Zatiaľ žiadne udalosti. Po obnovení rozšírenia obnovte kartu Slacku, aby sa logy začali zaznamenávať.",
   "logs.copy": "Kopírovať logy",
-
   "ticker.aria": "Najnovšie titulky",
-
   "menu.actions": "Akcie",
-
   "settings.title": "Nastavenia",
   "settings.intelligence": "Inteligencia",
   "settings.model": "Model",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Odstrániť históriu",
   "settings.diagnostics": "Diagnostika",
   "settings.viewLogs": "Zobraziť logy",
-
   "toast.copied": "Skopírované.",
   "toast.copyFailed": "Nepodarilo sa skopírovať.",
   "toast.huddleWindowNotFound": "Okno huddle sa nenašlo.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Relácia načítaná. Spýtajte sa na ňu v chate alebo skontrolujte karty.",
   "toast.sessionDeleted": "Relácia odstránená.",
   "toast.chatNeedKey": "Pridajte kľúč API zvoleného modelu v nastaveniach na chat so stretnutím.",
-
   "mark.label.question": "Otázka",
   "mark.label.decision": "Rozhodnutie",
   "mark.label.action": "Úloha",
   "mark.label.detected": "Zistené",
-
   "session.importedTitle": "Importovaná relácia"
 }

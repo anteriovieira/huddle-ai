@@ -56,7 +56,7 @@
   "captions.slackPrefs": "การตั้งค่า Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "กำลังอ่านแคปชัน {lang} จาก huddle · {n} {unit}",
-  "captions.reading": "กำลังอ่านแคปชันจาก huddle · {n} {unit}",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "คัดลอกแคปชัน",
   "captions.download": "ดาวน์โหลดบทถอดเสียง",
   "mark.action": "การกระทำ",

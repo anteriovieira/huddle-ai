@@ -8,7 +8,6 @@
   "common.send": "Αποστολή",
   "common.collapse": "Σύμπτυξη",
   "common.expand": "Ανάπτυξη",
-
   "unit.caption.one": "υπότιτλος",
   "unit.caption.other": "υπότιτλοι",
   "unit.participant.one": "συμμετέχων",
@@ -17,7 +16,6 @@
   "unit.session.other": "συνεδρίες",
   "unit.event.one": "συμβάν",
   "unit.event.other": "συμβάντα",
-
   "header.ended": "Έληξε",
   "header.backToSlack": "Πίσω στο Slack",
   "header.home": "Αρχική",
@@ -26,12 +24,10 @@
   "header.chatAria": "Συνομιλία με τη σύσκεψη",
   "header.logs": "Αρχεία καταγραφής",
   "header.settings": "Ρυθμίσεις",
-
   "tabs.aria": "Ενότητες",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Πρακτικά",
-
   "info.unstackAll": "Αποστοίβαξη όλων των deck",
   "info.stackAll": "Στοίβαξη όλων των ενοτήτων",
   "info.stackAllAria": "Στοίβαξη όλων των ενοτήτων σε ένα deck",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Ανάλυση κάθε {n}δ.",
   "infobar.nextIn": "Επόμενη ανάλυση σε {n}δ.",
   "infobar.onNextUtterance": "Ανάλυση στον επόμενο υπότιτλο…",
-
   "captions.enablePre": "Δεν εμφανίζονται υπότιτλοι; Ενεργοποιήστε τους στο huddle (κουμπί υποτίτλων) ή στις ",
   "captions.slackPrefs": "προτιμήσεις Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Ανάγνωση υποτίτλων στα {lang} από το huddle · {n} {unit}.",
-  "captions.reading": "Ανάγνωση υποτίτλων από το huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Αντιγραφή υποτίτλων",
   "captions.download": "Λήψη απομαγνητοφώνησης",
-
   "mark.action": "Ενέργεια",
   "mark.decision": "Απόφαση",
   "mark.question": "Ερώτηση",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Προτιμήσεις › Ήχος και βίντεο).",
   "captions.followingLive": "Παρακολούθηση ζωντανά",
   "captions.backToLive": "Πίσω στο ζωντανό",
-
   "insights.deckView": "Προβολή ως λίστα",
   "insights.deckStack": "Στοίβαξη των καρτών",
   "insights.deckViewAria": "Προβολή καρτών ως λίστα",
@@ -149,7 +142,6 @@
   "copy.decision": "Αντιγραφή απόφασης",
   "section.references": "Αναφορές που αναφέρθηκαν",
   "section.acronyms": "Ακρωνύμια",
-
   "ata.step.task": "Εργασία",
   "ata.meetingInfo": "Πληροφορίες σύσκεψης",
   "ata.copy": "Αντιγραφή πρακτικών",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Πρόοδος",
   "ata.loading.title": "Σύνταξη των πρακτικών του huddle",
   "ata.loading.note": "Συνήθως διαρκεί λιγότερο από ένα λεπτό. Κρατήστε το πάνελ ανοιχτό μέχρι να ολοκληρωθεί· τα πρακτικά αποθηκεύονται.",
-
   "atas.title": "Προηγούμενες συνεδρίες",
   "atas.count": "{n} {unit}",
   "atas.import": "Εισαγωγή απομαγνητοφώνησης",
@@ -233,7 +224,6 @@
   "session.load": "Φόρτωση συνεδρίας",
   "session.delete": "Διαγραφή συνεδρίας",
   "session.deleteTitle": "Διαγραφή αυτής της συνεδρίας;",
-
   "chat.thinking": "Σκέφτεται",
   "chat.withMeeting": "Συνομιλία με τη σύσκεψη",
   "chat.closeConversation": "Κλείσιμο αυτής της συνομιλίας",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Κάντε μια γρήγορη ερώτηση",
   "chat.inputAria": "Ερώτηση προς τη σύσκεψη",
   "chat.send": "Αποστολή ερώτησης",
-
   "idle.noHuddle": "Κανένα ενεργό huddle",
   "idle.enterHuddle": "Συμμετάσχετε σε ένα huddle στο Slack στο πρόγραμμα περιήγησης και ανοίξτε την καρτέλα {tab}. Τα insights εμφανίζονται εδώ.",
   "idle.reloadHint": "Έχετε ήδη ένα huddle σε εξέλιξη; Συνδέστε αυτή την καρτέλα και ανοίξτε ξανά το huddle — χωρίς να φορτώσετε ξανά τη σελίδα.",
@@ -260,7 +249,6 @@
   "idle.import": "Εισαγωγή απομαγνητοφώνησης",
   "idle.previousCount": "Προηγούμενες συνεδρίες ({n})",
   "idle.privacy": "Οι υπότιτλοι παραμένουν στο πρόγραμμα περιήγησής σας. Μόνο το κείμενο που αναλύεται στέλνεται στο Anthropic API για τη δημιουργία των insights.",
-
   "import.title": "Εισαγωγή απομαγνητοφώνησης",
   "import.intro": "Επικολλήστε εδώ την απομαγνητοφώνηση μιας σύσκεψης που δεν πέρασε από την επέκταση. Γίνεται συνεδρία φορτωμένη στην εφαρμογή, με πρακτικά και insights που δημιουργούνται. Οι γραμμές σε μορφή {fmt} διαχωρίζονται ανά άτομο.",
   "import.introFmt": "Όνομα: υπότιτλος",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Δημιουργεί τα πρακτικά και τα insights.",
   "import.needKey": "Προσθέστε το κλειδί API για τη δημιουργία.",
   "import.submit": "Εισαγωγή",
-
   "logs.title": "Αρχεία καταγραφής",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Αντιγραφή όλων των αρχείων καταγραφής",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Αντιγραφή αυτού του συμβάντος",
   "logs.empty": "Δεν υπάρχουν ακόμη συμβάντα. Επαναφορτώστε την καρτέλα Slack μετά την επαναφόρτωση της επέκτασης για να ξεκινήσει η καταγραφή.",
   "logs.copy": "Αντιγραφή αρχείων καταγραφής",
-
   "ticker.aria": "Τελευταίοι υπότιτλοι",
-
   "menu.actions": "Ενέργειες",
-
   "settings.title": "Ρυθμίσεις",
   "settings.intelligence": "Νοημοσύνη",
   "settings.model": "Μοντέλο",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Διαγραφή ιστορικού",
   "settings.diagnostics": "Διαγνωστικά",
   "settings.viewLogs": "Προβολή αρχείων καταγραφής",
-
   "toast.copied": "Αντιγράφηκε.",
   "toast.copyFailed": "Δεν ήταν δυνατή η αντιγραφή.",
   "toast.huddleWindowNotFound": "Το παράθυρο του huddle δεν βρέθηκε.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Η συνεδρία φορτώθηκε. Ρωτήστε γι' αυτήν στη συνομιλία ή δείτε τις καρτέλες.",
   "toast.sessionDeleted": "Η συνεδρία διαγράφηκε.",
   "toast.chatNeedKey": "Προσθέστε το κλειδί API του επιλεγμένου μοντέλου στις ρυθμίσεις για να συνομιλήσετε με τη σύσκεψη.",
-
   "mark.label.question": "Ερώτηση",
   "mark.label.decision": "Απόφαση",
   "mark.label.action": "Ενέργεια",
   "mark.label.detected": "Εντοπίστηκε",
-
   "session.importedTitle": "Εισηγμένη συνεδρία"
 }

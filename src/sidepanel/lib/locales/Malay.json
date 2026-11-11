@@ -56,7 +56,7 @@
   "captions.slackPrefs": "keutamaan Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Membaca caption {lang} daripada huddle · {n} {unit}.",
-  "captions.reading": "Membaca caption daripada huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Salin caption",
   "captions.download": "Muat turun transkrip",
   "mark.action": "Tindakan",

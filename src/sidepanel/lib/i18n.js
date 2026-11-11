@@ -126,7 +126,7 @@ export const STRINGS = {
   'captions.slackPrefs': 'Slack preferences',
   'captions.enablePost': '.',
   'captions.readingLang': 'Reading {lang} captions from the huddle · {n} {unit}.',
-  'captions.reading': 'Reading captions from the huddle · {n} {unit}.',
+  'captions.reading': '{n} {unit}',
   'captions.copy': 'Copy captions',
   'captions.download': 'Download transcript',
 
@@ -246,6 +246,7 @@ export const STRINGS = {
   'ata.tagsAria': 'Tags',
   'ata.summaryAria': 'Meeting summary',
   'ata.info.generating': 'Generating the minutes…',
+  'ata.info.ready': 'Minutes ready',
   'ata.info.generated': 'Minutes generated {ago}.',
   'ata.info.generatedModel': 'Minutes generated {ago} · {model}.',
   'ata.info.auto': 'The minutes are generated automatically when the huddle ends.',

@@ -56,7 +56,7 @@
   "captions.slackPrefs": "настройках Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Читаю субтитры на {lang} из хадла · {n} {unit}.",
-  "captions.reading": "Читаю субтитры из хадла · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Копировать субтитры",
   "captions.download": "Скачать транскрипт",
   "mark.action": "Действие",

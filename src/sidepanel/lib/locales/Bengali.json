@@ -56,7 +56,7 @@
   "captions.slackPrefs": "Slack পছন্দসমূহে",
   "captions.enablePost": " চালু করুন।",
   "captions.readingLang": "huddle থেকে {lang} ক্যাপশন পড়া হচ্ছে · {n} {unit}।",
-  "captions.reading": "huddle থেকে ক্যাপশন পড়া হচ্ছে · {n} {unit}।",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "ক্যাপশন কপি করুন",
   "captions.download": "ট্রান্সক্রিপ্ট ডাউনলোড করুন",
   "mark.action": "কাজ",

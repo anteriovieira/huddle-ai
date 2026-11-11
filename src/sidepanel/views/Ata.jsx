@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ago, formatDateTime, formatDuration } from '../lib/format.js';
-import { CATEGORY_TONES, groupSessions, listTime, modelLabel } from '../lib/minutes.js';
+import { formatDateTime, formatDuration } from '../lib/format.js';
+import { CATEGORY_TONES, groupSessions, listTime } from '../lib/minutes.js';
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { KebabMenu } from '../ui/Menu.jsx';
@@ -152,10 +152,6 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
               <span className="ata-class__conf">{`${data.classification.confidence}%`}</span>
             </button>
           </Tooltip>
-          <button className="button button--small" type="button" onClick={onCopy}>
-            <Icon name="copy" />
-            {t('ata.copy')}
-          </button>
         </div>
         <dl className="meta-grid">
           <MetaCell label={t('ata.dateTime')} value={formatDateTime(meta.startedAt)} />
@@ -234,16 +230,14 @@ export function AtaContent({ record, done, onCopy, onToggleStep }) {
   );
 }
 
-export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minutes, autoMinutes, now }) {
+export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, onCopy, onDrive, uploaded, driveBusy, busy, minutes, autoMinutes, now }) {
   const t = useT();
   let text;
   if (busy) {
     text = t('ata.info.generating');
   } else if (minutes) {
-    const model = modelLabel(minutes.model);
-    text = model
-      ? t('ata.info.generatedModel', { ago: ago(minutes.generatedAt, now), model })
-      : t('ata.info.generated', { ago: ago(minutes.generatedAt, now) });
+    // Discreto: só a fonte (canal/DM de onde veio), sem data nem modelo.
+    text = minutes.meta?.source ?? t('ata.info.ready');
   } else if (autoMinutes) {
     text = t('ata.info.auto');
   } else {
@@ -269,21 +263,25 @@ export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minut
             </button>
           </Tooltip>
         )}
-        <Tooltip label={t('ata.previous')}>
-          <button className="icon-button" type="button" aria-label={t('ata.previous')} onClick={onOpenList}>
-            <Icon name="history" />
-          </button>
-        </Tooltip>
+        {minutes && onCopy && (
+          <Tooltip label={t('ata.copy')}>
+            <button className="icon-button" type="button" aria-label={t('ata.copy')} onClick={onCopy}>
+              <Icon name="copy" />
+            </button>
+          </Tooltip>
+        )}
+        {minutes && onDrive && <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} size="sm" />}
       </div>
     </div>
   );
 }
 
-function DriveButton({ uploaded, driveBusy, onDrive }) {
+function DriveButton({ uploaded, driveBusy, onDrive, size = 'lg' }) {
   const t = useT();
+  const base = size === 'sm' ? 'icon-button' : 'icon-button icon-button--lg';
   if (driveBusy) {
     return (
-      <button className="icon-button icon-button--lg" type="button" disabled aria-label={t('drive.sendingAria')}>
+      <button className={base} type="button" disabled aria-label={t('drive.sendingAria')}>
         <span className="spinner" aria-hidden="true" />
       </button>
     );
@@ -291,7 +289,7 @@ function DriveButton({ uploaded, driveBusy, onDrive }) {
   return (
     <Tooltip label={uploaded ? t('drive.sentResend') : t('drive.send')}>
       <button
-        className={uploaded ? 'icon-button icon-button--lg is-done' : 'icon-button icon-button--lg'}
+        className={uploaded ? `${base} is-done` : base}
         type="button"
         aria-label={uploaded ? t('drive.resendAria') : t('drive.send')}
         onClick={onDrive}
@@ -302,15 +300,17 @@ function DriveButton({ uploaded, driveBusy, onDrive }) {
   );
 }
 
-export function AtaFooter({ record, onCopy, canPost, onPost, onDownload, uploaded, driveBusy, onDrive, flash }) {
+export function AtaFooter({ record, onCopy, canPost, onPost, onDownload, uploaded, driveBusy, onDrive, flash, showCopy = true, showDrive = true }) {
   const t = useT();
   return (
     <footer className="footer">
       <div className="buttons">
-        <button className="button button--primary" type="button" onClick={onCopy}>
-          {t('ata.copy')}
-        </button>
-        <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} />
+        {showCopy && (
+          <button className="button button--primary" type="button" onClick={onCopy}>
+            {t('ata.copy')}
+          </button>
+        )}
+        {showDrive && <DriveButton uploaded={!!uploaded} driveBusy={driveBusy} onDrive={onDrive} />}
         <Tooltip label={t('ata.downloadMd')}>
           <button className="icon-button icon-button--lg" type="button" aria-label={t('ata.downloadMdAria')} onClick={onDownload}>
             <Icon name="download" />
@@ -471,17 +471,19 @@ export function AtasList({ records, query, tag, onOpen, onLoad, onDelete, curren
                 : onLoad && { label: t('atas.menu.load'), icon: 'download', onSelect: () => onLoad(record) },
               onDelete && { label: t('atas.menu.delete'), icon: 'trash', danger: true, onSelect: () => onDelete(record) },
             ].filter(Boolean);
+            // Clicar na sessão carrega direto no app; abrir só a ata fica no menu (⋯).
+            const activate = isCurrent ? null : onLoad ?? onOpen;
             return (
               <div
                 key={record.huddleId}
                 className="ata-item"
                 role="button"
                 tabIndex={0}
-                onClick={() => onOpen(record)}
+                onClick={() => activate?.(record)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (activate && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault();
-                    onOpen(record);
+                    activate(record);
                   }
                 }}
               >

@@ -13,7 +13,7 @@ const { Avatar } = await import('../src/sidepanel/ui/primitives.jsx');
 const { Markdown } = await import('../src/sidepanel/ui/Markdown.jsx');
 const { InsightsView } = await import('../src/sidepanel/views/Insights.jsx');
 const { CaptionsView, CaptionsPanel } = await import('../src/sidepanel/views/Captions.jsx');
-const { AtaContent, AtaEmpty, AtasList } = await import('../src/sidepanel/views/Ata.jsx');
+const { AtaContent, AtaEmpty, AtasList, AtaInfo } = await import('../src/sidepanel/views/Ata.jsx');
 const { IdleView } = await import('../src/sidepanel/views/Idle.jsx');
 const { Header, InfoBar } = await import('../src/sidepanel/views/Header.jsx');
 const { TooltipProvider } = await import('../src/sidepanel/ui/Tooltip.jsx');
@@ -257,7 +257,25 @@ test('AtaContent renders classification, summary and next steps', () => {
   assert.match(html, /Planejamento do Q4/);
   assert.match(html, /Entregar billing/);
   assert.match(html, /80%/);
-  assert.match(html, /Copiar ata/);
+  // O botão de copiar saiu do conteúdo e foi para a barra de info (AtaInfo).
+  assert.doesNotMatch(html, /Copiar ata/);
+});
+
+test('AtaInfo exposes copy and Google Drive actions when there is an ata', () => {
+  const minutes = { generatedAt: Date.now(), model: null };
+  const html = render(
+    h(TooltipProvider, null, h(AtaInfo, {
+      minutes,
+      now: Date.now(),
+      onCopy() {},
+      onDrive() {},
+      uploaded: null,
+      driveBusy: false,
+      onOpenList() {},
+    })),
+  );
+  assert.match(html, /aria-label="Copiar ata"/);
+  assert.match(html, /aria-label="Enviar ao Google Drive"/);
 });
 
 test('AtaContent shows the classification as a compact chip; its reasons stay in a closed modal', () => {

@@ -25,20 +25,18 @@ export function Header({
         <span className="header__app">Huddle AI</span>
         <span className="header__sub">v{version}</span>
       </div>
-      {huddle &&
-        (huddle.active ? (
-          <span className="pill pill--live">
-            <span className="dot" />
-            <span id="clock">{formatClock(now - huddle.startedAt)}</span>
-          </span>
-        ) : (
-          <span className="pill">{t('header.ended')}</span>
-        ))}
+      {huddle && huddle.active && (
+        <span className="pill pill--live">
+          <span className="dot" />
+          <span id="clock">{formatClock(now - huddle.startedAt)}</span>
+        </span>
+      )}
       {onReturnToSlack && (
-        <button className="button button--small header__slack" type="button" onClick={onReturnToSlack}>
-          <Icon name="enter" />
-          {t('header.backToSlack')}
-        </button>
+        <Tooltip label={t('header.backToSlack')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.backToSlack')} onClick={onReturnToSlack}>
+            <Icon name="slack" />
+          </button>
+        </Tooltip>
       )}
       {onHome && (
         <Tooltip label={t('header.home')} side="bottom">
@@ -50,7 +48,7 @@ export function Header({
       {onOpenAtas && (
         <Tooltip label={t('header.sessions')} side="bottom">
           <button className="icon-button" type="button" aria-label={t('header.sessions')} onClick={onOpenAtas}>
-            <Icon name="history" />
+            <Icon name="logs" />
           </button>
         </Tooltip>
       )}
@@ -69,12 +67,12 @@ export function Header({
       )}
       <Tooltip label={t('header.logs')} side="bottom">
         <button className="icon-button" type="button" aria-label={t('header.logs')} onClick={onOpenLogs}>
-          <Icon name="logs" />
+          <Icon name="history" />
         </button>
       </Tooltip>
       <Tooltip label={t('header.settings')} side="bottom">
         <button className="icon-button" type="button" aria-label={t('header.settings')} onClick={onOpenSettings}>
-          <Icon name="settings" />
+          <Icon name="sliders" />
         </button>
       </Tooltip>
     </header>
@@ -240,6 +238,10 @@ export function InfoBar({
   onCopyCaptions,
   onRegenerate,
   onOpenAtas,
+  onCopyMinutes,
+  onDriveMinutes,
+  minutesUploaded,
+  minutesDriveBusy,
   showAllSeen,
   hiddenSeen,
   onToggleShowAll,
@@ -319,8 +321,6 @@ export function InfoBar({
               </a>
               {t('captions.enablePost')}
             </>
-          ) : huddle.language ? (
-            t('captions.readingLang', { lang: huddle.language, n: count, unit })
           ) : (
             t('captions.reading', { n: count, unit })
           )}
@@ -352,6 +352,10 @@ export function InfoBar({
       onOpenList={onOpenAtas}
       onPost={onPostMinutes}
       canPost={canPostMinutes}
+      onCopy={onCopyMinutes}
+      onDrive={onDriveMinutes}
+      uploaded={minutesUploaded}
+      driveBusy={minutesDriveBusy}
       busy={minutesRunning}
       minutes={currentMinutes}
       autoMinutes={settings.autoMinutes}

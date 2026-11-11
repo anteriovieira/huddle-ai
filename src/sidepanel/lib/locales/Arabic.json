@@ -56,7 +56,7 @@
   "captions.slackPrefs": "تفضيلات Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "قراءة تسميات {lang} من huddle · {n} {unit}.",
-  "captions.reading": "قراءة التسميات التوضيحية من huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "نسخ التسميات التوضيحية",
   "captions.download": "تنزيل النص",
   "mark.action": "إجراء",

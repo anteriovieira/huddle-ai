@@ -8,7 +8,6 @@
   "common.send": "Lähetä",
   "common.collapse": "Tiivistä",
   "common.expand": "Laajenna",
-
   "unit.caption.one": "tekstitysrivi",
   "unit.caption.other": "tekstitysriviä",
   "unit.participant.one": "osallistuja",
@@ -17,7 +16,6 @@
   "unit.session.other": "istuntoa",
   "unit.event.one": "tapahtuma",
   "unit.event.other": "tapahtumaa",
-
   "header.ended": "Päättynyt",
   "header.backToSlack": "Takaisin Slackiin",
   "header.home": "Etusivu",
@@ -26,12 +24,10 @@
   "header.chatAria": "Keskustele kokouksen kanssa",
   "header.logs": "Lokit",
   "header.settings": "Asetukset",
-
   "tabs.aria": "Osiot",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Muistio",
-
   "info.unstackAll": "Pura kaikki pinot",
   "info.stackAll": "Pinoa kaikki osiot",
   "info.stackAllAria": "Pinoa kaikki osiot yhteen pinoon",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analysoidaan {n} sekunnin välein.",
   "infobar.nextIn": "Seuraava analyysi {n}s kuluttua.",
   "infobar.onNextUtterance": "Analysoidaan seuraavalla tekstitysrivillä…",
-
   "captions.enablePre": "Eivätkö tekstitykset näy? Ota ne käyttöön huddlessa (tekstityspainike) tai ",
   "captions.slackPrefs": "Slack-asetuksissasi",
   "captions.enablePost": ".",
   "captions.readingLang": "Luetaan {lang}-tekstityksiä huddlesta · {n} {unit}.",
-  "captions.reading": "Luetaan tekstityksiä huddlesta · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Kopioi tekstitykset",
   "captions.download": "Lataa litterointi",
-
   "mark.action": "Tehtävä",
   "mark.decision": "Päätös",
   "mark.question": "Kysymys",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Asetukset › Ääni ja video).",
   "captions.followingLive": "Seurataan livenä",
   "captions.backToLive": "Takaisin liveen",
-
   "insights.deckView": "Näytä luettelona",
   "insights.deckStack": "Pinoa kortit",
   "insights.deckViewAria": "Näytä kortit luettelona",
@@ -149,7 +142,6 @@
   "copy.decision": "Kopioi päätös",
   "section.references": "Mainitut viittaukset",
   "section.acronyms": "Lyhenteet",
-
   "ata.step.task": "Tehtävä",
   "ata.meetingInfo": "Kokouksen tiedot",
   "ata.copy": "Kopioi muistio",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Edistyminen",
   "ata.loading.title": "Kirjoitetaan huddlen muistiota",
   "ata.loading.note": "Kestää yleensä alle minuutin. Pidä paneeli auki, kunnes se on valmis; muistio tallennetaan.",
-
   "atas.title": "Aiemmat istunnot",
   "atas.count": "{n} {unit}",
   "atas.import": "Tuo litterointi",
@@ -233,7 +224,6 @@
   "session.load": "Lataa istunto",
   "session.delete": "Poista istunto",
   "session.deleteTitle": "Poistetaanko tämä istunto?",
-
   "chat.thinking": "Ajattelee",
   "chat.withMeeting": "Keskustele kokouksen kanssa",
   "chat.closeConversation": "Sulje tämä keskustelu",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Esitä nopea kysymys",
   "chat.inputAria": "Kysymys kokoukselle",
   "chat.send": "Lähetä kysymys",
-
   "idle.noHuddle": "Ei aktiivista huddlea",
   "idle.enterHuddle": "Liity huddleen Slackissa selaimessa ja avaa {tab}-välilehti. Insights ilmestyvät tähän.",
   "idle.reloadHint": "Onko huddle jo käynnissä? Yhdistä tämä välilehti ja avaa huddle uudelleen — lataamatta sivua uudelleen.",
@@ -260,7 +249,6 @@
   "idle.import": "Tuo litterointi",
   "idle.previousCount": "Aiemmat istunnot ({n})",
   "idle.privacy": "Tekstitykset pysyvät selaimessasi. Vain analysoitu teksti lähetetään Anthropic APIlle insightsin luomiseksi.",
-
   "import.title": "Tuo litterointi",
   "import.intro": "Liitä tähän sellaisen kokouksen litterointi, joka ei kulkenut laajennuksen kautta. Siitä tulee sovellukseen ladattu istunto, jolle luodaan muistio ja insights. Muodossa {fmt} olevat rivit jaetaan henkilöittäin.",
   "import.introFmt": "Nimi: tekstitysrivi",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Luo muistion ja insights.",
   "import.needKey": "Lisää API-avain luomista varten.",
   "import.submit": "Tuo",
-
   "logs.title": "Lokit",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Kopioi kaikki lokit",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Kopioi tämä tapahtuma",
   "logs.empty": "Ei vielä tapahtumia. Lataa Slack-välilehti uudelleen laajennuksen uudelleenlatauksen jälkeen, jotta lokit alkavat kertyä.",
   "logs.copy": "Kopioi lokit",
-
   "ticker.aria": "Uusimmat tekstitysrivit",
-
   "menu.actions": "Toiminnot",
-
   "settings.title": "Asetukset",
   "settings.intelligence": "Älykkyys",
   "settings.model": "Malli",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Poista historia",
   "settings.diagnostics": "Diagnostiikka",
   "settings.viewLogs": "Näytä lokit",
-
   "toast.copied": "Kopioitu.",
   "toast.copyFailed": "Kopiointi ei onnistunut.",
   "toast.huddleWindowNotFound": "Huddle-ikkunaa ei löytynyt.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Istunto ladattu. Kysy siitä keskustelussa tai tarkista välilehdet.",
   "toast.sessionDeleted": "Istunto poistettu.",
   "toast.chatNeedKey": "Lisää valitun mallin API-avain asetuksiin keskustellaksesi kokouksen kanssa.",
-
   "mark.label.question": "Kysymys",
   "mark.label.decision": "Päätös",
   "mark.label.action": "Tehtävä",
   "mark.label.detected": "Havaittu",
-
   "session.importedTitle": "Tuotu istunto"
 }

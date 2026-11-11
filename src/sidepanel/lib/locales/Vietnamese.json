@@ -56,7 +56,7 @@
   "captions.slackPrefs": "tùy chọn Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "Đang đọc caption {lang} từ huddle · {n} {unit}.",
-  "captions.reading": "Đang đọc caption từ huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Sao chép caption",
   "captions.download": "Tải bản ghi",
   "mark.action": "Hành động",

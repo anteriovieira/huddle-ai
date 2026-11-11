@@ -36,6 +36,7 @@ async function archive(state) {
     insights: insights?.huddleId === state.huddle.id ? insights.data : null,
     minutes: minutes?.huddleId === state.huddle.id ? minutes : null,
     chats: chats?.huddleId === state.huddle.id ? chats.list : null,
+    thread: state.thread ?? null,
   };
   await chrome.storage.local.set({ [HISTORY_KEY]: [entry, ...history].slice(0, HISTORY_LIMIT) });
 }

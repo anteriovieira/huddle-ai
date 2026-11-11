@@ -56,7 +56,7 @@
   "captions.slackPrefs": "Slack 偏好設定",
   "captions.enablePost": " 中開啟。",
   "captions.readingLang": "正在讀取 huddle 的 {lang} 字幕 · {n} {unit}。",
-  "captions.reading": "正在讀取 huddle 的字幕 · {n} {unit}。",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "複製字幕",
   "captions.download": "下載逐字稿",
   "mark.action": "行動項目",

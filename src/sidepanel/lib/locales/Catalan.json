@@ -56,7 +56,7 @@
   "captions.slackPrefs": "preferències de Slack",
   "captions.enablePost": ".",
   "captions.readingLang": "S’estan llegint els subtítols en {lang} del huddle · {n} {unit}.",
-  "captions.reading": "S’estan llegint els subtítols del huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Copia els subtítols",
   "captions.download": "Baixa la transcripció",
   "mark.action": "Acció",

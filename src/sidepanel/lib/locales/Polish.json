@@ -8,7 +8,6 @@
   "common.send": "Wyślij",
   "common.collapse": "Zwiń",
   "common.expand": "Rozwiń",
-
   "unit.caption.one": "napis",
   "unit.caption.other": "napisów",
   "unit.participant.one": "uczestnik",
@@ -17,7 +16,6 @@
   "unit.session.other": "sesji",
   "unit.event.one": "zdarzenie",
   "unit.event.other": "zdarzeń",
-
   "header.ended": "Zakończono",
   "header.backToSlack": "Powrót do Slacka",
   "header.home": "Strona główna",
@@ -26,12 +24,10 @@
   "header.chatAria": "Czat ze spotkaniem",
   "header.logs": "Logi",
   "header.settings": "Ustawienia",
-
   "tabs.aria": "Sekcje",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Protokół",
-
   "info.unstackAll": "Rozłóż wszystkie stosy",
   "info.stackAll": "Zwiń wszystkie sekcje w stos",
   "info.stackAllAria": "Zwiń wszystkie sekcje w jeden stos",
@@ -56,15 +52,13 @@
   "infobar.analyzingEvery": "Analiza co {n}s.",
   "infobar.nextIn": "Następna analiza za {n}s.",
   "infobar.onNextUtterance": "Analiza przy następnym napisie…",
-
   "captions.enablePre": "Napisy się nie pojawiają? Włącz je w huddle (przycisk napisów) lub w ",
   "captions.slackPrefs": "preferencjach Slacka",
   "captions.enablePost": ".",
   "captions.readingLang": "Odczytywanie napisów w języku {lang} z huddle · {n} {unit}.",
-  "captions.reading": "Odczytywanie napisów z huddle · {n} {unit}.",
+  "captions.reading": "{n} {unit}",
   "captions.copy": "Kopiuj napisy",
   "captions.download": "Pobierz transkrypcję",
-
   "mark.action": "Zadanie",
   "mark.decision": "Decyzja",
   "mark.question": "Pytanie",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Preferencje › Dźwięk i wideo).",
   "captions.followingLive": "Śledzenie na żywo",
   "captions.backToLive": "Wróć do widoku na żywo",
-
   "insights.deckView": "Pokaż jako listę",
   "insights.deckStack": "Zwiń karty w stos",
   "insights.deckViewAria": "Pokaż karty jako listę",
@@ -149,7 +142,6 @@
   "copy.decision": "Kopiuj decyzję",
   "section.references": "Wspomniane odniesienia",
   "section.acronyms": "Skróty",
-
   "ata.step.task": "Zadanie",
   "ata.meetingInfo": "Informacje o spotkaniu",
   "ata.copy": "Kopiuj protokół",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Postęp",
   "ata.loading.title": "Tworzenie protokołu huddle",
   "ata.loading.note": "Zwykle zajmuje to mniej niż minutę. Zostaw panel otwarty do końca; protokół zostanie zapisany.",
-
   "atas.title": "Poprzednie sesje",
   "atas.count": "{n} {unit}",
   "atas.import": "Importuj transkrypcję",
@@ -233,7 +224,6 @@
   "session.load": "Wczytaj sesję",
   "session.delete": "Usuń sesję",
   "session.deleteTitle": "Usunąć tę sesję?",
-
   "chat.thinking": "Myślę",
   "chat.withMeeting": "Czat ze spotkaniem",
   "chat.closeConversation": "Zamknij tę rozmowę",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Zadaj krótkie pytanie",
   "chat.inputAria": "Pytanie do spotkania",
   "chat.send": "Wyślij pytanie",
-
   "idle.noHuddle": "Brak aktywnego huddle",
   "idle.enterHuddle": "Dołącz do huddle w Slacku w przeglądarce i otwórz kartę {tab}. Insighty pojawią się tutaj.",
   "idle.reloadHint": "Masz już trwający huddle? Połącz tę kartę i otwórz huddle ponownie — bez przeładowywania strony.",
@@ -260,7 +249,6 @@
   "idle.import": "Importuj transkrypcję",
   "idle.previousCount": "Poprzednie sesje ({n})",
   "idle.privacy": "Napisy pozostają w Twojej przeglądarce. Do API Anthropic wysyłany jest tylko analizowany tekst, aby wygenerować insighty.",
-
   "import.title": "Importuj transkrypcję",
   "import.intro": "Wklej tutaj transkrypcję spotkania, które nie przeszło przez rozszerzenie. Stanie się sesją wczytaną w aplikacji, z wygenerowanym protokołem i insightami. Wiersze w formacie {fmt} są dzielone według osoby.",
   "import.introFmt": "Imię: napis",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Generuje protokół i insighty.",
   "import.needKey": "Dodaj klucz API, aby wygenerować.",
   "import.submit": "Importuj",
-
   "logs.title": "Logi",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Kopiuj wszystkie logi",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Kopiuj to zdarzenie",
   "logs.empty": "Brak zdarzeń. Przeładuj kartę Slacka po przeładowaniu rozszerzenia, aby logi zaczęły się pojawiać.",
   "logs.copy": "Kopiuj logi",
-
   "ticker.aria": "Najnowsze napisy",
-
   "menu.actions": "Akcje",
-
   "settings.title": "Ustawienia",
   "settings.intelligence": "Inteligencja",
   "settings.model": "Model",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Usuń historię",
   "settings.diagnostics": "Diagnostyka",
   "settings.viewLogs": "Zobacz logi",
-
   "toast.copied": "Skopiowano.",
   "toast.copyFailed": "Nie udało się skopiować.",
   "toast.huddleWindowNotFound": "Nie znaleziono okna huddle.",
@@ -371,11 +354,9 @@
   "toast.sessionLoaded": "Sesja wczytana. Zapytaj o nią w czacie lub sprawdź karty.",
   "toast.sessionDeleted": "Sesja usunięta.",
   "toast.chatNeedKey": "Dodaj klucz API wybranego modelu w ustawieniach, aby rozmawiać ze spotkaniem.",
-
   "mark.label.question": "Pytanie",
   "mark.label.decision": "Decyzja",
   "mark.label.action": "Zadanie",
   "mark.label.detected": "Wykryto",
-
   "session.importedTitle": "Zaimportowana sesja"
 }
