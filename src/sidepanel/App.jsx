@@ -89,11 +89,11 @@ let chatSeq = 0;
 // A pergunta enviada ao pedir "mais detalhes" sobre um item. O item em si vai como CONTEXTO
 // anexado à mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight.
 const ASK_DETAIL_QUESTION = {
-  English: 'Give me more details about this topic.',
-  Portuguese: 'Me dê mais detalhes sobre esse tema.',
-  Português: 'Me dê mais detalhes sobre esse tema.',
-  Spanish: 'Dame más detalles sobre este tema.',
-  Español: 'Dame más detalles sobre este tema.',
+  English: 'Explain in one or two paragraphs: what was said, the context, and why it matters.',
+  Portuguese: 'Explique em 1 ou 2 parágrafos: o que foi dito, o contexto e por que importa.',
+  Português: 'Explique em 1 ou 2 parágrafos: o que foi dito, o contexto e por que importa.',
+  Spanish: 'Explica en uno o dos párrafos: qué se dijo, el contexto y por qué importa.',
+  Español: 'Explica en uno o dos párrafos: qué se dijo, el contexto y por qué importa.',
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
