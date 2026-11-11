@@ -323,6 +323,7 @@ export function ChatDock({
           onSubmit();
         }}
       >
+        <div className="chatdock__box">
         {activeChat?.context && (
           <div className="chat-context chat-context--chip">
             <Icon name="reply" className="icon" />
@@ -355,6 +356,7 @@ export function ChatDock({
               <Icon name="enter" />
             </button>
           </Tooltip>
+        </div>
         </div>
       </form>
     </section>

@@ -3114,16 +3114,24 @@ body.is-resizing {
 }
 
 .chatdock__input {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   padding: 10px;
   border-top: 1px solid var(--border);
 }
 
+/* Caixa única do composer: a borda envolve o chip de contexto (quando há) e o campo, como no
+   protótipo (o chip fica dentro do textarea, não acima dele). */
+.chatdock__box {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.chatdock__box:focus-within {
+  border-color: var(--blue);
+}
+
 .chatdock__field {
   position: relative;
-  flex: 1;
 }
 
 .chatdock__input textarea {
@@ -3132,9 +3140,8 @@ body.is-resizing {
   min-height: 40px;
   max-height: 148px;
   padding: 9px 44px 9px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: none;
+  background: transparent;
   color: var(--text);
   font: inherit;
   line-height: 1.4;
@@ -3149,7 +3156,6 @@ body.is-resizing {
 
 .chatdock__input textarea:focus {
   outline: none;
-  border-color: var(--blue);
 }
 
 .chatdock__send {
@@ -3898,9 +3904,10 @@ a.ref__title {
   color: var(--text);
 }
 
-/* No composer: ocupa a largura toda, acima do campo, com o × para remover. */
+/* No composer: primeira linha DENTRO da caixa do input, com o × para remover. */
 .chat-context--chip {
   display: flex;
+  margin: 8px 8px 0;
 }
 
 .chat-context--chip .chat-context__label {
