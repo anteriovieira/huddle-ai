@@ -17,7 +17,7 @@ import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
-import { AnaliseView } from './views/Analise.jsx';
+import { AnaliseView, SessionAnalyticsView } from './views/Analise.jsx';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -146,6 +146,7 @@ export function App() {
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsReturnToSettings, setLogsReturnToSettings] = useState(false);
   const [atasOpen, setAtasOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [atasQuery, setAtasQuery] = useState('');
   const [atasTag, setAtasTag] = useState(null);
   const [viewingAta, setViewingAta] = useState(null);
@@ -1272,6 +1273,24 @@ export function App() {
     [history, flash, tr],
   );
 
+  // --- Análise geral (overlay pelo botão do cabeçalho) ---
+  const openAnalytics = useCallback(() => {
+    setAnalyticsOpen(true);
+    setAtasOpen(false);
+    setViewingAta(null);
+    setImportOpen(false);
+  }, []);
+  const closeAnalytics = useCallback(() => setAnalyticsOpen(false), []);
+  // Clicar numa sessão na Análise geral: carrega a sessão e abre a aba Análise dela.
+  const openSessionAnalytics = useCallback(
+    async (huddleId) => {
+      setAnalyticsOpen(false);
+      await loadSession({ huddleId });
+      setTab('analytics');
+    },
+    [loadSession],
+  );
+
   // Volta para a página principal (o estado em que a extensão abre): descarrega a sessão que estava
   // sendo vista e fecha os overlays. Um huddle ao vivo volta a se preencher sozinho na próxima fala.
   const goHome = useCallback(async () => {
@@ -1640,6 +1659,21 @@ export function App() {
       />
     );
   }
+  if (analyticsOpen) {
+    return screen(
+      <div className="screen">
+        <main className="main main--analytics" id="main">
+          <AnaliseView
+            records={allScores}
+            hasKey={hasKeyForModel(settings)}
+            onOpenSettings={openSettings}
+            onOpenSession={openSessionAnalytics}
+            onClose={closeAnalytics}
+          />
+        </main>
+      </div>,
+    );
+  }
   if (!huddle) {
     return screen(
       <div className="screen">
@@ -1650,6 +1684,7 @@ export function App() {
           now={now}
           onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
           onOpenAtas={openAtas}
+          onOpenAnalytics={openAnalytics}
           onToggleChat={toggleChat}
           onOpenLogs={openLogs}
           onOpenSettings={openSettings}
@@ -1738,9 +1773,8 @@ export function App() {
   // Aba Análise: pontua a reunião só quando encerrada, com transcrição e chave disponíveis.
   const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
   const analyticsProps = {
+    scores: currentScores,
     records: allScores,
-    currentScores,
-    currentHuddleId: huddle?.id ?? null,
     canScore,
     scoring: scoringRunning,
     scoreError,
@@ -1752,7 +1786,7 @@ export function App() {
   // Conteúdo de uma seção — os painéis em si não mudam com a largura.
   const panelContent = (section) => {
     if (section === 'analytics') {
-      return <AnaliseView {...analyticsProps} />;
+      return <SessionAnalyticsView {...analyticsProps} />;
     }
     if (section === 'insights') {
       return (
@@ -1798,6 +1832,9 @@ export function App() {
           onRenamePerson={renamePerson}
           deckSections={deckSections}
           onToggleDeckSection={toggleDeckSection}
+          threadState={huddle?.active ? threadState : 'none'}
+          threadCount={thread?.messages.length ?? 0}
+          onOpenThread={openThread}
         />
         </>
       );
@@ -1929,6 +1966,7 @@ export function App() {
         onHome={huddle?.loaded ? goHome : undefined}
         onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
         onOpenAtas={openAtas}
+        onOpenAnalytics={openAnalytics}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}
         onOpenSettings={openSettings}

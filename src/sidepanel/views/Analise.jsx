@@ -323,7 +323,7 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
   const strengthLabels = data.strengths.map(labelOf);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Backbar title="Sessão" onBack={onBack} />
+      {onBack && <Backbar title="Sessão" onBack={onBack} />}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: STRONG, lineHeight: 1.3 }}>{meta.title || 'Reunião'}</span>
@@ -418,10 +418,12 @@ function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
   );
 }
 
-export function AnaliseView({
+// Per-session Analytics tab: the loaded meeting's own score detail (radar, criteria, strengths,
+// "o que melhorar", per participant), with participant drill-down. Shows a CTA when the meeting is
+// not scored yet. `records` (all scored sessions) feeds the cross-session participant detail.
+export function SessionAnalyticsView({
+  scores = null,
   records = [],
-  currentScores = null,
-  currentHuddleId = null,
   canScore = false,
   scoring = false,
   scoreError = null,
@@ -429,28 +431,63 @@ export function AnaliseView({
   onScore,
   onOpenSettings,
 }) {
-  const [view, setView] = useState({ kind: 'overview' });
-  const agg = useMemo(() => aggregateScores(records), [records]);
-  const currentScored = currentHuddleId && records.some((r) => r.huddleId === currentHuddleId);
+  const [name, setName] = useState(null);
+  if (name) {
+    const base = records.length ? records : scores ? [scores] : [];
+    return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} />;
+  }
+  if (!scores) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {scoreError && <div className="notice notice--error">{scoreError}</div>}
+        <Empty canScore={canScore} scoring={scoring} onScore={onScore} hasKey={hasKey} onOpenSettings={onOpenSettings} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {scoreError && <div className="notice notice--error">{scoreError}</div>}
+      <SessionDetail record={scores} onOpenParticipant={(n) => setName(n)} />
+      {canScore && (
+        <button type="button" className="button button--block" disabled={scoring} onClick={onScore}>
+          {scoring ? 'Analisando…' : 'Reavaliar reunião'}
+        </button>
+      )}
+    </div>
+  );
+}
 
-  if (view.kind === 'participant') {
-    return <ParticipantDetail records={records} name={view.name} onBack={() => setView({ kind: 'overview' })} />;
+// Global Analytics (header button, overlay): the dashboard aggregated over every scored session,
+// with participant drill-down. Clicking a session calls onOpenSession to load it and open its tab.
+export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpenSession, onClose }) {
+  const [name, setName] = useState(null);
+  const agg = useMemo(() => aggregateScores(records), [records]);
+
+  if (name) {
+    return <ParticipantDetail records={records} name={name} onBack={() => setName(null)} />;
   }
-  if (view.kind === 'session') {
-    const record = records.find((r) => r.huddleId === view.huddleId);
-    if (record) {
-      return (
-        <SessionDetail
-          record={record}
-          onBack={() => setView({ kind: 'overview' })}
-          onOpenParticipant={(name) => setView({ kind: 'participant', name })}
-        />
-      );
-    }
-  }
+
+  const header = onClose ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Voltar"
+        style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: 'transparent', color: MUTED, cursor: 'pointer' }}
+      >
+        <Icon name="back" />
+      </button>
+      <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Análise geral</span>
+    </div>
+  ) : null;
 
   if (!agg.count) {
-    return <Empty canScore={canScore} scoring={scoring} onScore={onScore} hasKey={hasKey} onOpenSettings={onOpenSettings} />;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {header}
+        <Empty canScore={false} hasKey={hasKey} onOpenSettings={onOpenSettings} />
+      </div>
+    );
   }
 
   const pct = Math.round((agg.overall / SCORE_MAX) * 100);
@@ -458,13 +495,7 @@ export function AnaliseView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Score current meeting CTA */}
-      {canScore && !currentScored && (
-        <button type="button" className="button button--primary button--block" disabled={scoring} onClick={onScore}>
-          {scoring ? 'Analisando…' : 'Pontuar esta reunião'}
-        </button>
-      )}
-      {scoreError && <div className="notice notice--error">{scoreError}</div>}
+      {header}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden', background: BORDER }}>
@@ -517,7 +548,7 @@ export function AnaliseView({
             <button
               key={p.name}
               type="button"
-              onClick={() => setView({ kind: 'participant', name: p.name })}
+              onClick={() => setName(p.name)}
               style={{ ...card({ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', textAlign: 'left' }), cursor: 'pointer', color: 'inherit', font: 'inherit' }}
             >
               <span style={{ width: 36, height: 36, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#fff', fontWeight: 900, fontSize: 13, background: avatarColor(p.name) }}>
@@ -543,7 +574,7 @@ export function AnaliseView({
           <button
             key={s.huddleId}
             type="button"
-            onClick={() => setView({ kind: 'session', huddleId: s.huddleId })}
+            onClick={() => onOpenSession?.(s.huddleId)}
             style={{ ...card({ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', textAlign: 'left' }), cursor: 'pointer', color: 'inherit', font: 'inherit' }}
           >
             <span style={{ width: 36, height: 36, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'var(--surface-hover)', color: MUTED }} aria-hidden="true">

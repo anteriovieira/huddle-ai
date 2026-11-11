@@ -2599,6 +2599,49 @@ select {
   flex-shrink: 0;
 }
 
+/* Thread no card do tópico: selo verde quando em contexto, CTA quando a cópia está velha. */
+.topic__thread {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+.topic__thread .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.topic__thread-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.topic__thread--on {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.topic__thread--cta {
+  border: 0;
+  cursor: pointer;
+  background: var(--green-bg);
+  color: var(--green);
+}
+.topic__thread--cta:hover {
+  filter: brightness(1.12);
+}
+.topic__thread-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
 /* Chat com a reunião */
 
 /* Toggle simples ligado (empilhar decks, mostrar recentes): neutro, sem cor de status.

@@ -15,6 +15,7 @@ export function Header({
   now,
   onHome,
   onOpenAtas,
+  onOpenAnalytics,
   onReturnToSlack,
 }) {
   const t = useT();
@@ -49,6 +50,13 @@ export function Header({
         <Tooltip label={t('header.sessions')} side="bottom">
           <button className="icon-button" type="button" aria-label={t('header.sessions')} onClick={onOpenAtas}>
             <Icon name="logs" />
+          </button>
+        </Tooltip>
+      )}
+      {onOpenAnalytics && (
+        <Tooltip label={t('header.analytics')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.analytics')} onClick={onOpenAnalytics}>
+            <Icon name="chart" />
           </button>
         </Tooltip>
       )}
