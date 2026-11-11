@@ -452,6 +452,81 @@ function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
 // Per-session Analytics tab: the loaded meeting's own score detail (radar, criteria, strengths,
 // "o que melhorar", per participant), with participant drill-down. Shows a CTA when the meeting is
 // not scored yet. `records` (all scored sessions) feeds the cross-session participant detail.
+// Progressive loader while the meeting is being scored: reveals each criterion, the summary, the
+// improvements and the participants as the model streams them in (same "item a item" feel as the ata).
+function ScoreLoading({ partial }) {
+  const p = partial ?? null;
+  const overall = Array.isArray(p?.overall) ? p.overall.filter((x) => x && typeof x.id === 'string') : [];
+  const participants = Array.isArray(p?.participants) ? p.participants.filter((x) => x && typeof x.name === 'string' && x.name.trim()) : [];
+  const improvements = Array.isArray(p?.improvements) ? p.improvements.filter((r) => r && typeof r.analysis === 'string' && r.analysis.trim()) : [];
+  const summary = typeof p?.summary === 'string' ? p.summary.trim() : '';
+  const criteriaDone = overall.length >= CRITERIA.length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="spinner" aria-hidden="true" />
+        <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Analisando a reunião…</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {sectionTitle('Scores por critério')}
+        {overall.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: MUTED, fontSize: 13 }}>
+            <span className="spinner" aria-hidden="true" /> Avaliando os critérios…
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            {overall.map((c, i) => (
+              <div key={c.id ?? i} className="ata-stream" style={card({ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', borderRadius: 8 })}>
+                <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{labelOf(c.id)}</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: colorOf(c.score ?? 0), lineHeight: 1 }}>
+                  {fmtScore(c.score ?? 0)}
+                  <span style={{ fontSize: 11, fontWeight: 700, color: MUTED }}>/{SCORE_MAX}</span>
+                </span>
+              </div>
+            ))}
+            {!criteriaDone && (
+              <div style={{ ...card({ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 12px', borderRadius: 8 }), color: MUTED }}>
+                <span className="spinner" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {summary && <p className="ata-stream" style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{summary}</p>}
+
+      {improvements.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {sectionTitle('O que melhorar')}
+          {improvements.map((r, i) => (
+            <div key={i} className="ata-stream" style={card({ display: 'flex', flexDirection: 'column', gap: 4, padding: 12 })}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{labelOf(r.criterion)}</span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{r.analysis}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {participants.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sectionTitle('Por participante')}
+          {participants.map((pp, i) => (
+            <div key={i} className="ata-stream" style={card({ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px' })}>
+              <span style={{ width: 32, height: 32, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#fff', fontWeight: 900, fontSize: 12, background: avatarColor(pp.name) }}>
+                {initials(pp.name)}
+              </span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: STRONG, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: colorOf(pp.score ?? 0) }}>{fmtScore(pp.score ?? 0)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SessionAnalyticsView({
   scores = null,
   records = [],
@@ -461,8 +536,10 @@ export function SessionAnalyticsView({
   hasKey = true,
   onScore,
   onOpenSettings,
+  scoresPartial = null,
 }) {
   const [name, setName] = useState(null);
+  if (scoring) return <ScoreLoading partial={scoresPartial} />;
   if (name) {
     const base = records.length ? records : scores ? [scores] : [];
     return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} />;

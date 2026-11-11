@@ -526,7 +526,7 @@ function scoreSystem(settings) {
   ].join('\n\n');
 }
 
-export async function scoreMeeting({ settings, meta, utterances, nameOverrides }) {
+export async function scoreMeeting({ settings, meta, utterances, nameOverrides, onPartial }) {
   try {
     const data = await streamStructured({
       settings,
@@ -541,6 +541,7 @@ export async function scoreMeeting({ settings, meta, utterances, nameOverrides }
         .filter(Boolean)
         .join('\n\n'),
       maxOutputTokens: 6000,
+      onPartial,
     });
     if (!data?.overall) throw new Error('O modelo não retornou os dados no formato esperado.');
     return normalizeScores(data);

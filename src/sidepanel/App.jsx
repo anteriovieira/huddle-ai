@@ -131,6 +131,9 @@ export function App() {
   // loader mostrar cada seção/ponto conforme é processado. Limpo ao terminar.
   const [minutesPartial, setMinutesPartial] = useState(null);
   const [scores, setScores] = useState(null);
+  // Parcial do streaming da pontuação (aba Análise): objeto cumulativo enquanto o modelo pontua,
+  // para o loader revelar cada critério/participante conforme chega. Limpo ao terminar.
+  const [scoresPartial, setScoresPartial] = useState(null);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState([]);
@@ -651,11 +654,18 @@ export function App() {
     scoringCtl.current.running = true;
     setScoringRunning(true);
     setScoreError(null);
+    setScoresPartial(null);
     logEvent('info', `Pontuando reunião de ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
     try {
       const meta = minutesMeta(h, u, latest.current.nameOverrides);
-      const data = await scoreMeeting({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
+      const data = await scoreMeeting({
+        settings: s,
+        meta,
+        utterances: u,
+        nameOverrides: latest.current.nameOverrides,
+        onPartial: (d) => setScoresPartial(d),
+      });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setScores(record);
       await chromeApi?.storage.session.set({ scores: record });
@@ -669,6 +679,7 @@ export function App() {
     } finally {
       scoringCtl.current.running = false;
       setScoringRunning(false);
+      setScoresPartial(null);
     }
   }, [saveScoresToHistory]);
 
@@ -1810,6 +1821,7 @@ export function App() {
     records: allScores,
     canScore,
     scoring: scoringRunning,
+    scoresPartial,
     scoreError,
     hasKey: hasKeyForModel(settings),
     onScore: runScoring,
