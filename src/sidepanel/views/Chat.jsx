@@ -44,7 +44,15 @@ function ChatMessage({ message }) {
   if (message.role === 'user') {
     return (
       <div className="chat-msg chat-msg--user">
-        <p className="chat-bubble">{message.text}</p>
+        <div className="chat-user">
+          {message.context && (
+            <span className="chat-context chat-context--quote">
+              <Icon name="reply" />
+              <span className="chat-context__label">{message.context}</span>
+            </span>
+          )}
+          <p className="chat-bubble">{message.text}</p>
+        </div>
       </div>
     );
   }
@@ -170,6 +178,7 @@ export function ChatDock({
   onCloseDock,
   onDraftChange,
   onSubmit,
+  onRemoveContext,
 }) {
   const t = useT();
   const logRef = useRef(null);
@@ -307,6 +316,15 @@ export function ChatDock({
           onSubmit();
         }}
       >
+        {activeChat?.context && (
+          <div className="chat-context chat-context--chip">
+            <Icon name="reply" className="icon" />
+            <span className="chat-context__label">{activeChat.context.label}</span>
+            <button type="button" className="chat-context__remove" aria-label={t('chat.removeContext')} onClick={onRemoveContext}>
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
         <div className="chatdock__field">
           <textarea
             ref={inputRef}

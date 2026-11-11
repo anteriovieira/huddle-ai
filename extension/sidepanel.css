@@ -3867,3 +3867,78 @@ a.ref__title {
   width: 15px;
   height: 15px;
 }
+
+/* Chip de contexto no chat: no composer (acima do campo) e citado acima da mensagem do usuário.
+   Mesmo estilo nos dois: caixa discreta com ícone de reply e o rótulo do contexto. */
+.chat-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-context .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.chat-context__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* No composer: ocupa a largura toda, acima do campo, com o × para remover. */
+.chat-context--chip {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.chat-context--chip .chat-context__label {
+  flex: 1;
+}
+
+.chat-context__remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-context__remove:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.chat-context__remove .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Citado acima da mensagem do usuário: empilha com a bolha, alinhado à direita. */
+.chat-user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-context--quote {
+  max-width: 100%;
+}

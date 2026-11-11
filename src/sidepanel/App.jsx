@@ -1447,6 +1447,10 @@ export function App() {
   }, [chats.list, activeChatId]);
   const selectChat = useCallback((id) => setActiveChatId(id), []);
   const setDraft = useCallback((id, value) => setChatDrafts((d) => ({ ...d, [id]: value })), []);
+  // Remove o chip de contexto do chat (o × no composer) e ao enviar (contexto consumido).
+  const removeChatContext = useCallback((chatId) => {
+    setChats((prev) => ({ ...prev, list: prev.list.map((c) => (c.id === chatId ? { ...c, context: null } : c)) }));
+  }, []);
 
   const nameChat = useCallback(async (chatId, question) => {
     let title;
@@ -1486,9 +1490,13 @@ export function App() {
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, text: m.text }));
     const firstQuestion = !chat.messages.some((m) => m.role === 'user');
+    const context = chat.context ?? null;
+    // O que o modelo recebe inclui o contexto; a mensagem exibida mantém só a pergunta + o chip.
+    const modelQuestion = context ? `${context.text}\n\n${question}` : question;
 
-    appendMessage(chat.id, { role: 'user', text: question });
+    appendMessage(chat.id, { role: 'user', text: question, ...(context ? { context: context.label } : null) });
     setDraft(chat.id, '');
+    if (context) removeChatContext(chat.id);
     setChatBusy((b) => new Set(b).add(chat.id));
     setChatStream({ chatId: chat.id, text: '', steps: [] });
 
@@ -1500,7 +1508,7 @@ export function App() {
         settings: latest.current.settings,
         utterances: latest.current.utterances,
         history: histTurns,
-        question,
+        question: modelQuestion,
         sessions: latest.current.pastSessions,
         thread: latest.current.threadForAI,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
@@ -1522,7 +1530,7 @@ export function App() {
       });
       setChatStream(null);
     }
-  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, nameChat, flash]);
+  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, removeChatContext, nameChat, flash]);
 
   // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
   // decision, action, question, reference…). Posts the question and streams the answer right away.
@@ -1578,19 +1586,15 @@ export function App() {
 
   // Opens a NEW chat with `draft` pre-filled in the input (NOT sent), for the user to extend with
   // their question before sending. Used by the "chat+" action on the Análise tab.
-  const askAnalyticsInChat = useCallback(
-    (draft) => {
-      setChatOpen(true);
-      const chat = newChat();
-      setChats((prev) => ({
-        ...prev,
-        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [] }],
-      }));
-      setActiveChatId(chat.id);
-      setDraft(chat.id, draft);
-    },
-    [setDraft],
-  );
+  const openAnalyticsChat = useCallback((context) => {
+    setChatOpen(true);
+    const chat = newChat();
+    setChats((prev) => ({
+      ...prev,
+      list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, context }],
+    }));
+    setActiveChatId(chat.id);
+  }, []);
 
   // Expand one insight item (point, decision, action, question…) in a fresh chat.
   const askAboutInsight = useCallback(
@@ -1813,7 +1817,11 @@ export function App() {
     analyticsScoring: scoringRunning,
     onCopyAnalytics: () => currentScores && copyToClipboard(scoresAsText(currentScores)),
     onRegenerateAnalytics: runScoring,
-    onAskAnalytics: () => askAnalyticsInChat(currentScores ? analysisContext(currentScores) : 'Sobre a análise das reuniões: '),
+    onAskAnalytics: () =>
+      openAnalyticsChat({
+        label: 'Análise desta reunião',
+        text: currentScores ? analysisContext(currentScores) : 'Contexto: análise das reuniões pontuadas.',
+      }),
   };
 
   const analyticsProps = {
@@ -2037,6 +2045,7 @@ export function App() {
           onCloseDock={toggleChat}
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
+          onRemoveContext={() => activeChat && removeChatContext(activeChat.id)}
         />
       )}
       {markDialog && (

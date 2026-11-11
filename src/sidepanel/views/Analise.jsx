@@ -281,7 +281,7 @@ function HighlightPill({ tone, label, item }) {
   );
 }
 
-function ParticipantDetail({ records, name, onBack }) {
+function ParticipantDetail({ records, name, onBack, showTrend = true }) {
   const d = useMemo(() => participantDetail(records, name), [records, name]);
   const trend = d.sessions.slice().reverse().map((s) => ({ score: s.score, label: fmtDate(s.startedAt) }));
   const first = name.split(/\s+/)[0];
@@ -324,7 +324,7 @@ function ParticipantDetail({ records, name, onBack }) {
         </div>
       )}
 
-      {trend.length >= 2 && (
+      {showTrend && trend.length >= 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {sectionTitle('Score por sessão')}
           <TrendLine points={trend} />
@@ -542,7 +542,7 @@ export function SessionAnalyticsView({
   if (scoring) return <ScoreLoading partial={scoresPartial} />;
   if (name) {
     const base = records.length ? records : scores ? [scores] : [];
-    return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} />;
+    return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} showTrend={false} />;
   }
   if (!scores) {
     return (

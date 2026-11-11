@@ -337,6 +337,7 @@ export const STRINGS = {
   'chat.placeholder': 'Ask a quick question',
   'chat.inputAria': 'Question for the meeting',
   'chat.send': 'Send question',
+  'chat.removeContext': 'Remove context',
 
   // Idle
   'idle.noHuddle': 'No active huddle',

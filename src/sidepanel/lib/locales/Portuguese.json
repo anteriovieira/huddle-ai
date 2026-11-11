@@ -391,5 +391,6 @@
   "info.analytics.ask": "Perguntar sobre a análise",
   "info.analytics.regen": "Pontuar de novo",
   "info.analytics.scoring": "Pontuando…",
-  "info.analytics.copy": "Copiar a análise"
+  "info.analytics.copy": "Copiar a análise",
+  "chat.removeContext": "Remover contexto"
 }

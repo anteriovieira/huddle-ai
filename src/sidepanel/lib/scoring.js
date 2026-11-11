@@ -192,7 +192,7 @@ export function analysisContext(record) {
     .slice(0, 2)
     .map((c) => c.label);
   const title = record.meta?.title || 'esta reunião';
-  return `Sobre a análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}. Minha pergunta: `;
+  return `Contexto — análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}.`;
 }
 
 // Per-participant detail across sessions: their score in each session they appear in (newest-first),
