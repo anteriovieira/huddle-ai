@@ -3931,13 +3931,26 @@ a.ref__title {
   height: 13px;
 }
 
-/* Citado acima da mensagem do usuário: empilha com a bolha, alinhado à direita. */
-.chat-user {
+/* Mensagem do usuário COM contexto: um bloco (surface) com a citação do contexto em cima e a
+   pergunta embaixo — como no design, no lugar da bolha verde comum. O chip (var(--bg)) fica
+   visível contra o surface. */
+.chat-ctxmsg {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 4px 12px;
+  background: var(--surface);
+}
+
+.chat-ctxmsg__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
 }
 
 .chat-context--quote {
