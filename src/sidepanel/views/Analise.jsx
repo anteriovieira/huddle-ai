@@ -268,9 +268,26 @@ function TrendLine({ points }) {
 }
 
 // --- Detail views ------------------------------------------------------------------------------
+function HighlightPill({ tone, label, item }) {
+  const color = tone === 'up' ? 'var(--green)' : 'var(--danger)';
+  return (
+    <div style={card({ display: 'flex', flexDirection: 'column', gap: 3, padding: '11px 12px', borderRadius: 8 })}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d={tone === 'up' ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} />
+        </svg>
+        {label}
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{item ? item.label : '—'}</span>
+      <span style={{ fontSize: 12, color: MUTED }}>{item ? `${fmtScore(item.score)} / ${SCORE_MAX}` : ''}</span>
+    </div>
+  );
+}
+
 function ParticipantDetail({ records, name, onBack }) {
   const d = useMemo(() => participantDetail(records, name), [records, name]);
   const trend = d.sessions.slice().reverse().map((s) => ({ score: s.score, label: fmtDate(s.startedAt) }));
+  const first = name.split(/\s+/)[0];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Backbar title="Participante" onBack={onBack} />
@@ -284,24 +301,41 @@ function ParticipantDetail({ records, name, onBack }) {
         </div>
         <ScoreRing score={d.average} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
       </div>
-      {d.focus && (
-        <div style={card({ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 })}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--yellow)' }}>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        <HighlightPill tone="up" label="Mais forte" item={d.strength} />
+        <HighlightPill tone="down" label="A melhorar" item={d.weakness} />
+      </div>
+
+      <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
+          <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
+        </div>
+        <Radar criteria={d.criteria} fill="#4a7dbf" />
+      </div>
+
+      {d.tip && (
+        <div style={card({ display: 'flex', gap: 7, alignItems: 'flex-start', padding: '10px 12px' })}>
+          <span style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1, display: 'inline-flex' }} aria-hidden="true">
             <Icon name="bulb" />
-            Foco de melhoria
           </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{labelOf(d.focus)}</span>
-          {d.tip && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{d.tip}</p>}
+          <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
+            {d.focus && <b style={{ color: STRONG }}>Foco em {labelOf(d.focus)}: </b>}
+            {d.tip}
+          </span>
         </div>
       )}
+
       {trend.length >= 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {sectionTitle('Score por sessão')}
           <TrendLine points={trend} />
         </div>
       )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sectionTitle(`Sessões de ${name.split(/\s+/)[0]}`)}
+        {sectionTitle(`Sessões de ${first}`)}
         {d.sessions.map((s) => (
           <div key={s.huddleId} style={card({ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px' })}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -338,9 +372,6 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {sectionTitle('Scores da reunião')}
-        <div style={card({ padding: 14 })}>
-          <Radar criteria={data.overall} />
-        </div>
         <Scorecards criteria={data.overall} />
       </div>
 
