@@ -6,7 +6,7 @@ import { Tooltip } from '../ui/Tooltip.jsx';
 // One quiet line above the insights: whether the huddle's Slack thread is being read and whether
 // the AI may use it. `status` comes from threadStatus(): live | stale | empty | off. The dot says
 // it is in the AI's context (green: read now, yellow: last copy); actions are icon buttons.
-export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext }) {
+export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext, onSummarize }) {
   const t = useT();
   const readAgo = readAt ? ago(readAt, now) : '';
   const detail = {
@@ -25,6 +25,13 @@ export function ThreadBar({ status, count, readAt, now, onOpen, onToggleContext 
       {inContext && (
         <Tooltip label={t('thread.inContext')}>
           <span className="threadbar__dot" role="img" aria-label={t('thread.inContext')} tabIndex={0} />
+        </Tooltip>
+      )}
+      {inContext && onSummarize && (
+        <Tooltip label={t('thread.summarize')}>
+          <button className="icon-button icon-button--sm" type="button" aria-label={t('thread.summarize')} onClick={onSummarize}>
+            <Icon name="sparkles" />
+          </button>
         </Tooltip>
       )}
       {status === 'stale' && (

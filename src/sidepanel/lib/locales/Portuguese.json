@@ -341,6 +341,7 @@
   "thread.empty": "sem mensagens",
   "thread.off": "fora do contexto da IA",
   "thread.inContext": "no contexto da IA",
+  "thread.summarize": "Resuma a thread",
   "thread.open": "Abrir thread",
   "thread.include": "Incluir no contexto da IA",
   "thread.exclude": "Tirar do contexto da IA",

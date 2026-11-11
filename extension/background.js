@@ -28,13 +28,14 @@ async function archive(state) {
   if (!state.huddle || state.huddle.archived || state.utterances.length === 0) return;
   const { settings = {} } = await chrome.storage.local.get('settings');
   if (settings.saveHistory === false) return;
-  const { insights = null, minutes = null } = await chrome.storage.session.get(['insights', 'minutes']);
+  const { insights = null, minutes = null, chats = null } = await chrome.storage.session.get(['insights', 'minutes', 'chats']);
   const { [HISTORY_KEY]: history = [] } = await chrome.storage.local.get(HISTORY_KEY);
   const entry = {
     huddle: state.huddle,
     utterances: state.utterances,
     insights: insights?.huddleId === state.huddle.id ? insights.data : null,
     minutes: minutes?.huddleId === state.huddle.id ? minutes : null,
+    chats: chats?.huddleId === state.huddle.id ? chats.list : null,
   };
   await chrome.storage.local.set({ [HISTORY_KEY]: [entry, ...history].slice(0, HISTORY_LIMIT) });
 }

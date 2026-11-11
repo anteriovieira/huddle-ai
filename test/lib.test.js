@@ -53,7 +53,7 @@ test('formatDuration rounds to minutes and hours', () => {
 
 test('ago uses injectable now', () => {
   const now = 1_000_000_000;
-  assert.equal(ago(now - 10 * 1000, now), 'há 10s');
+  assert.equal(ago(now - 10 * 1000, now), 'Just now');
   assert.equal(ago(now - 5 * 60 * 1000, now), 'há 5 min');
   assert.equal(ago(now - 2 * 3600 * 1000, now), 'há 2 h');
 });

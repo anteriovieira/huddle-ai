@@ -8,7 +8,6 @@
   "common.send": "Envia",
   "common.collapse": "Replega",
   "common.expand": "Desplega",
-
   "unit.caption.one": "subtítol",
   "unit.caption.other": "subtítols",
   "unit.participant.one": "participant",
@@ -17,7 +16,6 @@
   "unit.session.other": "sessions",
   "unit.event.one": "esdeveniment",
   "unit.event.other": "esdeveniments",
-
   "header.ended": "Finalitzat",
   "header.backToSlack": "Torna a Slack",
   "header.home": "Inici",
@@ -26,12 +24,10 @@
   "header.chatAria": "Xat amb la reunió",
   "header.logs": "Registres",
   "header.settings": "Configuració",
-
   "tabs.aria": "Seccions",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Acta",
-
   "info.unstackAll": "Desfés tots els grups",
   "info.stackAll": "Apila totes les seccions",
   "info.stackAllAria": "Apila totes les seccions en un grup",
@@ -56,7 +52,6 @@
   "infobar.analyzingEvery": "S’analitza cada {n}s.",
   "infobar.nextIn": "Pròxima anàlisi d’aquí a {n}s.",
   "infobar.onNextUtterance": "S’analitzarà en el pròxim subtítol…",
-
   "captions.enablePre": "No apareixen els subtítols? Activa’ls al huddle (botó de subtítols) o a les teves ",
   "captions.slackPrefs": "preferències de Slack",
   "captions.enablePost": ".",
@@ -64,7 +59,6 @@
   "captions.reading": "S’estan llegint els subtítols del huddle · {n} {unit}.",
   "captions.copy": "Copia els subtítols",
   "captions.download": "Baixa la transcripció",
-
   "mark.action": "Acció",
   "mark.decision": "Decisió",
   "mark.question": "Pregunta",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Preferències › Àudio i vídeo).",
   "captions.followingLive": "Seguint en directe",
   "captions.backToLive": "Torna al directe",
-
   "insights.deckView": "Mostra com a llista",
   "insights.deckStack": "Apila les targetes",
   "insights.deckViewAria": "Mostra les targetes com a llista",
@@ -149,7 +142,6 @@
   "copy.decision": "Copia la decisió",
   "section.references": "Referències esmentades",
   "section.acronyms": "Sigles",
-
   "ata.step.task": "Tasca",
   "ata.meetingInfo": "Informació de la reunió",
   "ata.copy": "Copia l’acta",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Progrés",
   "ata.loading.title": "S’està escrivint l’acta del huddle",
   "ata.loading.note": "Sol trigar menys d’un minut. Mantén el panell obert fins que acabi; l’acta queda desada.",
-
   "atas.title": "Sessions anteriors",
   "atas.count": "{n} {unit}",
   "atas.import": "Importa una transcripció",
@@ -233,7 +224,6 @@
   "session.load": "Carrega la sessió",
   "session.delete": "Elimina la sessió",
   "session.deleteTitle": "Vols eliminar aquesta sessió?",
-
   "chat.thinking": "Pensant",
   "chat.withMeeting": "Xat amb la reunió",
   "chat.closeConversation": "Tanca aquesta conversa",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Fes una pregunta ràpida",
   "chat.inputAria": "Pregunta per a la reunió",
   "chat.send": "Envia la pregunta",
-
   "idle.noHuddle": "Cap huddle actiu",
   "idle.enterHuddle": "Uneix-te a un huddle a Slack al navegador i obre la pestanya {tab}. Els insights apareixen aquí.",
   "idle.reloadHint": "Ja tens un huddle en marxa? Connecta aquesta pestanya i torna a obrir el huddle — sense recarregar la pàgina.",
@@ -260,7 +249,6 @@
   "idle.import": "Importa una transcripció",
   "idle.previousCount": "Sessions anteriors ({n})",
   "idle.privacy": "Els subtítols es queden al teu navegador. Només el text analitzat s’envia a l’API d’Anthropic per generar els insights.",
-
   "import.title": "Importa una transcripció",
   "import.intro": "Enganxa aquí la transcripció d’una reunió que no ha passat per l’extensió. Es converteix en una sessió carregada a l’aplicació, amb acta i insights generats. Les línies en el format {fmt} es divideixen per persona.",
   "import.introFmt": "Nom: subtítol",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Genera l’acta i els insights.",
   "import.needKey": "Afegeix la clau de l’API per generar.",
   "import.submit": "Importa",
-
   "logs.title": "Registres",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Copia tots els registres",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Copia aquest esdeveniment",
   "logs.empty": "Encara no hi ha esdeveniments. Recarrega la pestanya de Slack després de recarregar l’extensió perquè els registres comencin.",
   "logs.copy": "Copia els registres",
-
   "ticker.aria": "Darrers subtítols",
-
   "menu.actions": "Accions",
-
   "settings.title": "Configuració",
   "settings.intelligence": "Intel·ligència",
   "settings.model": "Model",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Elimina l’historial",
   "settings.diagnostics": "Diagnòstic",
   "settings.viewLogs": "Mostra els registres",
-
   "toast.copied": "Copiat.",
   "toast.copyFailed": "No s’ha pogut copiar.",
   "toast.huddleWindowNotFound": "No s’ha trobat la finestra del huddle.",
@@ -371,11 +354,10 @@
   "toast.sessionLoaded": "Sessió carregada. Pregunta-hi al xat o consulta les pestanyes.",
   "toast.sessionDeleted": "Sessió eliminada.",
   "toast.chatNeedKey": "Afegeix la clau de l’API del model triat a la configuració per xatejar amb la reunió.",
-
   "mark.label.question": "Pregunta",
   "mark.label.decision": "Decisió",
   "mark.label.action": "Acció",
   "mark.label.detected": "Detectat",
-
-  "session.importedTitle": "Sessió importada"
+  "session.importedTitle": "Sessió importada",
+  "thread.summarize": "Resumeix el fil"
 }

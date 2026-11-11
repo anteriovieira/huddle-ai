@@ -8,7 +8,6 @@
   "common.send": "Enviar",
   "common.collapse": "Contraer",
   "common.expand": "Expandir",
-
   "unit.caption.one": "subtítulo",
   "unit.caption.other": "subtítulos",
   "unit.participant.one": "participante",
@@ -17,7 +16,6 @@
   "unit.session.other": "sesiones",
   "unit.event.one": "evento",
   "unit.event.other": "eventos",
-
   "header.ended": "Finalizado",
   "header.backToSlack": "Volver a Slack",
   "header.home": "Inicio",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat con la reunión",
   "header.logs": "Registros",
   "header.settings": "Ajustes",
-
   "tabs.aria": "Secciones",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Acta",
-
   "info.unstackAll": "Deshacer todos los mazos",
   "info.stackAll": "Apilar todas las secciones",
   "info.stackAllAria": "Apilar todas las secciones en un mazo",
@@ -56,7 +52,6 @@
   "infobar.analyzingEvery": "Analizando cada {n}s.",
   "infobar.nextIn": "Próximo análisis en {n}s.",
   "infobar.onNextUtterance": "Analizando en el próximo subtítulo…",
-
   "captions.enablePre": "¿No aparecen los subtítulos? Actívalos en el huddle (botón de subtítulos) o en tus ",
   "captions.slackPrefs": "preferencias de Slack",
   "captions.enablePost": ".",
@@ -64,7 +59,6 @@
   "captions.reading": "Leyendo subtítulos del huddle · {n} {unit}.",
   "captions.copy": "Copiar subtítulos",
   "captions.download": "Descargar transcripción",
-
   "mark.action": "Acción",
   "mark.decision": "Decisión",
   "mark.question": "Pregunta",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Preferencias › Audio y vídeo).",
   "captions.followingLive": "Siguiendo en vivo",
   "captions.backToLive": "Volver al directo",
-
   "insights.deckView": "Ver como lista",
   "insights.deckStack": "Apilar las tarjetas",
   "insights.deckViewAria": "Ver tarjetas como lista",
@@ -149,7 +142,6 @@
   "copy.decision": "Copiar decisión",
   "section.references": "Referencias mencionadas",
   "section.acronyms": "Siglas",
-
   "ata.step.task": "Tarea",
   "ata.meetingInfo": "Información de la reunión",
   "ata.copy": "Copiar acta",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Progreso",
   "ata.loading.title": "Escribiendo el acta del huddle",
   "ata.loading.note": "Suele tardar menos de un minuto. Mantén el panel abierto hasta que termine; el acta queda guardada.",
-
   "atas.title": "Sesiones anteriores",
   "atas.count": "{n} {unit}",
   "atas.import": "Importar transcripción",
@@ -233,7 +224,6 @@
   "session.load": "Cargar sesión",
   "session.delete": "Eliminar sesión",
   "session.deleteTitle": "¿Eliminar esta sesión?",
-
   "chat.thinking": "Pensando",
   "chat.withMeeting": "Chat con la reunión",
   "chat.closeConversation": "Cerrar esta conversación",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Haz una pregunta rápida",
   "chat.inputAria": "Pregunta para la reunión",
   "chat.send": "Enviar pregunta",
-
   "idle.noHuddle": "Ningún huddle activo",
   "idle.enterHuddle": "Únete a un huddle en Slack en el navegador y abre la pestaña {tab}. Los insights aparecen aquí.",
   "idle.reloadHint": "¿Ya tienes un huddle en marcha? Conecta esta pestaña y vuelve a abrir el huddle, sin recargar la página.",
@@ -260,7 +249,6 @@
   "idle.import": "Importar transcripción",
   "idle.previousCount": "Sesiones anteriores ({n})",
   "idle.privacy": "Los subtítulos quedan en tu navegador. Solo el texto analizado se envía a la API de Anthropic para generar los insights.",
-
   "import.title": "Importar transcripción",
   "import.intro": "Pega aquí la transcripción de una reunión que no pasó por la extensión. Se convierte en una sesión cargada en la app, con acta e insights generados. Las líneas en el formato {fmt} se separan por persona.",
   "import.introFmt": "Nombre: subtítulo",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Genera el acta y los insights.",
   "import.needKey": "Añade la clave de API para generar.",
   "import.submit": "Importar",
-
   "logs.title": "Registros",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Copiar todos los registros",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Copiar este evento",
   "logs.empty": "Aún no hay eventos. Recarga la pestaña de Slack después de recargar la extensión para que empiecen los registros.",
   "logs.copy": "Copiar registros",
-
   "ticker.aria": "Últimos subtítulos",
-
   "menu.actions": "Acciones",
-
   "settings.title": "Ajustes",
   "settings.intelligence": "Inteligencia",
   "settings.model": "Modelo",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Eliminar historial",
   "settings.diagnostics": "Diagnóstico",
   "settings.viewLogs": "Ver registros",
-
   "toast.copied": "Copiado.",
   "toast.copyFailed": "No se pudo copiar.",
   "toast.huddleWindowNotFound": "No se encontró la ventana del huddle.",
@@ -371,11 +354,10 @@
   "toast.sessionLoaded": "Sesión cargada. Pregunta sobre ella en el chat o revisa las pestañas.",
   "toast.sessionDeleted": "Sesión eliminada.",
   "toast.chatNeedKey": "Añade la clave de API del modelo elegido en los ajustes para chatear con la reunión.",
-
   "mark.label.question": "Pregunta",
   "mark.label.decision": "Decisión",
   "mark.label.action": "Acción",
   "mark.label.detected": "Detectado",
-
-  "session.importedTitle": "Sesión importada"
+  "session.importedTitle": "Sesión importada",
+  "thread.summarize": "Resume el hilo"
 }

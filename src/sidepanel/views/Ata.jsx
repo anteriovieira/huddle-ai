@@ -258,7 +258,7 @@ export function AtaInfo({ onRegenerate, onOpenList, onPost, canPost, busy, minut
         {onRegenerate && (
           <Tooltip label={busy ? t('ata.generatingTip') : t('ata.generate')}>
             <button className="icon-button" type="button" aria-label={t('ata.generate')} disabled={busy} onClick={onRegenerate}>
-              <Icon name="sparkles" />
+              <Icon name={busy ? 'spinner' : 'refresh'} className={busy ? 'icon icon--spin' : 'icon'} />
             </button>
           </Tooltip>
         )}

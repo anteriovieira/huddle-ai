@@ -435,6 +435,7 @@ export const STRINGS = {
   'thread.empty': 'no messages',
   'thread.off': 'left out of the AI context',
   'thread.inContext': 'in AI context',
+  'thread.summarize': 'Summarize the thread',
   'thread.open': 'Open thread',
   'thread.include': 'Include in AI context',
   'thread.exclude': 'Leave out of AI context',

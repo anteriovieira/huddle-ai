@@ -89,6 +89,15 @@ const ASK_DETAIL_PROMPT = {
   Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
 };
 
+// Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
+const SUMMARIZE_THREAD_PROMPT = {
+  English: 'Summarize the Slack thread for this huddle: the main points, decisions and open questions.',
+  Portuguese: 'Resuma a thread do Slack desta huddle: os pontos principais, decisões e questões em aberto.',
+  Português: 'Resuma a thread do Slack desta huddle: os pontos principais, decisões e questões em aberto.',
+  Spanish: 'Resume el hilo de Slack de esta reunión: los puntos principales, decisiones y preguntas abiertas.',
+  Español: 'Resume el hilo de Slack de esta reunión: los puntos principales, decisiones y preguntas abiertas.',
+};
+
 function newChat(index = 1) {
   return { id: `c${Date.now().toString(36)}${chatSeq++}`, title: `Chat ${index}`, messages: [] };
 }
@@ -479,6 +488,24 @@ export function App() {
     saved[index] = { ...saved[index], insights: data };
     await chromeApi.storage.local.set({ history: saved });
   }, []);
+
+  // Persiste os chats abertos no histórico local, junto com insights/ata. Para um huddle ao vivo o
+  // background grava os chats ao arquivar; aqui cobrimos as edições feitas numa sessão já arquivada
+  // (carregada do histórico), para que os chats continuem salvos ao reabrir.
+  const saveChatsToHistory = useCallback(async (huddleId, list) => {
+    if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
+    const { history: saved = [] } = await chromeApi.storage.local.get('history');
+    const index = saved.findIndex((entry) => entry.huddle?.id === huddleId);
+    if (index < 0) return;
+    saved[index] = { ...saved[index], chats: list };
+    await chromeApi.storage.local.set({ history: saved });
+  }, []);
+
+  // Numa sessão carregada do histórico (arquivada), salva os chats no histórico quando mudam.
+  useEffect(() => {
+    if (!booted.current || !huddle?.archived || chats.huddleId !== huddle.id) return;
+    saveChatsToHistory(huddle.id, chats.list);
+  }, [chats, huddle?.archived, huddle?.id, saveChatsToHistory]);
 
   // "Refazer": usado quando a reunião não está mais ao vivo. Reanalisa do zero — manda só a
   // transcrição inteira (previous: null, sem reenviar os insights já montados) e substitui o
@@ -1144,16 +1171,20 @@ export function App() {
         ? { huddleId: hud.id, updatedAt: entry.minutes?.generatedAt ?? Date.now(), data: entry.insights }
         : null;
       const nextMinutes = entry.minutes ?? null;
+      const nextChats = { huddleId: hud.id, list: entry.chats ?? [] };
 
       await chromeApi?.storage.session.set({ state: nextState });
       if (nextInsights) await chromeApi?.storage.session.set({ insights: nextInsights });
       else await chromeApi?.storage.session.remove('insights');
       if (nextMinutes) await chromeApi?.storage.session.set({ minutes: nextMinutes });
       else await chromeApi?.storage.session.remove('minutes');
+      await chromeApi?.storage.session.set({ chats: nextChats });
 
       setExtState(nextState);
       setInsights(nextInsights);
       setMinutes(nextMinutes);
+      setChats(nextChats);
+      setActiveChatId(nextChats.list[0]?.id ?? null);
       analysisCtl.current.lastKey = `${hud.id}:${nextState.utterances.length}:${nextState.utterances.at(-1)?.text.length ?? 0}`;
       setAnalysisError(null);
       minutesCtl.current.failedFor = null;
@@ -1378,17 +1409,14 @@ export function App() {
 
   // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
   // decision, action, question, reference…). Posts the question and streams the answer right away.
-  const askAboutInsight = useCallback(
-    async (topic) => {
-      const text = String(topic ?? '').trim();
-      if (!text) return;
+  const askInChat = useCallback(
+    async (question) => {
+      if (!question) return;
       setChatOpen(true);
       if (!hasKeyForModel(latest.current.settings)) {
         flash(tr('toast.chatNeedKey'));
         return;
       }
-      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
-      const question = build(text);
       const chat = newChat();
       setChats((prev) => ({
         ...prev,
@@ -1398,7 +1426,7 @@ export function App() {
       setChatBusy((b) => new Set(b).add(chat.id));
       setChatStream({ chatId: chat.id, text: '', steps: [] });
       nameChat(chat.id, question);
-      logEvent('info', `Detalhar insight no chat (${latest.current.utterances.length} falas)`);
+      logEvent('info', `Pergunta no chat (${latest.current.utterances.length} falas)`);
       const steps = [];
       try {
         const answer = await askMeeting({
@@ -1430,6 +1458,23 @@ export function App() {
     },
     [appendMessage, nameChat, flash],
   );
+
+  // Expand one insight item (point, decision, action, question…) in a fresh chat.
+  const askAboutInsight = useCallback(
+    (topic) => {
+      const text = String(topic ?? '').trim();
+      if (!text) return;
+      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
+      askInChat(build(text));
+    },
+    [askInChat],
+  );
+
+  // Ask the chat for a summary of the huddle's Slack thread.
+  const summarizeThread = useCallback(() => {
+    const q = SUMMARIZE_THREAD_PROMPT[latest.current.settings.language] ?? SUMMARIZE_THREAD_PROMPT.English;
+    askInChat(q);
+  }, [askInChat]);
 
   // --- Derived view helpers ---
   const ataProps = (record) => ({
@@ -1624,6 +1669,7 @@ export function App() {
               now={now}
               onOpen={openThread}
               onToggleContext={setThreadContext}
+              onSummarize={summarizeThread}
             />
           )}
         <InsightsView

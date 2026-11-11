@@ -8,7 +8,6 @@
   "common.send": "Enviar",
   "common.collapse": "Recolher",
   "common.expand": "Expandir",
-
   "unit.caption.one": "legenda",
   "unit.caption.other": "legendas",
   "unit.participant.one": "participante",
@@ -17,7 +16,6 @@
   "unit.session.other": "sessões",
   "unit.event.one": "evento",
   "unit.event.other": "eventos",
-
   "header.ended": "Terminado",
   "header.backToSlack": "Voltar ao Slack",
   "header.home": "Início",
@@ -26,12 +24,10 @@
   "header.chatAria": "Chat com a reunião",
   "header.logs": "Registos",
   "header.settings": "Definições",
-
   "tabs.aria": "Secções",
   "tabs.insights": "Insights",
   "tabs.captions": "Captions",
   "tabs.ata": "Ata",
-
   "info.unstackAll": "Desfazer todos os baralhos",
   "info.stackAll": "Empilhar todas as secções",
   "info.stackAllAria": "Empilhar todas as secções num baralho",
@@ -56,7 +52,6 @@
   "infobar.analyzingEvery": "A analisar a cada {n}s.",
   "infobar.nextIn": "Próxima análise em {n}s.",
   "infobar.onNextUtterance": "A analisar na próxima legenda…",
-
   "captions.enablePre": "As legendas não aparecem? Ative-as no huddle (botão de legendas) ou nas suas ",
   "captions.slackPrefs": "preferências do Slack",
   "captions.enablePost": ".",
@@ -64,7 +59,6 @@
   "captions.reading": "A ler legendas do huddle · {n} {unit}.",
   "captions.copy": "Copiar legendas",
   "captions.download": "Transferir transcrição",
-
   "mark.action": "Ação",
   "mark.decision": "Decisão",
   "mark.question": "Pergunta",
@@ -79,7 +73,6 @@
   "captions.emptyHintPost": " (Preferências › Áudio e vídeo).",
   "captions.followingLive": "A seguir em direto",
   "captions.backToLive": "Voltar ao direto",
-
   "insights.deckView": "Ver em lista",
   "insights.deckStack": "Empilhar os cartões",
   "insights.deckViewAria": "Ver cartões em lista",
@@ -149,7 +142,6 @@
   "copy.decision": "Copiar decisão",
   "section.references": "Referências mencionadas",
   "section.acronyms": "Siglas",
-
   "ata.step.task": "Tarefa",
   "ata.meetingInfo": "Informações da reunião",
   "ata.copy": "Copiar ata",
@@ -210,7 +202,6 @@
   "ata.loading.progressAria": "Progresso",
   "ata.loading.title": "A escrever a ata do huddle",
   "ata.loading.note": "Costuma demorar menos de um minuto. Mantenha o painel aberto até terminar; a ata fica guardada.",
-
   "atas.title": "Sessões anteriores",
   "atas.count": "{n} {unit}",
   "atas.import": "Importar transcrição",
@@ -233,7 +224,6 @@
   "session.load": "Carregar sessão",
   "session.delete": "Eliminar sessão",
   "session.deleteTitle": "Eliminar esta sessão?",
-
   "chat.thinking": "A pensar",
   "chat.withMeeting": "Chat com a reunião",
   "chat.closeConversation": "Fechar esta conversa",
@@ -249,7 +239,6 @@
   "chat.placeholder": "Faça uma pergunta rápida",
   "chat.inputAria": "Pergunta para a reunião",
   "chat.send": "Enviar pergunta",
-
   "idle.noHuddle": "Nenhum huddle ativo",
   "idle.enterHuddle": "Entre num huddle no Slack no navegador e abra o separador {tab}. Os insights aparecem aqui.",
   "idle.reloadHint": "Já tem um huddle a decorrer? Ligue este separador e reabra o huddle — sem recarregar a página.",
@@ -260,7 +249,6 @@
   "idle.import": "Importar transcrição",
   "idle.previousCount": "Sessões anteriores ({n})",
   "idle.privacy": "As legendas ficam no seu navegador. Apenas o texto analisado é enviado para a API da Anthropic para gerar os insights.",
-
   "import.title": "Importar transcrição",
   "import.intro": "Cole aqui a transcrição de uma reunião que não passou pela extensão. Torna-se uma sessão carregada na aplicação, com ata e insights gerados. As linhas no formato {fmt} são separadas por pessoa.",
   "import.introFmt": "Nome: legenda",
@@ -272,7 +260,6 @@
   "import.willGenerate": "Gera a ata e os insights.",
   "import.needKey": "Adicione a chave da API para gerar.",
   "import.submit": "Importar",
-
   "logs.title": "Registos",
   "logs.count": "{n} {unit}",
   "logs.copyAll": "Copiar todos os registos",
@@ -280,11 +267,8 @@
   "logs.copyEntry": "Copiar este evento",
   "logs.empty": "Ainda não há eventos. Recarregue o separador do Slack depois de recarregar a extensão para os registos começarem.",
   "logs.copy": "Copiar registos",
-
   "ticker.aria": "Últimas legendas",
-
   "menu.actions": "Ações",
-
   "settings.title": "Definições",
   "settings.intelligence": "Inteligência",
   "settings.model": "Modelo",
@@ -339,7 +323,6 @@
   "settings.clearHistory": "Eliminar histórico",
   "settings.diagnostics": "Diagnóstico",
   "settings.viewLogs": "Ver registos",
-
   "toast.copied": "Copiado.",
   "toast.copyFailed": "Não foi possível copiar.",
   "toast.huddleWindowNotFound": "Janela do huddle não encontrada.",
@@ -371,11 +354,10 @@
   "toast.sessionLoaded": "Sessão carregada. Pergunte sobre ela no chat ou veja os separadores.",
   "toast.sessionDeleted": "Sessão eliminada.",
   "toast.chatNeedKey": "Adicione a chave da API do modelo escolhido nas definições para conversar com a reunião.",
-
   "mark.label.question": "Pergunta",
   "mark.label.decision": "Decisão",
   "mark.label.action": "Ação",
   "mark.label.detected": "Detetado",
-
-  "session.importedTitle": "Sessão importada"
+  "session.importedTitle": "Sessão importada",
+  "thread.summarize": "Resuma a thread"
 }

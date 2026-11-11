@@ -22,10 +22,11 @@ export function formatTranscript(utterances, fromIndex = 0) {
     .join('\n');
 }
 
-// A relative "há 12s / há 3 min / há 2 h" string. `now` is injectable for tests.
+// A relative "Just now / há 3 min / há 2 h" string. Under a minute reads "Just now", like Slack.
+// `now` is injectable for tests.
 export function ago(timestamp, now = Date.now()) {
   const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
-  if (seconds < 60) return `há ${seconds}s`;
+  if (seconds < 60) return 'Just now';
   if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
   return `há ${Math.round(seconds / 3600)} h`;
 }
