@@ -770,6 +770,16 @@ export function App() {
     }
   }, [flash]);
 
+  // Ao começar a captura das legendas e chegarem as primeiras falas, seleciona a aba Thread do
+  // huddle no Slack (abertura automática) — uma única vez por huddle. Só para huddle ao vivo.
+  const threadAutoOpened = useRef(null);
+  useEffect(() => {
+    if (!huddle?.active || !utterances.length) return;
+    if (threadAutoOpened.current === huddle.id) return;
+    threadAutoOpened.current = huddle.id;
+    openThread();
+  }, [huddle?.id, huddle?.active, utterances.length, openThread]);
+
   const setThreadContext = useCallback((value) => {
     setSettings((prev) => {
       const next = { ...prev, threadContext: value };

@@ -1,6 +1,6 @@
 {
   "name": "huddle-ai",
-  "version": "0.1.223",
+  "version": "0.1.225",
   "private": true,
   "description": "Chrome extension that turns Slack huddle captions into live insights in a side panel.",
   "type": "module",

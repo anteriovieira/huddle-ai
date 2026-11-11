@@ -484,9 +484,20 @@
     // Selects the huddle's Thread tab so Slack renders the thread and the next scan reads it.
     function openThread() {
       if (!findHuddleRoot()) return { ok: false, error: 'Janela do huddle não encontrada.' };
-      const tab = findTab(panelScope(), THREAD_TAB_TEXT);
-      if (!tab) return { ok: false, error: 'Aba Thread não encontrada.' };
-      if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+      const scope = panelScope();
+      const tab = findTab(scope, THREAD_TAB_TEXT);
+      if (tab) {
+        if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+        scheduleScan();
+        return { ok: true };
+      }
+      // No tabbed layout yet: the huddle toolbar shows an "Open thread" button (speech-bubble
+      // icon) that reveals the thread panel. Match it by aria-label across Slack's languages.
+      const button = [...scope.querySelectorAll('button, [role="button"]')].find((el) =>
+        THREAD_TAB_TEXT.test(`${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('data-qa') ?? ''}`),
+      );
+      if (!button) return { ok: false, error: 'Thread não encontrada.' };
+      button.click();
       scheduleScan();
       return { ok: true };
     }
