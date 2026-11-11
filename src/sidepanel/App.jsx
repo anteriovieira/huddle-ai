@@ -18,6 +18,7 @@ import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
 import { AnaliseView, SessionAnalyticsView } from './views/Analise.jsx';
+import { scoresAsText } from './lib/scoring.js';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -126,6 +127,9 @@ export function App() {
   const [extState, setExtState] = useState(EMPTY_STATE);
   const [insights, setInsights] = useState(null);
   const [minutes, setMinutes] = useState(null);
+  // Parcial do streaming da ata: objeto cumulativo que chega enquanto o modelo escreve, para o
+  // loader mostrar cada seção/ponto conforme é processado. Limpo ao terminar.
+  const [minutesPartial, setMinutesPartial] = useState(null);
   const [scores, setScores] = useState(null);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -587,11 +591,18 @@ export function App() {
     setMinutesRunning(true);
     setMinutesStartedAt(minutesCtl.current.startedAt);
     setMinutesError(null);
+    setMinutesPartial(null);
     setTab('ata');
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
       const meta = minutesMeta(h, u, latest.current.nameOverrides);
-      const data = await generateMinutes({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
+      const data = await generateMinutes({
+        settings: s,
+        meta,
+        utterances: u,
+        nameOverrides: latest.current.nameOverrides,
+        onPartial: (d) => setMinutesPartial(d),
+      });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
       await chromeApi?.storage.session.set({ minutes: record });
@@ -608,6 +619,7 @@ export function App() {
     } finally {
       minutesCtl.current.running = false;
       setMinutesRunning(false);
+      setMinutesPartial(null);
     }
   }, [saveMinutesToHistory]);
 
@@ -1732,6 +1744,7 @@ export function App() {
 
   // Props da barra de informação — iguais para qualquer seção; a InfoBar usa só
   // o que importa para a aba que recebe.
+  const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
   const infoBarProps = {
     settings,
     analysis: { running: analysisRunning, error: analysisError },
@@ -1768,10 +1781,14 @@ export function App() {
     onDriveMinutes: currentMinutes ? () => uploadToDrive(currentMinutes) : undefined,
     minutesUploaded: currentMinutes?.drive ?? null,
     minutesDriveBusy: !!currentMinutes && driveBusy === currentMinutes.huddleId,
+    analyticsScored: !!currentScores,
+    analyticsCanScore: canScore,
+    analyticsScoring: scoringRunning,
+    onCopyAnalytics: () => currentScores && copyToClipboard(scoresAsText(currentScores)),
+    onRegenerateAnalytics: runScoring,
+    onAskAnalytics: () => setChatOpen(true),
   };
 
-  // Aba Análise: pontua a reunião só quando encerrada, com transcrição e chave disponíveis.
-  const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
   const analyticsProps = {
     scores: currentScores,
     records: allScores,
@@ -1843,7 +1860,7 @@ export function App() {
       return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
     }
     return minutesRunning ? (
-      <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} />
+      <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} partial={minutesPartial} />
     ) : currentMinutes ? (
       <AtaContent record={currentMinutes} {...ataProps(currentMinutes)} />
     ) : (

@@ -122,6 +122,13 @@ export const STRINGS = {
   'infobar.analyzingEvery': 'Analyzing every {n}s.',
   'infobar.nextIn': 'Next analysis in {n}s.',
   'infobar.onNextUtterance': 'Analyzing on the next caption…',
+  'infobar.analyticsSession': 'Analysis of this meeting.',
+  'infobar.analyticsScore': 'Score this meeting to generate the analysis.',
+  'infobar.analyticsReady': 'Meeting analysis.',
+  'info.analytics.ask': 'Ask about the analysis',
+  'info.analytics.regen': 'Score again',
+  'info.analytics.scoring': 'Scoring…',
+  'info.analytics.copy': 'Copy the analysis',
 
   // Captions info bar
   'captions.enablePre': 'Captions not showing? Turn them on in the huddle (captions button) or in your ',

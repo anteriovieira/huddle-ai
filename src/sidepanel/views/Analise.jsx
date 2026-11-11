@@ -88,19 +88,16 @@ function Radar({ criteria, fill = '#2bac76' }) {
   const rings = [1, 2, 3].map((lvl) => fmt(criteria.map((_, i) => pt((R * lvl) / SCORE_MAX, i))));
   const valuePts = criteria.map((c, i) => pt((R * c.score) / SCORE_MAX, i));
   const ticks = [1, 2, 3].map((lvl) => ({ n: lvl, x: cx + 5, y: cy - (R * lvl) / SCORE_MAX - 3 }));
+  // Every label is centered over its axis node (name above, score chip below) instead of extending
+  // sideways — long side labels ("Próximos passos") no longer clip at the edges.
   const labels = criteria.map((c, i) => {
     const a = ((-90 + (i * 360) / n) * Math.PI) / 180;
-    const cos = Math.cos(a);
-    const lx = cx + labelR * cos;
+    const lx = cx + labelR * Math.cos(a);
     const ly = cy + labelR * Math.sin(a);
-    const anchor = cos > 0.2 ? 'start' : cos < -0.2 ? 'end' : 'middle';
-    const w = 30;
-    const rx = anchor === 'start' ? lx : anchor === 'end' ? lx - w : lx - w / 2;
-    const tx = anchor === 'start' ? lx + w / 2 : anchor === 'end' ? lx - w / 2 : lx;
-    return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor, x: lx, ny: ly - 6, rx, ry: ly - 1, tx, ty: ly + 10 };
+    return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor: 'middle', x: lx, ny: ly - 6, rx: lx - 15, ry: ly - 1, tx: lx, ty: ly + 10 };
   });
   return (
-    <svg viewBox="0 0 360 310" width="100%" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block' }}>
+    <svg viewBox="-14 0 388 310" width="100%" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block' }}>
       {rings.map((pts, i) => (
         <polygon key={i} points={pts} fill="none" stroke="var(--border)" strokeWidth="1" />
       ))}

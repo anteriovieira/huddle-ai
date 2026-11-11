@@ -379,5 +379,17 @@
   "mark.label.decision": "Decisão",
   "mark.label.action": "Ação",
   "mark.label.detected": "Detectado",
-  "session.importedTitle": "Sessão importada"
+  "session.importedTitle": "Sessão importada",
+  "tabs.analytics": "Análise",
+  "header.analytics": "Análise",
+  "settings.analise": "Análise",
+  "settings.autoScore": "Pontuar a reunião quando a huddle encerra",
+  "settings.autoScoreHint": "Avalia cada reunião encerrada por critério e participante. Uma chamada de IA extra por reunião; desligado por padrão.",
+  "infobar.analyticsSession": "Análise desta reunião.",
+  "infobar.analyticsScore": "Pontue esta reunião para gerar a análise.",
+  "infobar.analyticsReady": "Análise das reuniões.",
+  "info.analytics.ask": "Perguntar sobre a análise",
+  "info.analytics.regen": "Pontuar de novo",
+  "info.analytics.scoring": "Pontuando…",
+  "info.analytics.copy": "Copiar a análise"
 }

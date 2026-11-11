@@ -459,7 +459,7 @@ function formatMeetingDate(timestamp) {
   return new Date(timestamp).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' });
 }
 
-export async function generateMinutes({ settings, meta, utterances, nameOverrides }) {
+export async function generateMinutes({ settings, meta, utterances, nameOverrides, onPartial }) {
   try {
     const data = await streamStructured({
       settings,
@@ -474,6 +474,7 @@ export async function generateMinutes({ settings, meta, utterances, nameOverride
         .filter(Boolean)
         .join('\n\n'),
       maxOutputTokens: 16000,
+      onPartial,
     });
     if (!data?.classification) throw new Error('O modelo não retornou os dados no formato esperado.');
     data.classification.confidence = Math.min(100, Math.max(0, data.classification.confidence ?? 0));

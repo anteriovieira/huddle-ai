@@ -153,6 +153,33 @@ export function aggregateScores(records) {
   return { count: scored.length, overall, trend, criteria, participants, sessions };
 }
 
+// A scored meeting as plain text, for the "copy" action in the Análise info bar.
+export function scoresAsText(record) {
+  if (!record?.data) return '';
+  const data = normalizeScores(record.data);
+  const meta = record.meta ?? {};
+  const avg = meetingAverage(record.data);
+  const lines = [
+    `# Análise — ${meta.title || 'Reunião'}`,
+    '',
+    `Score geral: ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%)`,
+    '',
+    '## Scores por critério',
+    ...data.overall.map((c) => `- ${c.label}: ${fmtScore(c.score)}/${SCORE_MAX}`),
+  ];
+  if (data.improvements.length) {
+    lines.push('', '## O que melhorar');
+    for (const r of data.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} Ação: ${r.action}`);
+  }
+  if (data.participants.length) {
+    lines.push('', '## Por participante');
+    for (const p of data.participants) {
+      lines.push(`- ${p.name}: ${fmtScore(p.score)}/${SCORE_MAX}${p.focus ? ` — melhorar ${labelOf(p.focus)}: ${p.tip}` : ''}`);
+    }
+  }
+  return lines.join('\n').trim();
+}
+
 // Per-participant detail across sessions: their score in each session they appear in (newest-first),
 // their overall average and the most recent focus/tip. `records` is the stored scores records.
 export function participantDetail(records, name) {
