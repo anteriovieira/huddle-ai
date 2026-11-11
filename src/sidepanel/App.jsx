@@ -18,7 +18,7 @@ import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
 import { AnaliseView, SessionAnalyticsView } from './views/Analise.jsx';
-import { analysisContext, scoresAsText } from './lib/scoring.js';
+import { scoresAsText } from './lib/scoring.js';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -1826,7 +1826,11 @@ export function App() {
     onAskAnalytics: () =>
       openAnalyticsChat({
         label: 'Análise desta reunião',
-        text: currentScores ? analysisContext(currentScores) : 'Contexto: análise das reuniões pontuadas.',
+        // O modelo recebe o relatório completo (scores por critério, melhorias e por participante),
+        // não só o resumo — assim o chat responde perguntas sobre a análise. O chip mostra só o label.
+        text: currentScores
+          ? `Contexto — análise pontuada desta reunião:\n\n${scoresAsText(currentScores)}`
+          : 'Contexto: esta reunião ainda não foi pontuada.',
       }),
   };
 
