@@ -89,11 +89,11 @@ let chatSeq = 0;
 // A pergunta enviada ao pedir "mais detalhes" sobre um item. O item em si vai como CONTEXTO
 // anexado à mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight.
 const ASK_DETAIL_QUESTION = {
-  English: 'Explain in one or two paragraphs: what was said, the context, and why it matters.',
-  Portuguese: 'Explique em 1 ou 2 parágrafos: o que foi dito, o contexto e por que importa.',
-  Português: 'Explique em 1 ou 2 parágrafos: o que foi dito, o contexto e por que importa.',
-  Spanish: 'Explica en uno o dos párrafos: qué se dijo, el contexto y por qué importa.',
-  Español: 'Explica en uno o dos párrafos: qué se dijo, el contexto y por qué importa.',
+  English: 'Answer fast, for use mid-meeting: 1–2 short sentences max on what was said and why it matters. No preamble, no fluff.',
+  Portuguese: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
+  Português: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
+  Spanish: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
+  Español: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
