@@ -97,7 +97,7 @@ function Radar({ criteria, fill = '#2bac76' }) {
     return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor: 'middle', x: lx, ny: ly - 6, rx: lx - 15, ry: ly - 1, tx: lx, ty: ly + 10 };
   });
   return (
-    <svg viewBox="-14 0 388 310" width="100%" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block' }}>
+    <svg viewBox="-14 0 388 310" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block', width: '100%', maxWidth: 340, margin: '0 auto' }}>
       {rings.map((pts, i) => (
         <polygon key={i} points={pts} fill="none" stroke="var(--border)" strokeWidth="1" />
       ))}
@@ -241,7 +241,7 @@ function TrendLine({ points }) {
   const line = points.map((p, i) => `${xFor(i).toFixed(1)},${yFor(p.score).toFixed(1)}`).join(' ');
   return (
     <div style={card({ padding: '14px 14px 10px' })}>
-      <svg viewBox="0 0 360 140" width="100%" role="img" aria-label="Evolução do score por sessão" style={{ display: 'block' }}>
+      <svg viewBox="0 0 360 140" role="img" aria-label="Evolução do score por sessão" style={{ display: 'block', width: '100%', maxWidth: 340, margin: '0 auto' }}>
         {[yTop, (yTop + yBot) / 2, yBot].map((y, i) => (
           <line key={i} x1="14" y1={y} x2="346" y2={y} stroke="var(--surface-hover)" strokeWidth="1" />
         ))}
@@ -369,6 +369,9 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {sectionTitle('Scores da reunião')}
+        <div style={card({ padding: 14 })}>
+          <Radar criteria={data.overall} />
+        </div>
         <Scorecards criteria={data.overall} />
       </div>
 
