@@ -139,7 +139,7 @@ function SummaryActions({
       {onTogglePause && (
         <Tooltip label={paused ? t('info.resumeAuto') : t('info.pauseAuto')}>
           <button
-            className={paused ? 'icon-button icon-button--on' : 'icon-button'}
+            className={paused ? 'icon-button icon-button--paused' : 'icon-button'}
             type="button"
             aria-label={paused ? t('info.resumeAuto') : t('info.pauseAuto')}
             aria-pressed={String(Boolean(paused))}
@@ -152,13 +152,13 @@ function SummaryActions({
       {(showAllSeen || hiddenSeen > 0) && (
         <Tooltip label={showAllSeen ? t('info.hideSeen') : t('info.showAll', { n: hiddenSeen })}>
           <button
-            className={showAllSeen ? 'icon-button icon-button--on' : 'icon-button'}
+            className={showAllSeen ? 'icon-button icon-button--view' : 'icon-button'}
             type="button"
             aria-label={showAllSeen ? t('info.hideSeenAria') : t('info.showAllAria')}
             aria-pressed={String(showAllSeen)}
             onClick={onToggleShowAll}
           >
-            <Icon name="check-double" />
+            <Icon name={showAllSeen ? 'eye' : 'eye-off'} />
           </button>
         </Tooltip>
       )}
@@ -296,6 +296,7 @@ export function InfoBar({
     return (
       <div className="info info--row">
         <span className="info__text" role={analysis.running ? 'status' : undefined}>
+          {analysis.running && <span className="live-dot" aria-hidden="true" />}
           {status}
         </span>
         {actions}
