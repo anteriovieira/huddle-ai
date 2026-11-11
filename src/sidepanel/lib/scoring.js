@@ -180,6 +180,21 @@ export function scoresAsText(record) {
   return lines.join('\n').trim();
 }
 
+// A short context line to pre-fill the chat input when the user asks about a meeting's analysis
+// (the "chat+" action in the Análise info bar). Ends open so the user types their question after it.
+export function analysisContext(record) {
+  if (!record?.data) return 'Sobre a análise desta reunião: ';
+  const data = normalizeScores(record.data);
+  const avg = meetingAverage(record.data);
+  const low = data.overall
+    .slice()
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+    .map((c) => c.label);
+  const title = record.meta?.title || 'esta reunião';
+  return `Sobre a análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}. Minha pergunta: `;
+}
+
 // Per-participant detail across sessions: their score in each session they appear in (newest-first),
 // their overall average and the most recent focus/tip. `records` is the stored scores records.
 export function participantDetail(records, name) {

@@ -286,7 +286,7 @@ export function InfoBar({
           {onAskAnalytics && (
             <Tooltip label={t('info.analytics.ask')}>
               <button className="icon-button" type="button" aria-label={t('info.analytics.ask')} onClick={onAskAnalytics}>
-                <Icon name="chat" />
+                <Icon name="chat-plus" />
               </button>
             </Tooltip>
           )}

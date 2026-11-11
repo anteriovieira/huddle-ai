@@ -258,7 +258,7 @@ function AskButton({ topic, onAsk }) {
   return (
     <Tooltip label={t('ask.detail')}>
       <button type="button" className="q-copy q-ask" aria-label={t('ask.detail')} onClick={() => onAsk(topic)}>
-        <Icon name="sparkles" />
+        <Icon name="chat-plus" />
       </button>
     </Tooltip>
   );

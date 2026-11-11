@@ -53,7 +53,7 @@ function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef
           aria-label={t('caption.askContextAria')}
           onClick={() => onAskAI(`${u.speaker}: ${u.text}`)}
         >
-          <Icon name="sparkles" />
+          <Icon name="chat-plus" />
         </button>
       )}
     </li>

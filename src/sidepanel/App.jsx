@@ -18,7 +18,7 @@ import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
 import { AnaliseView, SessionAnalyticsView } from './views/Analise.jsx';
-import { scoresAsText } from './lib/scoring.js';
+import { analysisContext, scoresAsText } from './lib/scoring.js';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -87,11 +87,11 @@ let chatSeq = 0;
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
 const ASK_DETAIL_PROMPT = {
-  English: (text) => `Briefly explain this in 1-2 sentences, based on the meeting: "${text}"`,
-  Portuguese: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
-  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
-  Spanish: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
-  Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
+  English: (text) => `Context: "${text}"\n\nGive me more details about this topic.`,
+  Portuguese: (text) => `Contexto: "${text}"\n\nMe dê mais detalhes sobre esse tema.`,
+  Português: (text) => `Contexto: "${text}"\n\nMe dê mais detalhes sobre esse tema.`,
+  Spanish: (text) => `Contexto: "${text}"\n\nDame más detalles sobre este tema.`,
+  Español: (text) => `Contexto: "${text}"\n\nDame más detalles sobre este tema.`,
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
@@ -1565,6 +1565,22 @@ export function App() {
     [appendMessage, nameChat, flash],
   );
 
+  // Opens a NEW chat with `draft` pre-filled in the input (NOT sent), for the user to extend with
+  // their question before sending. Used by the "chat+" action on the Análise tab.
+  const askAnalyticsInChat = useCallback(
+    (draft) => {
+      setChatOpen(true);
+      const chat = newChat();
+      setChats((prev) => ({
+        ...prev,
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [] }],
+      }));
+      setActiveChatId(chat.id);
+      setDraft(chat.id, draft);
+    },
+    [setDraft],
+  );
+
   // Expand one insight item (point, decision, action, question…) in a fresh chat.
   const askAboutInsight = useCallback(
     (topic) => {
@@ -1786,7 +1802,7 @@ export function App() {
     analyticsScoring: scoringRunning,
     onCopyAnalytics: () => currentScores && copyToClipboard(scoresAsText(currentScores)),
     onRegenerateAnalytics: runScoring,
-    onAskAnalytics: () => setChatOpen(true),
+    onAskAnalytics: () => askAnalyticsInChat(currentScores ? analysisContext(currentScores) : 'Sobre a análise das reuniões: '),
   };
 
   const analyticsProps = {
