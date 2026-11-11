@@ -4,7 +4,7 @@ import { logsAsText } from './lib/logs.js';
 import { insightsAsText, minutesAsText, minutesMeta, participantsOf, sessionDigests } from './lib/minutes.js';
 import { parseTranscript } from './lib/transcript.js';
 import * as drive from './drive.js';
-import { analyze, askMeeting, generateMinutes, recallContextBatch, titleChat } from './insights.js';
+import { analyze, askMeeting, generateMinutes, recallContextBatch, scoreMeeting, titleChat } from './insights.js';
 import { hasKeyForModel } from './lib/models.js';
 import { AtaContent, AtaEmpty, AtaFooter, AtaLoading } from './views/Ata.jsx';
 import { AtasView, PastAtaView } from './views/Atas.jsx';
@@ -17,6 +17,7 @@ import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
+import { AnaliseView } from './views/Analise.jsx';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -39,6 +40,9 @@ const DEFAULT_SETTINGS = {
   detect: { actions: true, decisions: true, questions: true, suggestions: false, replies: false, alerts: true, references: true, acronyms: true, context: true },
   saveHistory: true,
   autoMinutes: true,
+  // Pontuar a reunião automaticamente quando a huddle encerra (aba Análise). Opt-in: gera uma
+  // chamada de IA extra ao fim de cada reunião, então fica desligado por padrão.
+  autoScore: false,
   captionSource: 'auto',
   // Whether the huddle's Slack thread goes into the AI's context (chat lookups).
   threadContext: true,
@@ -54,7 +58,7 @@ const EMPTY_STATE = { huddle: null, utterances: [] };
 
 // Abas exibidas quando cabem duas colunas: Captions deixa de ser aba (passa a
 // dividir a coluna com Insights) e Copilot vive no ícone do cabeçalho.
-const TWO_COL_TABS = ['insights', 'ata'];
+const TWO_COL_TABS = ['insights', 'ata', 'analytics'];
 
 // Larguras em que o painel passa a mostrar mais de uma coluna lado a lado.
 const COLS_2_MIN = 640;
@@ -122,6 +126,7 @@ export function App() {
   const [extState, setExtState] = useState(EMPTY_STATE);
   const [insights, setInsights] = useState(null);
   const [minutes, setMinutes] = useState(null);
+  const [scores, setScores] = useState(null);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState([]);
@@ -190,6 +195,9 @@ export function App() {
   const [minutesRunning, setMinutesRunning] = useState(false);
   const [minutesStartedAt, setMinutesStartedAt] = useState(0);
   const [minutesError, setMinutesError] = useState(null);
+  const scoringCtl = useRef({ running: false });
+  const [scoringRunning, setScoringRunning] = useState(false);
+  const [scoreError, setScoreError] = useState(null);
   const booted = useRef(false);
 
   const huddle = extState.huddle;
@@ -201,12 +209,21 @@ export function App() {
 
   const currentInsights = insights?.huddleId === huddle?.id ? insights : null;
   const currentMinutes = minutes?.huddleId === huddle?.id ? minutes : null;
+  const currentScores = scores?.huddleId === huddle?.id ? scores : null;
 
   const allMinutes = useMemo(() => {
     const records = history.map((entry) => entry.minutes).filter(Boolean);
     if (currentMinutes && !records.some((r) => r.huddleId === currentMinutes.huddleId)) records.unshift(currentMinutes);
     return records.sort((a, b) => b.meta.startedAt - a.meta.startedAt);
   }, [history, currentMinutes]);
+
+  // Scored sessions feeding the Análise dashboard: every history entry that has scores, plus the
+  // live/loaded one when it is already scored, newest first.
+  const allScores = useMemo(() => {
+    const records = history.map((entry) => entry.scores).filter(Boolean);
+    if (currentScores && !records.some((r) => r.huddleId === currentScores.huddleId)) records.unshift(currentScores);
+    return records.sort((a, b) => (b.meta?.startedAt ?? 0) - (a.meta?.startedAt ?? 0));
+  }, [history, currentScores]);
 
   // What the context-recall subagent reads: digests of past saved sessions, minus the live one.
   const pastSessions = useMemo(() => sessionDigests(history, huddle?.id), [history, huddle?.id]);
@@ -228,12 +245,13 @@ export function App() {
     if (!chromeApi?.storage) return;
     let mounted = true;
     (async () => {
-      const session = await chromeApi.storage.session.get(['state', 'insights', 'minutes', 'logs', 'chats']);
+      const session = await chromeApi.storage.session.get(['state', 'insights', 'minutes', 'scores', 'logs', 'chats']);
       const local = await chromeApi.storage.local.get(['settings', 'history', 'modelMigration', 'nameOverrides']);
       if (!mounted) return;
       if (session.state) setExtState(session.state);
       setInsights(session.insights ?? null);
       setMinutes(session.minutes ?? null);
+      setScores(session.scores ?? null);
       setLogs(session.logs ?? []);
       if (session.chats) {
         setChats(session.chats);
@@ -270,6 +288,7 @@ export function App() {
         if (changes.state) setExtState(changes.state.newValue ?? EMPTY_STATE);
         if (changes.insights) setInsights(changes.insights.newValue ?? null);
         if (changes.minutes) setMinutes(changes.minutes.newValue ?? null);
+        if (changes.scores) setScores(changes.scores.newValue ?? null);
         if (changes.logs) setLogs(changes.logs.newValue ?? []);
       }
       if (area === 'local') {
@@ -352,7 +371,7 @@ export function App() {
 
   // --- Analysis loop: refs track latest values for the interval callback ---
   const latest = useRef({});
-  latest.current = { huddle, utterances, threadForAI, settings, insights, minutes, currentInsights, currentMinutes, pastSessions, tab, analysisPaused, nameOverrides };
+  latest.current = { huddle, utterances, threadForAI, settings, insights, minutes, scores, currentInsights, currentMinutes, currentScores, pastSessions, tab, analysisPaused, nameOverrides };
   const extStateRef = useRef(extState);
   extStateRef.current = extState;
 
@@ -599,12 +618,62 @@ export function App() {
     runMinutes();
   }, [runMinutes]);
 
+  // --- Meeting scoring (Análise) ---
+  const saveScoresToHistory = useCallback(async (record) => {
+    if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
+    const { history: saved = [] } = await chromeApi.storage.local.get('history');
+    const index = saved.findIndex((entry) => entry.huddle?.id === record.huddleId);
+    if (index < 0) return;
+    saved[index] = { ...saved[index], scores: record };
+    await chromeApi.storage.local.set({ history: saved });
+  }, []);
+
+  // Scores the current (ended or loaded) meeting on the effectiveness criteria and stores it. Runs
+  // on demand (button in the Análise tab) or automatically at the end of a huddle when autoScore is
+  // on. Never for a live huddle (needs the full transcript) nor without an API key.
+  const runScoring = useCallback(async () => {
+    const { huddle: h, utterances: u, settings: s } = latest.current;
+    if (scoringCtl.current.running || !h || h.active || !hasKeyForModel(s)) return;
+    if (u.length < MIN_UTTERANCES_FOR_MINUTES) return;
+    scoringCtl.current.running = true;
+    setScoringRunning(true);
+    setScoreError(null);
+    logEvent('info', `Pontuando reunião de ${u.length} falas com ${s.model}`);
+    const startedAt = Date.now();
+    try {
+      const meta = minutesMeta(h, u, latest.current.nameOverrides);
+      const data = await scoreMeeting({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
+      const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
+      setScores(record);
+      await chromeApi?.storage.session.set({ scores: record });
+      await saveScoresToHistory(record);
+      logEvent('info', `Reunião pontuada em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
+        media: (data.overall.reduce((a, c) => a + c.score, 0) / (data.overall.length || 1)).toFixed(1),
+      });
+    } catch (error) {
+      setScoreError(error.message);
+      logEvent('error', `Falha ao pontuar a reunião: ${error.message}`);
+    } finally {
+      scoringCtl.current.running = false;
+      setScoringRunning(false);
+    }
+  }, [saveScoresToHistory]);
+
+  const maybeScore = useCallback(() => {
+    const { huddle: h, utterances: u, settings: s, scores: sc } = latest.current;
+    if (!h || h.active || h.loaded || !s.autoScore || !hasKeyForModel(s)) return;
+    if (scoringCtl.current.running || sc?.huddleId === h.id) return;
+    if (u.length < MIN_UTTERANCES_FOR_MINUTES) return;
+    runScoring();
+  }, [runScoring]);
+
   // --- Clocks + loops ---
   useEffect(() => {
     const tickTimer = setInterval(() => {
       setNow(Date.now());
       maybeAnalyze();
       maybeGenerateMinutes();
+      maybeScore();
     }, 1000);
     const slackTimer = setInterval(loadSlackOpen, 5000);
     loadSlackOpen();
@@ -613,7 +682,7 @@ export function App() {
       clearInterval(tickTimer);
       clearInterval(slackTimer);
     };
-  }, [maybeAnalyze, maybeGenerateMinutes, loadSlackOpen, refreshDriveStatus]);
+  }, [maybeAnalyze, maybeGenerateMinutes, maybeScore, loadSlackOpen, refreshDriveStatus]);
 
   // --- Responsividade: quantas colunas cabem no painel ---
   // Ao expandir, cada aba vira coluna fixa: 1 col = abas; 2 cols = Insights
@@ -1130,8 +1199,9 @@ export function App() {
       setExtState(nextState);
       setInsights(null);
       setMinutes(null);
+      setScores(null);
       await chromeApi?.storage.session.set({ state: nextState });
-      await chromeApi?.storage.session.remove(['insights', 'minutes']);
+      await chromeApi?.storage.session.remove(['insights', 'minutes', 'scores']);
       await archiveImported(hud, utt);
       analysisCtl.current.lastKey = `${hud.id}:${utt.length}:${utt.at(-1)?.text.length ?? 0}`;
       setAnalysisError(null);
@@ -1171,6 +1241,7 @@ export function App() {
         ? { huddleId: hud.id, updatedAt: entry.minutes?.generatedAt ?? Date.now(), data: entry.insights }
         : null;
       const nextMinutes = entry.minutes ?? null;
+      const nextScores = entry.scores ?? null;
       const nextChats = { huddleId: hud.id, list: entry.chats ?? [] };
 
       await chromeApi?.storage.session.set({ state: nextState });
@@ -1178,11 +1249,14 @@ export function App() {
       else await chromeApi?.storage.session.remove('insights');
       if (nextMinutes) await chromeApi?.storage.session.set({ minutes: nextMinutes });
       else await chromeApi?.storage.session.remove('minutes');
+      if (nextScores) await chromeApi?.storage.session.set({ scores: nextScores });
+      else await chromeApi?.storage.session.remove('scores');
       await chromeApi?.storage.session.set({ chats: nextChats });
 
       setExtState(nextState);
       setInsights(nextInsights);
       setMinutes(nextMinutes);
+      setScores(nextScores);
       setChats(nextChats);
       setActiveChatId(nextChats.list[0]?.id ?? null);
       analysisCtl.current.lastKey = `${hud.id}:${nextState.utterances.length}:${nextState.utterances.at(-1)?.text.length ?? 0}`;
@@ -1208,8 +1282,9 @@ export function App() {
     setExtState(EMPTY_STATE);
     setInsights(null);
     setMinutes(null);
+    setScores(null);
     await chromeApi?.storage.session.set({ state: EMPTY_STATE });
-    await chromeApi?.storage.session.remove(['insights', 'minutes']);
+    await chromeApi?.storage.session.remove(['insights', 'minutes', 'scores']);
     setTab('insights');
   }, []);
 
@@ -1660,8 +1735,25 @@ export function App() {
     minutesDriveBusy: !!currentMinutes && driveBusy === currentMinutes.huddleId,
   };
 
+  // Aba Análise: pontua a reunião só quando encerrada, com transcrição e chave disponíveis.
+  const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
+  const analyticsProps = {
+    records: allScores,
+    currentScores,
+    currentHuddleId: huddle?.id ?? null,
+    canScore,
+    scoring: scoringRunning,
+    scoreError,
+    hasKey: hasKeyForModel(settings),
+    onScore: runScoring,
+    onOpenSettings: openSettings,
+  };
+
   // Conteúdo de uma seção — os painéis em si não mudam com a largura.
   const panelContent = (section) => {
+    if (section === 'analytics') {
+      return <AnaliseView {...analyticsProps} />;
+    }
     if (section === 'insights') {
       return (
         <>
@@ -1805,7 +1897,9 @@ export function App() {
     region = (
       <>
         <Tabs tab={effTab} items={TWO_COL_TABS} onSelect={onSelectTab} />
-        {effTab === 'ata' ? (
+        {effTab === 'analytics' ? (
+          <div className="panes panes--solo">{Pane('analytics')}</div>
+        ) : effTab === 'ata' ? (
           <div className="panes panes--solo">{Pane('ata')}</div>
         ) : (
           <div className="panes panes--2">

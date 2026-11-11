@@ -70,6 +70,7 @@ export function SettingsView({
       threadContext: draft.threadContext,
       detect: { ...draft.detect },
       autoMinutes: draft.autoMinutes,
+      autoScore: draft.autoScore,
       saveHistory: draft.saveHistory,
     });
   };
@@ -272,6 +273,16 @@ export function SettingsView({
               <h2 className="section__title">{t('settings.ata')}</h2>
             </div>
             <Toggle id="autoMinutes" label={t('settings.autoMinutes')} checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
+          </section>
+          <section className="settings-card settings-card--tight">
+            <div className="card-head">
+              <span className="card-icon card-icon--yellow">
+                <Icon name="sparkles" />
+              </span>
+              <h2 className="section__title">{t('settings.analise')}</h2>
+            </div>
+            <Toggle id="autoScore" label={t('settings.autoScore')} checked={draft.autoScore} onChange={(v) => set('autoScore', v)} />
+            <span className="muted small">{t('settings.autoScoreHint')}</span>
           </section>
           <section className="settings-card settings-card--tight">
             <div className="card-head">

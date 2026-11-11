@@ -94,6 +94,7 @@ export const STRINGS = {
   'tabs.insights': 'Insights',
   'tabs.captions': 'Captions',
   'tabs.ata': 'Minutes',
+  'tabs.analytics': 'Analytics',
 
   // Info bar / summary actions
   'info.unstackAll': 'Unstack all decks',
@@ -408,6 +409,9 @@ export const STRINGS = {
   'detect.acronyms': 'Acronyms mentioned',
   'settings.ata': 'Minutes',
   'settings.autoMinutes': 'Generate the minutes when the huddle ends',
+  'settings.analise': 'Analytics',
+  'settings.autoScore': 'Score the meeting when the huddle ends',
+  'settings.autoScoreHint': 'Rates each finished meeting by criteria and participant. One extra AI call per meeting; off by default.',
   'settings.drive': 'Google Drive',
   'settings.driveConnectedEmail': 'Connected as {email}. ',
   'settings.driveConnectedNoEmail': 'Connected. ',

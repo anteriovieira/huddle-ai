@@ -79,7 +79,7 @@ export function Header({
   );
 }
 
-const TAB_ITEMS = ['insights', 'captions', 'ata'];
+const TAB_ITEMS = ['insights', 'captions', 'ata', 'analytics'];
 
 export function Tabs({ tab, onSelect, items = TAB_ITEMS }) {
   const t = useT();
@@ -249,6 +249,8 @@ export function InfoBar({
   onToggleAllDecks,
 }) {
   const t = useT();
+  // A aba Análise é um dashboard próprio (com CTA e cabeçalhos internos); não usa a barra de info.
+  if (tab === 'analytics') return null;
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
       return (

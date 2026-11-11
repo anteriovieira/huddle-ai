@@ -25,6 +25,10 @@ export async function generateMinutes() {
   throw new Error('generateMinutes not used in this test');
 }
 
+export async function scoreMeeting() {
+  throw new Error('scoreMeeting not used in this test');
+}
+
 export async function recallContext() {
   return { found: false, answer: '', sources: [] };
 }
