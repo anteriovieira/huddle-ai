@@ -1897,9 +1897,6 @@ export function App() {
           onRenamePerson={renamePerson}
           deckSections={deckSections}
           onToggleDeckSection={toggleDeckSection}
-          threadState={huddle?.active ? threadState : 'none'}
-          threadCount={thread?.messages.length ?? 0}
-          onOpenThread={openThread}
         />
         </>
       );
