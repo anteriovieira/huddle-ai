@@ -258,7 +258,7 @@ function AskButton({ topic, onAsk }) {
   return (
     <Tooltip label={t('ask.detail')}>
       <button type="button" className="q-copy q-ask" aria-label={t('ask.detail')} onClick={() => onAsk(topic)}>
-        <Icon name="sparkles" />
+        <Icon name="chat-plus" />
       </button>
     </Tooltip>
   );
@@ -632,9 +632,12 @@ function TopicTimeline({ topics, active, utterances }) {
   );
 }
 
-function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggle }) {
+function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggle, threadState, threadCount, onOpenThread }) {
   const t = useT();
   const active = huddle.active;
+  // Thread em contexto (verde) ou um CTA para abrir a aba Thread no Slack (painel fechado).
+  const threadInContext = threadState === 'live' || (threadState === 'stale' && threadCount > 0);
+  const canOpenThread = threadState === 'stale' && typeof onOpenThread === 'function';
   const raw = data.topics ?? [];
   const topics = raw.length ? raw : [{ title: data.topic.title, note: data.topic.summary, line: utterances.length }];
   const drift = driftMinutes(data.focus, utterances, huddle, now);
@@ -679,6 +682,23 @@ function TopicCard({ data, updatedAt, utterances, huddle, now, expanded, onToggl
           <Icon name="warn" />
           <span>{t('topic.drift', { n: drift })}</span>
         </div>
+      )}
+      {canOpenThread ? (
+        <button type="button" className="topic__thread topic__thread--cta" onClick={onOpenThread}>
+          <Icon name="chat" />
+          <span className="topic__thread-text">{t('topic.threadHint')}</span>
+          <span className="topic__thread-open">
+            <Icon name="open" />
+            {t('topic.threadOpen')}
+          </span>
+        </button>
+      ) : (
+        threadInContext && (
+          <div className="topic__thread topic__thread--on" role="status">
+            <span className="threadbar__dot" role="img" aria-hidden="true" />
+            <span className="topic__thread-text">{t('topic.threadInContext')}</span>
+          </div>
+        )
       )}
       {isExpanded && <TopicTimeline topics={topics} active={active} utterances={utterances} />}
     </section>
@@ -788,6 +808,11 @@ export function InsightsView({
   onRenamePerson,
   deckSections,
   onToggleDeckSection,
+  threadState,
+  threadCount,
+  onOpenThread,
+  hiddenSeen,
+  onToggleShowAll,
 }) {
   const t = useT();
   if (!current) {
@@ -842,6 +867,9 @@ export function InsightsView({
         now={now}
         expanded={topicExpanded}
         onToggle={onToggleTopic}
+        threadState={threadState}
+        threadCount={threadCount}
+        onOpenThread={onOpenThread}
       />
       {settings.detect.alerts && (
         <AlertsSection
@@ -936,6 +964,17 @@ export function InsightsView({
         </Section>
       )}
       <PeopleSection people={people} overrides={nameOverrides} onRename={onRenamePerson} />
+      {onToggleShowAll && (hiddenSeen > 0 || showAllSeen) && (
+        <button
+          className="button button--block button--showseen"
+          type="button"
+          aria-pressed={String(showAllSeen)}
+          onClick={onToggleShowAll}
+        >
+          <Icon name={showAllSeen ? 'eye' : 'eye-off'} />
+          {showAllSeen ? t('info.hideSeen') : t('info.showAll', { n: hiddenSeen })}
+        </button>
+      )}
     </div>
   );
 }

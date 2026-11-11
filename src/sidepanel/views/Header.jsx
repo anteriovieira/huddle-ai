@@ -15,6 +15,7 @@ export function Header({
   now,
   onHome,
   onOpenAtas,
+  onOpenAnalytics,
   onReturnToSlack,
 }) {
   const t = useT();
@@ -49,6 +50,13 @@ export function Header({
         <Tooltip label={t('header.sessions')} side="bottom">
           <button className="icon-button" type="button" aria-label={t('header.sessions')} onClick={onOpenAtas}>
             <Icon name="logs" />
+          </button>
+        </Tooltip>
+      )}
+      {onOpenAnalytics && (
+        <Tooltip label={t('header.analytics')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.analytics')} onClick={onOpenAnalytics}>
+            <Icon name="chart" />
           </button>
         </Tooltip>
       )}
@@ -247,10 +255,63 @@ export function InfoBar({
   onToggleShowAll,
   anyDecked,
   onToggleAllDecks,
+  analyticsScored,
+  analyticsCanScore,
+  analyticsScoring,
+  onCopyAnalytics,
+  onRegenerateAnalytics,
+  onAskAnalytics,
 }) {
   const t = useT();
-  // A aba Análise é um dashboard próprio (com CTA e cabeçalhos internos); não usa a barra de info.
-  if (tab === 'analytics') return null;
+  if (tab === 'analytics') {
+    if (!hasKeyForModel(settings)) {
+      return (
+        <div className="info">
+          {t('infobar.needKey')}{' '}
+          <button className="link" type="button" onClick={onOpenSettings}>
+            {t('infobar.configure')}
+          </button>
+        </div>
+      );
+    }
+    const status = analyticsScored
+      ? t('infobar.analyticsSession')
+      : analyticsCanScore
+        ? t('infobar.analyticsScore')
+        : t('infobar.analyticsReady');
+    return (
+      <div className="info info--row">
+        <span className="info__text">{status}</span>
+        <div className="info__actions">
+          {onAskAnalytics && (
+            <Tooltip label={t('info.analytics.ask')}>
+              <button className="icon-button" type="button" aria-label={t('info.analytics.ask')} onClick={onAskAnalytics}>
+                <Icon name="chat-plus" />
+              </button>
+            </Tooltip>
+          )}
+          {onRegenerateAnalytics && analyticsCanScore && (
+            <Tooltip label={analyticsScoring ? t('info.analytics.scoring') : t('info.analytics.regen')}>
+              <button
+                className={analyticsScoring ? 'icon-button icon-button--loading' : 'icon-button'}
+                type="button"
+                aria-label={analyticsScoring ? t('info.analytics.scoring') : t('info.analytics.regen')}
+                disabled={analyticsScoring}
+                onClick={onRegenerateAnalytics}
+              >
+                <Icon name={analyticsScoring ? 'spinner' : 'refresh'} className={analyticsScoring ? 'icon icon--spin' : 'icon'} />
+              </button>
+            </Tooltip>
+          )}
+          <Tooltip label={t('info.analytics.copy')}>
+            <button className="icon-button" type="button" aria-label={t('info.analytics.copy')} disabled={!analyticsScored} onClick={onCopyAnalytics}>
+              <Icon name="copy" />
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+    );
+  }
   if (tab === 'insights') {
     if (!hasKeyForModel(settings)) {
       return (

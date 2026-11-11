@@ -44,6 +44,16 @@ export function bgOf(score) {
 
 const clamp = (n) => Math.min(SCORE_MAX, Math.max(0, Number.isFinite(n) ? n : 0));
 
+// Turns a raw [{id, score}] list into one entry per criterion, in order, missing ones = 0.
+function criteriaFrom(list) {
+  const byId = new Map(
+    (Array.isArray(list) ? list : [])
+      .filter((x) => x && typeof x.id === 'string')
+      .map((x) => [x.id, clamp(x.score)]),
+  );
+  return CRITERIA.map((c) => ({ id: c.id, label: c.label, score: byId.get(c.id) ?? 0 }));
+}
+
 // Comma decimal for the UI (pt-BR): 2.3 -> "2,3".
 export function fmtScore(score) {
   return clamp(score).toFixed(1).replace('.', ',');
@@ -57,12 +67,7 @@ export function labelOf(id) {
 // scores clamped to 0..3, lists coerced. Safe to call on a partial/garbled object.
 export function normalizeScores(data) {
   const d = data ?? {};
-  const byId = new Map(
-    (Array.isArray(d.overall) ? d.overall : [])
-      .filter((x) => x && typeof x.id === 'string')
-      .map((x) => [x.id, clamp(x.score)]),
-  );
-  const overall = CRITERIA.map((c) => ({ id: c.id, label: c.label, score: byId.get(c.id) ?? 0 }));
+  const overall = criteriaFrom(d.overall);
   const strengths = (Array.isArray(d.strengths) ? d.strengths : []).filter((id) => CRITERIA_BY_ID.has(id));
   const improvements = (Array.isArray(d.improvements) ? d.improvements : [])
     .filter((x) => x && typeof x.analysis === 'string' && typeof x.action === 'string')
@@ -76,6 +81,7 @@ export function normalizeScores(data) {
     .map((p) => ({
       name: p.name.trim(),
       score: clamp(p.score),
+      criteria: criteriaFrom(p.criteria),
       focus: CRITERIA_BY_ID.has(p.focus) ? p.focus : '',
       tip: typeof p.tip === 'string' ? p.tip : '',
     }));
@@ -147,6 +153,48 @@ export function aggregateScores(records) {
   return { count: scored.length, overall, trend, criteria, participants, sessions };
 }
 
+// A scored meeting as plain text, for the "copy" action in the Análise info bar.
+export function scoresAsText(record) {
+  if (!record?.data) return '';
+  const data = normalizeScores(record.data);
+  const meta = record.meta ?? {};
+  const avg = meetingAverage(record.data);
+  const lines = [
+    `# Análise — ${meta.title || 'Reunião'}`,
+    '',
+    `Score geral: ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%)`,
+    '',
+    '## Scores por critério',
+    ...data.overall.map((c) => `- ${c.label}: ${fmtScore(c.score)}/${SCORE_MAX}`),
+  ];
+  if (data.improvements.length) {
+    lines.push('', '## O que melhorar');
+    for (const r of data.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} Ação: ${r.action}`);
+  }
+  if (data.participants.length) {
+    lines.push('', '## Por participante');
+    for (const p of data.participants) {
+      lines.push(`- ${p.name}: ${fmtScore(p.score)}/${SCORE_MAX}${p.focus ? ` — melhorar ${labelOf(p.focus)}: ${p.tip}` : ''}`);
+    }
+  }
+  return lines.join('\n').trim();
+}
+
+// A short context line to pre-fill the chat input when the user asks about a meeting's analysis
+// (the "chat+" action in the Análise info bar). Ends open so the user types their question after it.
+export function analysisContext(record) {
+  if (!record?.data) return 'Sobre a análise desta reunião: ';
+  const data = normalizeScores(record.data);
+  const avg = meetingAverage(record.data);
+  const low = data.overall
+    .slice()
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+    .map((c) => c.label);
+  const title = record.meta?.title || 'esta reunião';
+  return `Contexto — análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}.`;
+}
+
 // Per-participant detail across sessions: their score in each session they appear in (newest-first),
 // their overall average and the most recent focus/tip. `records` is the stored scores records.
 export function participantDetail(records, name) {
@@ -155,6 +203,8 @@ export function participantDetail(records, name) {
   const rows = [];
   let total = 0;
   const focus = new Map();
+  const cSum = new Map(CRITERIA.map((c) => [c.id, 0]));
+  let cCount = 0;
   let latestTip = null;
   let latestAt = -1;
   for (const r of scored) {
@@ -163,6 +213,8 @@ export function participantDetail(records, name) {
     const startedAt = r.meta?.startedAt ?? r.generatedAt ?? 0;
     rows.push({ huddleId: r.huddleId, title: r.meta?.title || 'Reunião', startedAt, score: p.score });
     total += p.score;
+    for (const c of p.criteria) cSum.set(c.id, cSum.get(c.id) + c.score);
+    cCount += 1;
     if (p.focus) focus.set(p.focus, (focus.get(p.focus) ?? 0) + 1);
     if (startedAt >= latestAt && p.tip) {
       latestAt = startedAt;
@@ -170,10 +222,15 @@ export function participantDetail(records, name) {
     }
   }
   rows.sort((a, b) => b.startedAt - a.startedAt);
+  const criteria = CRITERIA.map((c) => ({ id: c.id, label: c.label, score: cCount ? cSum.get(c.id) / cCount : 0 }));
+  const ranked = criteria.slice().sort((a, b) => b.score - a.score);
   return {
     name,
     meetings: rows.length,
     average: rows.length ? total / rows.length : 0,
+    criteria,
+    strength: ranked[0] ?? null,
+    weakness: ranked[ranked.length - 1] ?? null,
     focus: [...focus.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '',
     tip: latestTip?.tip ?? '',
     sessions: rows,

@@ -2599,6 +2599,49 @@ select {
   flex-shrink: 0;
 }
 
+/* Thread no card do tópico: selo verde quando em contexto, CTA quando a cópia está velha. */
+.topic__thread {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+.topic__thread .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.topic__thread-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.topic__thread--on {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.topic__thread--cta {
+  border: 0;
+  cursor: pointer;
+  background: var(--green-bg);
+  color: var(--green);
+}
+.topic__thread--cta:hover {
+  filter: brightness(1.12);
+}
+.topic__thread-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
 /* Chat com a reunião */
 
 /* Toggle simples ligado (empilhar decks, mostrar recentes): neutro, sem cor de status.
@@ -2845,10 +2888,10 @@ body.is-resizing {
 .chatdock__log {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
 }
 
 .chatdock__empty {
@@ -2991,6 +3034,7 @@ body.is-resizing {
 
 .chat-bubble--md {
   white-space: normal;
+  line-height: 1.55;
 }
 
 .chat-bubble--md .md > :first-child {
@@ -3002,17 +3046,17 @@ body.is-resizing {
 }
 
 .chat-bubble--md p {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 
 .chat-bubble--md ul,
 .chat-bubble--md ol {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   padding-left: 20px;
 }
 
 .chat-bubble--md li {
-  margin: 2px 0;
+  margin: 4px 0;
 }
 
 .chat-bubble--md li::marker {
@@ -3071,14 +3115,24 @@ body.is-resizing {
 }
 
 .chatdock__input {
-  display: flex;
   padding: 10px;
   border-top: 1px solid var(--border);
 }
 
+/* Caixa única do composer: a borda envolve o chip de contexto (quando há) e o campo, como no
+   protótipo (o chip fica dentro do textarea, não acima dele). */
+.chatdock__box {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.chatdock__box:focus-within {
+  border-color: var(--blue);
+}
+
 .chatdock__field {
   position: relative;
-  flex: 1;
 }
 
 .chatdock__input textarea {
@@ -3087,9 +3141,8 @@ body.is-resizing {
   min-height: 40px;
   max-height: 148px;
   padding: 9px 44px 9px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: none;
+  background: transparent;
   color: var(--text);
   font: inherit;
   line-height: 1.4;
@@ -3104,7 +3157,6 @@ body.is-resizing {
 
 .chatdock__input textarea:focus {
   outline: none;
-  border-color: var(--blue);
 }
 
 .chatdock__send {
@@ -3760,4 +3812,155 @@ a.ref__title {
   max-width: 420px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+}
+
+/* Ata em streaming: cada seção aparece conforme o modelo escreve, com fade-in suave. */
+.ata-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: ata-stream-in 0.25s ease;
+}
+
+.ata-stream__list {
+  margin: 0 0 0 32px;
+  padding: 0;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.ata-stream__list li {
+  animation: ata-stream-in 0.25s ease;
+}
+
+.ata-stream__text {
+  margin: 0 0 0 32px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+@keyframes ata-stream-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ata-stream,
+  .ata-stream__list li {
+    animation: none;
+  }
+}
+
+/* Botão "mostrar vistos" no rodapé da aba Insights: discreto, com ícone de olho. */
+.button--showseen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.button--showseen .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Chip de contexto no chat: no composer (acima do campo) e citado acima da mensagem do usuário.
+   Mesmo estilo nos dois: caixa discreta com ícone de reply e o rótulo do contexto. */
+.chat-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-context .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.chat-context__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* No composer: primeira linha DENTRO da caixa do input, com o × para remover. */
+.chat-context--chip {
+  display: flex;
+  margin: 8px 8px 0;
+}
+
+.chat-context--chip .chat-context__label {
+  flex: 1;
+}
+
+.chat-context__remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-context__remove:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.chat-context__remove .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Mensagem do usuário COM contexto: um bloco (surface) com a citação do contexto em cima e a
+   pergunta embaixo — como no design, no lugar da bolha verde comum. O chip (var(--bg)) fica
+   visível contra o surface. */
+.chat-ctxmsg {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 4px 12px;
+  background: var(--surface);
+}
+
+.chat-ctxmsg__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.chat-context--quote {
+  max-width: 100%;
 }

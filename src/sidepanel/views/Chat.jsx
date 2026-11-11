@@ -42,6 +42,21 @@ function ChatMessage({ message }) {
     return <div className="chat-msg chat-msg--error">{message.text}</div>;
   }
   if (message.role === 'user') {
+    if (message.context) {
+      // Com contexto: um bloco (surface) com a citação em cima e a pergunta embaixo (segue o design,
+      // em vez da bolha verde comum).
+      return (
+        <div className="chat-msg chat-msg--user">
+          <div className="chat-ctxmsg">
+            <span className="chat-context chat-context--quote">
+              <Icon name="reply" />
+              <span className="chat-context__label">{message.context}</span>
+            </span>
+            <p className="chat-ctxmsg__text">{message.text}</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="chat-msg chat-msg--user">
         <p className="chat-bubble">{message.text}</p>
@@ -170,6 +185,7 @@ export function ChatDock({
   onCloseDock,
   onDraftChange,
   onSubmit,
+  onRemoveContext,
 }) {
   const t = useT();
   const logRef = useRef(null);
@@ -307,6 +323,16 @@ export function ChatDock({
           onSubmit();
         }}
       >
+        <div className="chatdock__box">
+        {activeChat?.context && (
+          <div className="chat-context chat-context--chip">
+            <Icon name="reply" className="icon" />
+            <span className="chat-context__label">{activeChat.context.label}</span>
+            <button type="button" className="chat-context__remove" aria-label={t('chat.removeContext')} onClick={onRemoveContext}>
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
         <div className="chatdock__field">
           <textarea
             ref={inputRef}
@@ -330,6 +356,7 @@ export function ChatDock({
               <Icon name="enter" />
             </button>
           </Tooltip>
+        </div>
         </div>
       </form>
     </section>

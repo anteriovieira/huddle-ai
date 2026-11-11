@@ -84,6 +84,7 @@ export const STRINGS = {
   'header.backToSlack': 'Back to Slack',
   'header.home': 'Home',
   'header.sessions': 'Previous sessions',
+  'header.analytics': 'Analytics',
   'header.askMeeting': 'Ask the meeting',
   'header.chatAria': 'Chat with the meeting',
   'header.logs': 'Logs',
@@ -121,6 +122,13 @@ export const STRINGS = {
   'infobar.analyzingEvery': 'Analyzing every {n}s.',
   'infobar.nextIn': 'Next analysis in {n}s.',
   'infobar.onNextUtterance': 'Analyzing on the next caption…',
+  'infobar.analyticsSession': 'Analysis of this meeting.',
+  'infobar.analyticsScore': 'Score this meeting to generate the analysis.',
+  'infobar.analyticsReady': 'Meeting analysis.',
+  'info.analytics.ask': 'Ask about the analysis',
+  'info.analytics.regen': 'Score again',
+  'info.analytics.scoring': 'Scoring…',
+  'info.analytics.copy': 'Copy the analysis',
 
   // Captions info bar
   'captions.enablePre': 'Captions not showing? Turn them on in the huddle (captions button) or in your ',
@@ -202,6 +210,9 @@ export const STRINGS = {
   'topic.hideTopics': 'Hide discussed topics',
   'topic.seeTopics': 'See discussed topics',
   'topic.drift': 'Off-topic for {n} min — away from the agenda',
+  'topic.threadHint': 'This huddle has a thread with context',
+  'topic.threadOpen': 'Open thread',
+  'topic.threadInContext': 'Thread in AI context',
   'person.correctNameOf': 'Correct {name}’s name',
   'person.clickToCorrect': 'Click to correct the name',
   'person.was': ' (was "{name}")',
@@ -326,6 +337,7 @@ export const STRINGS = {
   'chat.placeholder': 'Ask a quick question',
   'chat.inputAria': 'Question for the meeting',
   'chat.send': 'Send question',
+  'chat.removeContext': 'Remove context',
 
   // Idle
   'idle.noHuddle': 'No active huddle',

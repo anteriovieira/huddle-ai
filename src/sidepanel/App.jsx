@@ -17,7 +17,8 @@ import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
-import { AnaliseView } from './views/Analise.jsx';
+import { AnaliseView, SessionAnalyticsView } from './views/Analise.jsx';
+import { scoresAsText } from './lib/scoring.js';
 import { RecentTicker } from './views/RecentTicker.jsx';
 import { LogsView } from './views/Logs.jsx';
 import { SettingsView } from './views/Settings.jsx';
@@ -85,12 +86,14 @@ let chatSeq = 0;
 // updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
-const ASK_DETAIL_PROMPT = {
-  English: (text) => `Briefly explain this in 1-2 sentences, based on the meeting: "${text}"`,
-  Portuguese: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
-  Português: (text) => `Explique rapidamente, em 1-2 frases, com base na reunião: "${text}"`,
-  Spanish: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
-  Español: (text) => `Explica esto brevemente en 1-2 frases, con base en la reunión: "${text}"`,
+// A pergunta enviada ao pedir "mais detalhes" sobre um item. O item em si vai como CONTEXTO
+// anexado à mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight.
+const ASK_DETAIL_QUESTION = {
+  English: 'Answer fast, for use mid-meeting: 1–2 short sentences max on what was said and why it matters. No preamble, no fluff.',
+  Portuguese: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
+  Português: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
+  Spanish: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
+  Español: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
@@ -126,7 +129,13 @@ export function App() {
   const [extState, setExtState] = useState(EMPTY_STATE);
   const [insights, setInsights] = useState(null);
   const [minutes, setMinutes] = useState(null);
+  // Parcial do streaming da ata: objeto cumulativo que chega enquanto o modelo escreve, para o
+  // loader mostrar cada seção/ponto conforme é processado. Limpo ao terminar.
+  const [minutesPartial, setMinutesPartial] = useState(null);
   const [scores, setScores] = useState(null);
+  // Parcial do streaming da pontuação (aba Análise): objeto cumulativo enquanto o modelo pontua,
+  // para o loader revelar cada critério/participante conforme chega. Limpo ao terminar.
+  const [scoresPartial, setScoresPartial] = useState(null);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState([]);
@@ -146,6 +155,7 @@ export function App() {
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsReturnToSettings, setLogsReturnToSettings] = useState(false);
   const [atasOpen, setAtasOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [atasQuery, setAtasQuery] = useState('');
   const [atasTag, setAtasTag] = useState(null);
   const [viewingAta, setViewingAta] = useState(null);
@@ -586,11 +596,18 @@ export function App() {
     setMinutesRunning(true);
     setMinutesStartedAt(minutesCtl.current.startedAt);
     setMinutesError(null);
+    setMinutesPartial(null);
     setTab('ata');
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
       const meta = minutesMeta(h, u, latest.current.nameOverrides);
-      const data = await generateMinutes({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
+      const data = await generateMinutes({
+        settings: s,
+        meta,
+        utterances: u,
+        nameOverrides: latest.current.nameOverrides,
+        onPartial: (d) => setMinutesPartial(d),
+      });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
       await chromeApi?.storage.session.set({ minutes: record });
@@ -607,6 +624,7 @@ export function App() {
     } finally {
       minutesCtl.current.running = false;
       setMinutesRunning(false);
+      setMinutesPartial(null);
     }
   }, [saveMinutesToHistory]);
 
@@ -638,11 +656,18 @@ export function App() {
     scoringCtl.current.running = true;
     setScoringRunning(true);
     setScoreError(null);
+    setScoresPartial(null);
     logEvent('info', `Pontuando reunião de ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
     try {
       const meta = minutesMeta(h, u, latest.current.nameOverrides);
-      const data = await scoreMeeting({ settings: s, meta, utterances: u, nameOverrides: latest.current.nameOverrides });
+      const data = await scoreMeeting({
+        settings: s,
+        meta,
+        utterances: u,
+        nameOverrides: latest.current.nameOverrides,
+        onPartial: (d) => setScoresPartial(d),
+      });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setScores(record);
       await chromeApi?.storage.session.set({ scores: record });
@@ -656,6 +681,7 @@ export function App() {
     } finally {
       scoringCtl.current.running = false;
       setScoringRunning(false);
+      setScoresPartial(null);
     }
   }, [saveScoresToHistory]);
 
@@ -1272,6 +1298,24 @@ export function App() {
     [history, flash, tr],
   );
 
+  // --- Análise geral (overlay pelo botão do cabeçalho) ---
+  const openAnalytics = useCallback(() => {
+    setAnalyticsOpen(true);
+    setAtasOpen(false);
+    setViewingAta(null);
+    setImportOpen(false);
+  }, []);
+  const closeAnalytics = useCallback(() => setAnalyticsOpen(false), []);
+  // Clicar numa sessão na Análise geral: carrega a sessão e abre a aba Análise dela.
+  const openSessionAnalytics = useCallback(
+    async (huddleId) => {
+      setAnalyticsOpen(false);
+      await loadSession({ huddleId });
+      setTab('analytics');
+    },
+    [loadSession],
+  );
+
   // Volta para a página principal (o estado em que a extensão abre): descarrega a sessão que estava
   // sendo vista e fecha os overlays. Um huddle ao vivo volta a se preencher sozinho na próxima fala.
   const goHome = useCallback(async () => {
@@ -1405,6 +1449,10 @@ export function App() {
   }, [chats.list, activeChatId]);
   const selectChat = useCallback((id) => setActiveChatId(id), []);
   const setDraft = useCallback((id, value) => setChatDrafts((d) => ({ ...d, [id]: value })), []);
+  // Remove o chip de contexto do chat (o × no composer) e ao enviar (contexto consumido).
+  const removeChatContext = useCallback((chatId) => {
+    setChats((prev) => ({ ...prev, list: prev.list.map((c) => (c.id === chatId ? { ...c, context: null } : c)) }));
+  }, []);
 
   const nameChat = useCallback(async (chatId, question) => {
     let title;
@@ -1444,9 +1492,13 @@ export function App() {
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role, text: m.text }));
     const firstQuestion = !chat.messages.some((m) => m.role === 'user');
+    const context = chat.context ?? null;
+    // O que o modelo recebe inclui o contexto; a mensagem exibida mantém só a pergunta + o chip.
+    const modelQuestion = context ? `${context.text}\n\n${question}` : question;
 
-    appendMessage(chat.id, { role: 'user', text: question });
+    appendMessage(chat.id, { role: 'user', text: question, ...(context ? { context: context.label } : null) });
     setDraft(chat.id, '');
+    if (context) removeChatContext(chat.id);
     setChatBusy((b) => new Set(b).add(chat.id));
     setChatStream({ chatId: chat.id, text: '', steps: [] });
 
@@ -1458,7 +1510,7 @@ export function App() {
         settings: latest.current.settings,
         utterances: latest.current.utterances,
         history: histTurns,
-        question,
+        question: modelQuestion,
         sessions: latest.current.pastSessions,
         thread: latest.current.threadForAI,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
@@ -1480,12 +1532,12 @@ export function App() {
       });
       setChatStream(null);
     }
-  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, nameChat, flash]);
+  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, removeChatContext, nameChat, flash]);
 
   // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
   // decision, action, question, reference…). Posts the question and streams the answer right away.
   const askInChat = useCallback(
-    async (question) => {
+    async (question, context = null) => {
       if (!question) return;
       setChatOpen(true);
       if (!hasKeyForModel(latest.current.settings)) {
@@ -1493,14 +1545,18 @@ export function App() {
         return;
       }
       const chat = newChat();
+      // O contexto (ex.: o item de insight) vai como metadado da mensagem (chip/citação); o texto
+      // exibido é só a pergunta. O modelo recebe contexto + pergunta.
+      const userMessage = { role: 'user', text: question, ...(context ? { context: context.label } : null) };
       setChats((prev) => ({
         ...prev,
-        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [{ role: 'user', text: question }] }],
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [userMessage] }],
       }));
       setActiveChatId(chat.id);
       setChatBusy((b) => new Set(b).add(chat.id));
       setChatStream({ chatId: chat.id, text: '', steps: [] });
-      nameChat(chat.id, question);
+      nameChat(chat.id, context ? context.text : question);
+      const modelQuestion = context ? `${context.text}\n\n${question}` : question;
       logEvent('info', `Pergunta no chat (${latest.current.utterances.length} falas)`);
       const steps = [];
       try {
@@ -1508,7 +1564,7 @@ export function App() {
           settings: latest.current.settings,
           utterances: latest.current.utterances,
           history: [],
-          question,
+          question: modelQuestion,
           sessions: latest.current.pastSessions,
           thread: latest.current.threadForAI,
           onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
@@ -1534,13 +1590,25 @@ export function App() {
     [appendMessage, nameChat, flash],
   );
 
+  // Opens a NEW chat with `draft` pre-filled in the input (NOT sent), for the user to extend with
+  // their question before sending. Used by the "chat+" action on the Análise tab.
+  const openAnalyticsChat = useCallback((context) => {
+    setChatOpen(true);
+    const chat = newChat();
+    setChats((prev) => ({
+      ...prev,
+      list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, context }],
+    }));
+    setActiveChatId(chat.id);
+  }, []);
+
   // Expand one insight item (point, decision, action, question…) in a fresh chat.
   const askAboutInsight = useCallback(
     (topic) => {
       const text = String(topic ?? '').trim();
       if (!text) return;
-      const build = ASK_DETAIL_PROMPT[latest.current.settings.language] ?? ASK_DETAIL_PROMPT.English;
-      askInChat(build(text));
+      const q = ASK_DETAIL_QUESTION[latest.current.settings.language] ?? ASK_DETAIL_QUESTION.English;
+      askInChat(q, { label: text, text });
     },
     [askInChat],
   );
@@ -1640,6 +1708,21 @@ export function App() {
       />
     );
   }
+  if (analyticsOpen) {
+    return screen(
+      <div className="screen">
+        <main className="main main--analytics" id="main">
+          <AnaliseView
+            records={allScores}
+            hasKey={hasKeyForModel(settings)}
+            onOpenSettings={openSettings}
+            onOpenSession={openSessionAnalytics}
+            onClose={closeAnalytics}
+          />
+        </main>
+      </div>,
+    );
+  }
   if (!huddle) {
     return screen(
       <div className="screen">
@@ -1650,6 +1733,7 @@ export function App() {
           now={now}
           onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
           onOpenAtas={openAtas}
+          onOpenAnalytics={openAnalytics}
           onToggleChat={toggleChat}
           onOpenLogs={openLogs}
           onOpenSettings={openSettings}
@@ -1697,6 +1781,7 @@ export function App() {
 
   // Props da barra de informação — iguais para qualquer seção; a InfoBar usa só
   // o que importa para a aba que recebe.
+  const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
   const infoBarProps = {
     settings,
     analysis: { running: analysisRunning, error: analysisError },
@@ -1733,16 +1818,28 @@ export function App() {
     onDriveMinutes: currentMinutes ? () => uploadToDrive(currentMinutes) : undefined,
     minutesUploaded: currentMinutes?.drive ?? null,
     minutesDriveBusy: !!currentMinutes && driveBusy === currentMinutes.huddleId,
+    analyticsScored: !!currentScores,
+    analyticsCanScore: canScore,
+    analyticsScoring: scoringRunning,
+    onCopyAnalytics: () => currentScores && copyToClipboard(scoresAsText(currentScores)),
+    onRegenerateAnalytics: runScoring,
+    onAskAnalytics: () =>
+      openAnalyticsChat({
+        label: 'Análise desta reunião',
+        // O modelo recebe o relatório completo (scores por critério, melhorias e por participante),
+        // não só o resumo — assim o chat responde perguntas sobre a análise. O chip mostra só o label.
+        text: currentScores
+          ? `Contexto — análise pontuada desta reunião:\n\n${scoresAsText(currentScores)}`
+          : 'Contexto: esta reunião ainda não foi pontuada.',
+      }),
   };
 
-  // Aba Análise: pontua a reunião só quando encerrada, com transcrição e chave disponíveis.
-  const canScore = !!huddle && !huddle.active && hasKeyForModel(settings) && utterances.length >= MIN_UTTERANCES_FOR_MINUTES;
   const analyticsProps = {
+    scores: currentScores,
     records: allScores,
-    currentScores,
-    currentHuddleId: huddle?.id ?? null,
     canScore,
     scoring: scoringRunning,
+    scoresPartial,
     scoreError,
     hasKey: hasKeyForModel(settings),
     onScore: runScoring,
@@ -1752,7 +1849,7 @@ export function App() {
   // Conteúdo de uma seção — os painéis em si não mudam com a largura.
   const panelContent = (section) => {
     if (section === 'analytics') {
-      return <AnaliseView {...analyticsProps} />;
+      return <SessionAnalyticsView {...analyticsProps} />;
     }
     if (section === 'insights') {
       return (
@@ -1789,6 +1886,8 @@ export function App() {
           onAskAI={askAboutInsight}
           seen={seen}
           showAllSeen={showAllSeen}
+          hiddenSeen={hiddenSeen}
+          onToggleShowAll={toggleShowAllSeen}
           onMarkSeen={markSeen}
           onMarkAllSeen={markAllSeen}
           removed={removed}
@@ -1798,6 +1897,9 @@ export function App() {
           onRenamePerson={renamePerson}
           deckSections={deckSections}
           onToggleDeckSection={toggleDeckSection}
+          threadState={huddle?.active ? threadState : 'none'}
+          threadCount={thread?.messages.length ?? 0}
+          onOpenThread={openThread}
         />
         </>
       );
@@ -1806,7 +1908,7 @@ export function App() {
       return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
     }
     return minutesRunning ? (
-      <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} />
+      <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} partial={minutesPartial} />
     ) : currentMinutes ? (
       <AtaContent record={currentMinutes} {...ataProps(currentMinutes)} />
     ) : (
@@ -1929,6 +2031,7 @@ export function App() {
         onHome={huddle?.loaded ? goHome : undefined}
         onReturnToSlack={!onSlackTab && slackOpen ? goToSlack : undefined}
         onOpenAtas={openAtas}
+        onOpenAnalytics={openAnalytics}
         onToggleChat={toggleChat}
         onOpenLogs={openLogs}
         onOpenSettings={openSettings}
@@ -1952,6 +2055,7 @@ export function App() {
           onCloseDock={toggleChat}
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
+          onRemoveContext={() => activeChat && removeChatContext(activeChat.id)}
         />
       )}
       {markDialog && (

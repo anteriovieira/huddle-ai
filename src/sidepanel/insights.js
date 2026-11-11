@@ -459,7 +459,7 @@ function formatMeetingDate(timestamp) {
   return new Date(timestamp).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' });
 }
 
-export async function generateMinutes({ settings, meta, utterances, nameOverrides }) {
+export async function generateMinutes({ settings, meta, utterances, nameOverrides, onPartial }) {
   try {
     const data = await streamStructured({
       settings,
@@ -474,6 +474,7 @@ export async function generateMinutes({ settings, meta, utterances, nameOverride
         .filter(Boolean)
         .join('\n\n'),
       maxOutputTokens: 16000,
+      onPartial,
     });
     if (!data?.classification) throw new Error('O modelo não retornou os dados no formato esperado.');
     data.classification.confidence = Math.min(100, Math.max(0, data.classification.confidence ?? 0));
@@ -494,7 +495,15 @@ const ScoreSchema = z.object({
   summary: z.string(),
   strengths: z.array(z.string()),
   improvements: z.array(z.object({ criterion: z.string(), analysis: z.string(), action: z.string() })),
-  participants: z.array(z.object({ name: z.string(), score: z.number(), focus: z.string(), tip: z.string() })),
+  participants: z.array(
+    z.object({
+      name: z.string(),
+      score: z.number(),
+      criteria: z.array(z.object({ id: z.string(), score: z.number() })),
+      focus: z.string(),
+      tip: z.string(),
+    }),
+  ),
 });
 
 function scoreSystem(settings) {
@@ -512,12 +521,12 @@ function scoreSystem(settings) {
       '- summary: one or two sentences on how the meeting went overall — its strongest trait and its biggest gap.',
       '- strengths: the ids of the one or two best-scoring criteria.',
       '- improvements: the two or three criteria most worth improving (lowest or most impactful). For each: criterion (its id), analysis (one sentence on what specifically happened in THIS meeting that held the score down, referencing the transcript), action (one concrete, imperative next-time suggestion).',
-      '- participants: one entry per person who actually spoke, by their name as in the captions. score (0..3) is how effective that person was in the meeting. focus is the id of the single criterion they most need to improve. tip is one short, concrete, actionable sentence for them. Only people who spoke; empty list if unclear.',
+      `- participants: one entry per person who actually spoke, by their name as in the captions. score (0..3) is how effective that person was overall. criteria is that person's own score (0..3) on EACH criterion id (same ids as overall, include every one), reflecting their individual contribution. focus is the id of the single criterion they most need to improve. tip is one short, concrete, actionable sentence for them. Only people who spoke; empty list if unclear.`,
     ].join('\n'),
   ].join('\n\n');
 }
 
-export async function scoreMeeting({ settings, meta, utterances, nameOverrides }) {
+export async function scoreMeeting({ settings, meta, utterances, nameOverrides, onPartial }) {
   try {
     const data = await streamStructured({
       settings,
@@ -532,6 +541,7 @@ export async function scoreMeeting({ settings, meta, utterances, nameOverrides }
         .filter(Boolean)
         .join('\n\n'),
       maxOutputTokens: 6000,
+      onPartial,
     });
     if (!data?.overall) throw new Error('O modelo não retornou os dados no formato esperado.');
     return normalizeScores(data);

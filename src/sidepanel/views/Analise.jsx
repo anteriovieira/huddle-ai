@@ -88,19 +88,16 @@ function Radar({ criteria, fill = '#2bac76' }) {
   const rings = [1, 2, 3].map((lvl) => fmt(criteria.map((_, i) => pt((R * lvl) / SCORE_MAX, i))));
   const valuePts = criteria.map((c, i) => pt((R * c.score) / SCORE_MAX, i));
   const ticks = [1, 2, 3].map((lvl) => ({ n: lvl, x: cx + 5, y: cy - (R * lvl) / SCORE_MAX - 3 }));
+  // Every label is centered over its axis node (name above, score chip below) instead of extending
+  // sideways — long side labels ("Próximos passos") no longer clip at the edges.
   const labels = criteria.map((c, i) => {
     const a = ((-90 + (i * 360) / n) * Math.PI) / 180;
-    const cos = Math.cos(a);
-    const lx = cx + labelR * cos;
+    const lx = cx + labelR * Math.cos(a);
     const ly = cy + labelR * Math.sin(a);
-    const anchor = cos > 0.2 ? 'start' : cos < -0.2 ? 'end' : 'middle';
-    const w = 30;
-    const rx = anchor === 'start' ? lx : anchor === 'end' ? lx - w : lx - w / 2;
-    const tx = anchor === 'start' ? lx + w / 2 : anchor === 'end' ? lx - w / 2 : lx;
-    return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor, x: lx, ny: ly - 6, rx, ry: ly - 1, tx, ty: ly + 10 };
+    return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor: 'middle', x: lx, ny: ly - 6, rx: lx - 15, ry: ly - 1, tx: lx, ty: ly + 10 };
   });
   return (
-    <svg viewBox="0 0 360 310" width="100%" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block' }}>
+    <svg viewBox="-14 0 388 310" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block', width: '100%', maxWidth: 420, margin: '0 auto' }}>
       {rings.map((pts, i) => (
         <polygon key={i} points={pts} fill="none" stroke="var(--border)" strokeWidth="1" />
       ))}
@@ -244,7 +241,7 @@ function TrendLine({ points }) {
   const line = points.map((p, i) => `${xFor(i).toFixed(1)},${yFor(p.score).toFixed(1)}`).join(' ');
   return (
     <div style={card({ padding: '14px 14px 10px' })}>
-      <svg viewBox="0 0 360 140" width="100%" role="img" aria-label="Evolução do score por sessão" style={{ display: 'block' }}>
+      <svg viewBox="0 0 360 140" role="img" aria-label="Evolução do score por sessão" style={{ display: 'block', width: '100%', maxWidth: 400, margin: '0 auto' }}>
         {[yTop, (yTop + yBot) / 2, yBot].map((y, i) => (
           <line key={i} x1="14" y1={y} x2="346" y2={y} stroke="var(--surface-hover)" strokeWidth="1" />
         ))}
@@ -268,9 +265,26 @@ function TrendLine({ points }) {
 }
 
 // --- Detail views ------------------------------------------------------------------------------
-function ParticipantDetail({ records, name, onBack }) {
+function HighlightPill({ tone, label, item }) {
+  const color = tone === 'up' ? 'var(--green)' : 'var(--danger)';
+  return (
+    <div style={card({ display: 'flex', flexDirection: 'column', gap: 3, padding: '11px 12px', borderRadius: 8 })}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d={tone === 'up' ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} />
+        </svg>
+        {label}
+      </span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{item ? item.label : '—'}</span>
+      <span style={{ fontSize: 12, color: MUTED }}>{item ? `${fmtScore(item.score)} / ${SCORE_MAX}` : ''}</span>
+    </div>
+  );
+}
+
+function ParticipantDetail({ records, name, onBack, showTrend = true }) {
   const d = useMemo(() => participantDetail(records, name), [records, name]);
   const trend = d.sessions.slice().reverse().map((s) => ({ score: s.score, label: fmtDate(s.startedAt) }));
+  const first = name.split(/\s+/)[0];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Backbar title="Participante" onBack={onBack} />
@@ -284,24 +298,41 @@ function ParticipantDetail({ records, name, onBack }) {
         </div>
         <ScoreRing score={d.average} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
       </div>
-      {d.focus && (
-        <div style={card({ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 })}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--yellow)' }}>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        <HighlightPill tone="up" label="Mais forte" item={d.strength} />
+        <HighlightPill tone="down" label="A melhorar" item={d.weakness} />
+      </div>
+
+      <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
+          <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
+        </div>
+        <Radar criteria={d.criteria} fill="#4a7dbf" />
+      </div>
+
+      {d.tip && (
+        <div style={card({ display: 'flex', gap: 7, alignItems: 'flex-start', padding: '10px 12px' })}>
+          <span style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1, display: 'inline-flex' }} aria-hidden="true">
             <Icon name="bulb" />
-            Foco de melhoria
           </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{labelOf(d.focus)}</span>
-          {d.tip && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{d.tip}</p>}
+          <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
+            {d.focus && <b style={{ color: STRONG }}>Foco em {labelOf(d.focus)}: </b>}
+            {d.tip}
+          </span>
         </div>
       )}
-      {trend.length >= 2 && (
+
+      {showTrend && trend.length >= 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {sectionTitle('Score por sessão')}
           <TrendLine points={trend} />
         </div>
       )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sectionTitle(`Sessões de ${name.split(/\s+/)[0]}`)}
+        {sectionTitle(`Sessões de ${first}`)}
         {d.sessions.map((s) => (
           <div key={s.huddleId} style={card({ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px' })}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -323,7 +354,7 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
   const strengthLabels = data.strengths.map(labelOf);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Backbar title="Sessão" onBack={onBack} />
+      {onBack && <Backbar title="Sessão" onBack={onBack} />}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: STRONG, lineHeight: 1.3 }}>{meta.title || 'Reunião'}</span>
@@ -418,39 +449,153 @@ function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
   );
 }
 
-export function AnaliseView({
+// Per-session Analytics tab: the loaded meeting's own score detail (radar, criteria, strengths,
+// "o que melhorar", per participant), with participant drill-down. Shows a CTA when the meeting is
+// not scored yet. `records` (all scored sessions) feeds the cross-session participant detail.
+// Progressive loader while the meeting is being scored: reveals each criterion, the summary, the
+// improvements and the participants as the model streams them in (same "item a item" feel as the ata).
+function ScoreLoading({ partial }) {
+  const p = partial ?? null;
+  const overall = Array.isArray(p?.overall) ? p.overall.filter((x) => x && typeof x.id === 'string') : [];
+  const participants = Array.isArray(p?.participants) ? p.participants.filter((x) => x && typeof x.name === 'string' && x.name.trim()) : [];
+  const improvements = Array.isArray(p?.improvements) ? p.improvements.filter((r) => r && typeof r.analysis === 'string' && r.analysis.trim()) : [];
+  const summary = typeof p?.summary === 'string' ? p.summary.trim() : '';
+  const criteriaDone = overall.length >= CRITERIA.length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="spinner" aria-hidden="true" />
+        <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Analisando a reunião…</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {sectionTitle('Scores por critério')}
+        {overall.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: MUTED, fontSize: 13 }}>
+            <span className="spinner" aria-hidden="true" /> Avaliando os critérios…
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            {overall.map((c, i) => (
+              <div key={c.id ?? i} className="ata-stream" style={card({ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', borderRadius: 8 })}>
+                <span style={{ fontSize: 12, color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{labelOf(c.id)}</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: colorOf(c.score ?? 0), lineHeight: 1 }}>
+                  {fmtScore(c.score ?? 0)}
+                  <span style={{ fontSize: 11, fontWeight: 700, color: MUTED }}>/{SCORE_MAX}</span>
+                </span>
+              </div>
+            ))}
+            {!criteriaDone && (
+              <div style={{ ...card({ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 12px', borderRadius: 8 }), color: MUTED }}>
+                <span className="spinner" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {summary && <p className="ata-stream" style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{summary}</p>}
+
+      {improvements.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {sectionTitle('O que melhorar')}
+          {improvements.map((r, i) => (
+            <div key={i} className="ata-stream" style={card({ display: 'flex', flexDirection: 'column', gap: 4, padding: 12 })}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{labelOf(r.criterion)}</span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{r.analysis}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {participants.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sectionTitle('Por participante')}
+          {participants.map((pp, i) => (
+            <div key={i} className="ata-stream" style={card({ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px' })}>
+              <span style={{ width: 32, height: 32, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#fff', fontWeight: 900, fontSize: 12, background: avatarColor(pp.name) }}>
+                {initials(pp.name)}
+              </span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: STRONG, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: colorOf(pp.score ?? 0) }}>{fmtScore(pp.score ?? 0)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SessionAnalyticsView({
+  scores = null,
   records = [],
-  currentScores = null,
-  currentHuddleId = null,
   canScore = false,
   scoring = false,
   scoreError = null,
   hasKey = true,
   onScore,
   onOpenSettings,
+  scoresPartial = null,
 }) {
-  const [view, setView] = useState({ kind: 'overview' });
-  const agg = useMemo(() => aggregateScores(records), [records]);
-  const currentScored = currentHuddleId && records.some((r) => r.huddleId === currentHuddleId);
+  const [name, setName] = useState(null);
+  if (scoring) return <ScoreLoading partial={scoresPartial} />;
+  if (name) {
+    const base = records.length ? records : scores ? [scores] : [];
+    return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} showTrend={false} />;
+  }
+  if (!scores) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {scoreError && <div className="notice notice--error">{scoreError}</div>}
+        <Empty canScore={canScore} scoring={scoring} onScore={onScore} hasKey={hasKey} onOpenSettings={onOpenSettings} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {scoreError && <div className="notice notice--error">{scoreError}</div>}
+      <SessionDetail record={scores} onOpenParticipant={(n) => setName(n)} />
+      {canScore && (
+        <button type="button" className="button button--block" disabled={scoring} onClick={onScore}>
+          {scoring ? 'Analisando…' : 'Reavaliar reunião'}
+        </button>
+      )}
+    </div>
+  );
+}
 
-  if (view.kind === 'participant') {
-    return <ParticipantDetail records={records} name={view.name} onBack={() => setView({ kind: 'overview' })} />;
+// Global Analytics (header button, overlay): the dashboard aggregated over every scored session,
+// with participant drill-down. Clicking a session calls onOpenSession to load it and open its tab.
+export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpenSession, onClose }) {
+  const [name, setName] = useState(null);
+  const agg = useMemo(() => aggregateScores(records), [records]);
+
+  if (name) {
+    return <ParticipantDetail records={records} name={name} onBack={() => setName(null)} />;
   }
-  if (view.kind === 'session') {
-    const record = records.find((r) => r.huddleId === view.huddleId);
-    if (record) {
-      return (
-        <SessionDetail
-          record={record}
-          onBack={() => setView({ kind: 'overview' })}
-          onOpenParticipant={(name) => setView({ kind: 'participant', name })}
-        />
-      );
-    }
-  }
+
+  const header = onClose ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Voltar"
+        style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: 'transparent', color: MUTED, cursor: 'pointer' }}
+      >
+        <Icon name="back" />
+      </button>
+      <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Análise geral</span>
+    </div>
+  ) : null;
 
   if (!agg.count) {
-    return <Empty canScore={canScore} scoring={scoring} onScore={onScore} hasKey={hasKey} onOpenSettings={onOpenSettings} />;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {header}
+        <Empty canScore={false} hasKey={hasKey} onOpenSettings={onOpenSettings} />
+      </div>
+    );
   }
 
   const pct = Math.round((agg.overall / SCORE_MAX) * 100);
@@ -458,13 +603,7 @@ export function AnaliseView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Score current meeting CTA */}
-      {canScore && !currentScored && (
-        <button type="button" className="button button--primary button--block" disabled={scoring} onClick={onScore}>
-          {scoring ? 'Analisando…' : 'Pontuar esta reunião'}
-        </button>
-      )}
-      {scoreError && <div className="notice notice--error">{scoreError}</div>}
+      {header}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden', background: BORDER }}>
@@ -517,7 +656,7 @@ export function AnaliseView({
             <button
               key={p.name}
               type="button"
-              onClick={() => setView({ kind: 'participant', name: p.name })}
+              onClick={() => setName(p.name)}
               style={{ ...card({ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', textAlign: 'left' }), cursor: 'pointer', color: 'inherit', font: 'inherit' }}
             >
               <span style={{ width: 36, height: 36, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, color: '#fff', fontWeight: 900, fontSize: 13, background: avatarColor(p.name) }}>
@@ -543,7 +682,7 @@ export function AnaliseView({
           <button
             key={s.huddleId}
             type="button"
-            onClick={() => setView({ kind: 'session', huddleId: s.huddleId })}
+            onClick={() => onOpenSession?.(s.huddleId)}
             style={{ ...card({ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', textAlign: 'left' }), cursor: 'pointer', color: 'inherit', font: 'inherit' }}
           >
             <span style={{ width: 36, height: 36, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'var(--surface-hover)', color: MUTED }} aria-hidden="true">
