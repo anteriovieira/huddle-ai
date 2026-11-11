@@ -2888,10 +2888,10 @@ body.is-resizing {
 .chatdock__log {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
 }
 
 .chatdock__empty {
@@ -3034,6 +3034,7 @@ body.is-resizing {
 
 .chat-bubble--md {
   white-space: normal;
+  line-height: 1.55;
 }
 
 .chat-bubble--md .md > :first-child {
@@ -3045,17 +3046,17 @@ body.is-resizing {
 }
 
 .chat-bubble--md p {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 
 .chat-bubble--md ul,
 .chat-bubble--md ol {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   padding-left: 20px;
 }
 
 .chat-bubble--md li {
-  margin: 2px 0;
+  margin: 4px 0;
 }
 
 .chat-bubble--md li::marker {
