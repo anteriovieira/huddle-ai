@@ -155,6 +155,7 @@ function AlertCard({ alert, time, onAccept, onEdit, onAsk }) {
   const t = useT();
   const meta = ALERT_META[alert.kind] ?? ALERT_META.mention;
   const accept = alert.kind === 'action' ? t('alert.accept') : t('alert.ok');
+  const from = alert.from?.trim();
   return (
     <div className={`q-card q-card--alert q-card--alert-${meta.tone}`}>
       <div className="q-bar">
@@ -179,6 +180,14 @@ function AlertCard({ alert, time, onAccept, onEdit, onAsk }) {
         </span>
       </div>
       <p className="q-card__text">{alert.text}</p>
+      {from && (
+        <div className="q-action__meta">
+          <span className="owner">
+            <Avatar name={from} size="xs" />
+            <span className="owner__name">{from}</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -200,10 +209,10 @@ function AckAllButton({ alerts, onAcceptAll }) {
 function AlertsSection({ alerts, acked, utterances, huddle, now, onAccept, onAcceptAll, onEdit, onAsk, deckOn, onToggleDeck }) {
   const t = useT();
   const pending = alerts.filter((alert) => !acked.has(alert.text));
+  // Só o horário na barra; o autor (alert.from) agora aparece embaixo com avatar, como nas actions.
   const timeFor = (alert) => {
     const at = utterances[alert.line - 1];
-    const when = huddle.active ? cardAgo(alert.line, utterances, huddle, now) : at ? formatClock(at.at) : null;
-    return [when, alert.from].filter(Boolean).join(' · ') || null;
+    return huddle.active ? cardAgo(alert.line, utterances, huddle, now) : at ? formatClock(at.at) : null;
   };
   return (
     <Section
