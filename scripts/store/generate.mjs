@@ -328,8 +328,19 @@ body{font-family:Lato,Arial,sans-serif;-webkit-font-smoothing:antialiased;overfl
 }
 
 // Playwright screenshots are RGBA; the store wants 24-bit PNG (no alpha). Flatten in place.
+// Prefer ImageMagick's `convert`; fall back to Python/Pillow when it is not installed.
 async function flatten(file) {
-  await execFileP('convert', [file, '-background', 'black', '-alpha', 'remove', '-alpha', 'off', file]);
+  try {
+    await execFileP('convert', [file, '-background', 'black', '-alpha', 'remove', '-alpha', 'off', file]);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+    await execFileP('python3', [
+      '-c',
+      'import sys;from PIL import Image;f=sys.argv[1];im=Image.open(f).convert("RGBA");'
+        + 'bg=Image.new("RGB",im.size,(0,0,0));bg.paste(im,mask=im.split()[3]);bg.save(f)',
+      file,
+    ]);
+  }
 }
 
 async function main() {

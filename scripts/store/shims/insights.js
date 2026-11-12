@@ -22,6 +22,15 @@ export async function generateMinutes() {
   }
 }
 
+export async function scoreMeeting() {
+  try {
+    const { score } = await api.storage.session.get('score');
+    return score?.data ?? {};
+  } catch {
+    return {};
+  }
+}
+
 export async function askMeeting() {
   return '';
 }
