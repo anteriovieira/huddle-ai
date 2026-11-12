@@ -84,6 +84,13 @@ export function normalizeScores(data) {
       criteria: criteriaFrom(p.criteria),
       focus: CRITERIA_BY_ID.has(p.focus) ? p.focus : '',
       tip: typeof p.tip === 'string' ? p.tip : '',
+      // Per-participant analysis, specific to this meeting (not aggregated across sessions).
+      strengths: (Array.isArray(p.strengths) ? p.strengths : []).filter((id) => CRITERIA_BY_ID.has(id)),
+      improvements: (Array.isArray(p.improvements) ? p.improvements : [])
+        .filter((x) => x && typeof x.analysis === 'string' && typeof x.action === 'string')
+        .map((x) => ({ criterion: CRITERIA_BY_ID.has(x.criterion) ? x.criterion : '', analysis: x.analysis, action: x.action })),
+      // Concrete things this person can do to come better prepared to the next meetings.
+      prep: (Array.isArray(p.prep) ? p.prep : []).filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()),
     }));
   return { overall, summary: typeof d.summary === 'string' ? d.summary : '', strengths, improvements, participants };
 }
@@ -205,7 +212,7 @@ export function participantDetail(records, name) {
   const focus = new Map();
   const cSum = new Map(CRITERIA.map((c) => [c.id, 0]));
   let cCount = 0;
-  let latestTip = null;
+  let latest = null; // most-recent session's participant object, for the latest analysis/prep
   let latestAt = -1;
   for (const r of scored) {
     const p = normalizeScores(r.data).participants.find((x) => x.name.toLowerCase() === key);
@@ -216,9 +223,9 @@ export function participantDetail(records, name) {
     for (const c of p.criteria) cSum.set(c.id, cSum.get(c.id) + c.score);
     cCount += 1;
     if (p.focus) focus.set(p.focus, (focus.get(p.focus) ?? 0) + 1);
-    if (startedAt >= latestAt && p.tip) {
+    if (startedAt >= latestAt) {
       latestAt = startedAt;
-      latestTip = { focus: p.focus, tip: p.tip };
+      latest = p;
     }
   }
   rows.sort((a, b) => b.startedAt - a.startedAt);
@@ -232,7 +239,10 @@ export function participantDetail(records, name) {
     strength: ranked[0] ?? null,
     weakness: ranked[ranked.length - 1] ?? null,
     focus: [...focus.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '',
-    tip: latestTip?.tip ?? '',
+    tip: latest?.tip ?? '',
+    // Carried from the most-recent session so the general detail can show the latest analysis/prep.
+    improvements: latest?.improvements ?? [],
+    prep: latest?.prep ?? [],
     sessions: rows,
   };
 }

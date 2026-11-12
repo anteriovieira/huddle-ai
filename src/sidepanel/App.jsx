@@ -1824,7 +1824,6 @@ export function App() {
 
   const analyticsProps = {
     scores: currentScores,
-    records: allScores,
     canScore,
     scoring: scoringRunning,
     scoreError,

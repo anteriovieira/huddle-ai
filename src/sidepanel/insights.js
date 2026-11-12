@@ -502,6 +502,9 @@ const ScoreSchema = z.object({
       criteria: z.array(z.object({ id: z.string(), score: z.number() })),
       focus: z.string(),
       tip: z.string(),
+      strengths: z.array(z.string()),
+      improvements: z.array(z.object({ criterion: z.string(), analysis: z.string(), action: z.string() })),
+      prep: z.array(z.string()),
     }),
   ),
 });
@@ -521,7 +524,7 @@ function scoreSystem(settings) {
       '- summary: one or two sentences on how the meeting went overall — its strongest trait and its biggest gap.',
       '- strengths: the ids of the one or two best-scoring criteria.',
       '- improvements: the two or three criteria most worth improving (lowest or most impactful). For each: criterion (its id), analysis (one sentence on what specifically happened in THIS meeting that held the score down, referencing the transcript), action (one concrete, imperative next-time suggestion).',
-      `- participants: one entry per person who actually spoke, by their name as in the captions. score (0..3) is how effective that person was overall. criteria is that person's own score (0..3) on EACH criterion id (same ids as overall, include every one), reflecting their individual contribution. focus is the id of the single criterion they most need to improve. tip is one short, concrete, actionable sentence for them. Only people who spoke; empty list if unclear.`,
+      `- participants: one entry per person who actually spoke, by their name as in the captions. All of a participant's fields are about THIS meeting only, grounded in what the transcript shows about that person. score (0..3) is how effective that person was overall. criteria is that person's own score (0..3) on EACH criterion id (same ids as overall, include every one), reflecting their individual contribution. focus is the id of the single criterion they most need to improve. tip is one short, concrete, actionable sentence for them. strengths: the ids of the one or two criteria this person did best on in THIS meeting (empty list when none stand out). improvements: the one or two criteria this person most needs to improve, each with criterion (its id), analysis (one sentence on what this person specifically did in THIS meeting that held the score down, referencing the transcript) and action (one concrete, imperative next-time suggestion for them); empty list when there is nothing specific to say. prep: two or three short, concrete things this person can do to come better prepared and more effective in their NEXT meetings, based on how they showed up in this one (e.g. "Traga números de X prontos", "Feche cada tópico com um responsável e prazo"); empty list if unclear. Only people who spoke; empty list if unclear.`,
     ].join('\n'),
   ].join('\n\n');
 }

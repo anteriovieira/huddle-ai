@@ -324,6 +324,10 @@ function ParticipantDetail({ records, name, onBack, showTrend = true }) {
         </div>
       )}
 
+      <Improvements list={d.improvements} />
+
+      <NextMeetingTips list={d.prep} />
+
       {showTrend && trend.length >= 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {sectionTitle('Score por sessão')}
@@ -343,6 +347,94 @@ function ParticipantDetail({ records, name, onBack, showTrend = true }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Concrete, actionable prep the participant can carry into their next meetings.
+function NextMeetingTips({ list }) {
+  if (!list.length) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {sectionTitle('Para as próximas reuniões')}
+      {list.map((text, i) => (
+        <div key={i} style={card({ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '11px 12px' })}>
+          <span style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1, display: 'inline-flex' }} aria-hidden="true">
+            <Icon name="check" />
+          </span>
+          <span style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Participant detail scoped to a SINGLE session (the open huddle). Everything here is that person's
+// analysis in THIS meeting — their per-criterion radar, strengths, what to improve, a focus tip and
+// prep for the next meetings — with no cross-session list (that lives in the general participant
+// detail opened from the header's "Análise geral").
+function SessionParticipantDetail({ participant: p, onBack }) {
+  const first = p.name.split(/\s+/)[0];
+  const ranked = p.criteria.slice().sort((a, b) => b.score - a.score);
+  const strength = ranked[0] ?? null;
+  const weakness = ranked[ranked.length - 1] ?? null;
+  const strengthLabels = p.strengths.map(labelOf);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Backbar title="Participante" onBack={onBack} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+        <span style={{ width: 52, height: 52, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, color: '#fff', fontWeight: 900, fontSize: 18, background: avatarColor(p.name) }}>
+          {initials(p.name)}
+        </span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: STRONG }}>{p.name}</span>
+          <span style={{ fontSize: 13, color: MUTED }}>Nesta reunião</span>
+        </div>
+        <ScoreRing score={p.score} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        <HighlightPill tone="up" label="Mais forte" item={strength} />
+        <HighlightPill tone="down" label="A melhorar" item={weakness} />
+      </div>
+
+      <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
+          <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
+        </div>
+        <Radar criteria={p.criteria} fill="#4a7dbf" />
+      </div>
+
+      {strengthLabels.length > 0 && (
+        <div style={card({ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '11px 12px' })}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>
+            <Icon name="check" />
+            Pontos fortes
+          </span>
+          {strengthLabels.map((l) => (
+            <span key={l} style={{ padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: 'var(--green-bg)', color: 'var(--green)' }}>
+              {l}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <Improvements list={p.improvements} />
+
+      {p.tip && (
+        <div style={card({ display: 'flex', gap: 7, alignItems: 'flex-start', padding: '10px 12px' })}>
+          <span style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1, display: 'inline-flex' }} aria-hidden="true">
+            <Icon name="bulb" />
+          </span>
+          <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
+            {p.focus && <b style={{ color: STRONG }}>Foco em {labelOf(p.focus)}: </b>}
+            {p.tip}
+          </span>
+        </div>
+      )}
+
+      <NextMeetingTips list={p.prep} />
     </div>
   );
 }
@@ -451,7 +543,8 @@ function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
 
 // Per-session Analytics tab: the loaded meeting's own score detail (radar, criteria, strengths,
 // "o que melhorar", per participant), with participant drill-down. Shows a CTA when the meeting is
-// not scored yet. `records` (all scored sessions) feeds the cross-session participant detail.
+// not scored yet. The participant drill-down is scoped to THIS meeting only (its own scores) — the
+// cross-session participant detail is the header's "Análise geral".
 // Progressive loader while the meeting is being scored: reveals each criterion, the summary, the
 // improvements and the participants as the model streams them in (same "item a item" feel as the ata).
 // Placeholder shown while scoring. No streaming: skeletons stand in for the sections and the whole
@@ -489,7 +582,6 @@ function ScoreLoading() {
 
 export function SessionAnalyticsView({
   scores = null,
-  records = [],
   canScore = false,
   scoring = false,
   scoreError = null,
@@ -499,9 +591,12 @@ export function SessionAnalyticsView({
 }) {
   const [name, setName] = useState(null);
   if (scoring) return <ScoreLoading />;
-  if (name) {
-    const base = records.length ? records : scores ? [scores] : [];
-    return <ParticipantDetail records={base} name={name} onBack={() => setName(null)} showTrend={false} />;
+  if (name && scores) {
+    // Scoped to THIS session only: the participant's analysis comes from the open meeting's own
+    // scores, never aggregated across other sessions. The cross-session view is the header's
+    // "Análise geral" participant detail.
+    const participant = normalizeScores(scores.data).participants.find((x) => x.name === name);
+    if (participant) return <SessionParticipantDetail participant={participant} onBack={() => setName(null)} />;
   }
   if (!scores) {
     return (
