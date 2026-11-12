@@ -71,7 +71,7 @@ export function Header({
   );
 }
 
-const TAB_ITEMS = ['insights', 'captions', 'ata', 'analytics'];
+export const TAB_ITEMS = ['insights', 'captions', 'ata', 'analytics'];
 
 export function Tabs({ tab, onSelect, items = TAB_ITEMS }) {
   const t = useT();

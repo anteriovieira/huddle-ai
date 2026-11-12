@@ -13,7 +13,7 @@ import { ChatDock } from './views/Chat.jsx';
 import { ThreadBar } from './views/Thread.jsx';
 import { threadStatus } from './lib/thread.js';
 import { chatAfterClose, fallbackTitle } from './lib/chats.js';
-import { Header, InfoBar, Tabs } from './views/Header.jsx';
+import { Header, InfoBar, Tabs, TAB_ITEMS } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
 import { InsightsView } from './views/Insights.jsx';
@@ -88,14 +88,16 @@ let chatSeq = 0;
 // updater, which must stay pure) so StrictMode's double-invoked updaters can't duplicate it.
 // "Give me more details about this item" in each language the settings offer, so the chat question
 // matches the user's chosen language (the answer language is enforced in the chat prompt too).
-// A pergunta enviada ao pedir "mais detalhes" sobre um item. O item em si vai como CONTEXTO
-// anexado à mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight.
+// A pergunta enviada ao pedir que a IA explique um item. O item em si vai como CONTEXTO anexado à
+// mensagem (chip/citação), não embutido no texto — ver askInChat/askAboutInsight. O TAMANHO da
+// resposta NÃO é fixado aqui: quem controla isso é a preferência de tamanho (settings.verbosity),
+// aplicada no prompt de sistema do chat — por isso o texto só pede a explicação, sem impor extensão.
 const ASK_DETAIL_QUESTION = {
-  English: 'Answer fast, for use mid-meeting: 1–2 short sentences max on what was said and why it matters. No preamble, no fluff.',
-  Portuguese: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
-  Português: 'Responda rápido, para usar no meio da reunião: 1–2 frases curtas no máximo sobre o que foi dito e por que importa. Sem preâmbulo, sem enrolação.',
-  Spanish: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
-  Español: 'Responde rápido, para usar en plena reunión: 1–2 frases cortas como máximo sobre qué se dijo y por qué importa. Sin preámbulo, sin relleno.',
+  English: 'Explain this item: what was said, what it means and the context needed to understand it.',
+  Portuguese: 'Explique este item: o que foi dito, o que significa e o contexto necessário para entendê-lo.',
+  Português: 'Explique este item: o que foi dito, o que significa e o contexto necessário para entendê-lo.',
+  Spanish: 'Explica este elemento: qué se dijo, qué significa y el contexto necesario para entenderlo.',
+  Español: 'Explica este elemento: qué se dijo, qué significa y el contexto necesario para entenderlo.',
 };
 
 // Question posted to the chat when the user asks for a summary of the huddle's Slack thread.
@@ -1983,29 +1985,39 @@ export function App() {
     </section>
   );
 
+  // Ata e Análise só fazem sentido com a reunião encerrada; ao vivo ficam escondidas.
+  const live = !!huddle?.active;
+  const POST_MEETING_TABS = ['ata', 'analytics'];
+  const visible = (ids) => (live ? ids.filter((id) => !POST_MEETING_TABS.includes(id)) : ids);
+  const oneColTabs = visible(TAB_ITEMS);
+  const twoColTabs = visible(TWO_COL_TABS);
+
   // Captions só é aba com uma coluna; a partir de duas, divide a coluna Insights.
-  const effTab = cols >= 2 && tab === 'captions' ? 'insights' : tab;
+  // Se a aba atual deixou de existir (ex.: reunião voltou a ficar ao vivo numa aba pós-reunião),
+  // cai para Insights.
+  const safeTab = !live || !POST_MEETING_TABS.includes(tab) ? tab : 'insights';
+  const effTab = cols >= 2 && safeTab === 'captions' ? 'insights' : safeTab;
 
   let region;
   if (cols === 1) {
     region = (
       <>
-        <Tabs tab={tab} onSelect={onSelectTab} />
-        <InfoBar tab={tab} {...infoBarProps} />
-        {tab === 'captions' ? (
+        <Tabs tab={safeTab} items={oneColTabs} onSelect={onSelectTab} />
+        <InfoBar tab={safeTab} {...infoBarProps} />
+        {safeTab === 'captions' ? (
           <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
         ) : (
-          <main className={`main main--${tab}`} id="main">
-            {panelContent(tab)}
+          <main className={`main main--${safeTab}`} id="main">
+            {panelContent(safeTab)}
           </main>
         )}
-        {renderFooter(tab)}
+        {renderFooter(safeTab)}
       </>
     );
   } else if (cols === 2) {
     region = (
       <>
-        <Tabs tab={effTab} items={TWO_COL_TABS} onSelect={onSelectTab} />
+        <Tabs tab={effTab} items={twoColTabs} onSelect={onSelectTab} />
         {effTab === 'analytics' ? (
           <div className="panes panes--solo">{Pane('analytics')}</div>
         ) : effTab === 'ata' ? (
@@ -2019,7 +2031,13 @@ export function App() {
       </>
     );
   } else {
-    region = (
+    // 3 colunas: Ata é a terceira coluna, mas ao vivo some — fica só Insights + Captions.
+    region = live ? (
+      <div className="panes panes--2">
+        {Pane('insights')}
+        {Pane('captions')}
+      </div>
+    ) : (
       <div className="panes panes--3">
         {Pane('insights')}
         {Pane('captions')}

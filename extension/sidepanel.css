@@ -1960,6 +1960,16 @@ select {
   flex: 1;
 }
 
+/* Points/decisions use the labelled-bar layout (like actions): a title bar on top and the text
+   full-width below, instead of the old icon-beside-text row that squeezed the text column. */
+.q-state--point {
+  color: var(--blue);
+}
+
+.q-state--decision {
+  color: var(--green);
+}
+
 .q-row__icon {
   flex-shrink: 0;
   margin-top: 1px;

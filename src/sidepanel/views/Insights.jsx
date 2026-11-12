@@ -543,21 +543,24 @@ function QuestionsSection({ data, utterances, huddle, now, detect, contextCards,
   );
 }
 
-// A short list item (point, decision) in the same card style as the questions, with a copy action.
-function RowCard({ icon, tone, text, time, copyLabel, onAsk, onSeen, seen, onRemove, dismiss }) {
+// A short list item (point, decision) in the labelled-bar card style of actions and alerts: a title
+// bar (icon + label, with the icon actions beside it) and the text on its own full-width line below.
+function RowCard({ icon, tone, label, text, time, copyLabel, onAsk, onSeen, seen, onRemove, dismiss }) {
   return (
-    <div className="q-card q-card--row">
-      <span className={`q-row__icon q-row__icon--${tone}`}>
-        <Icon name={icon} />
-      </span>
+    <div className={`q-card q-card--${tone}`}>
+      <div className="q-bar">
+        <span className={`q-state q-state--${tone}`}>
+          <Icon name={icon} /> {label}
+        </span>
+        <span className="q-actions">
+          {time && <span className="q-time muted small">{time}</span>}
+          <AskButton topic={text} onAsk={onAsk} />
+          <CopyButton text={text} label={copyLabel} />
+          <RemoveButton topic={text} onRemove={onRemove} />
+          <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
+        </span>
+      </div>
       <p className="q-card__text">{text}</p>
-      <span className="q-actions">
-        {time && <span className="q-time muted small">{time}</span>}
-        <AskButton topic={text} onAsk={onAsk} />
-        <CopyButton text={text} label={copyLabel} />
-        <RemoveButton topic={text} onRemove={onRemove} />
-        <SeenButton topic={text} onSeen={onSeen} seen={seen} dismiss={dismiss} />
-      </span>
     </div>
   );
 }
@@ -886,7 +889,7 @@ export function InsightsView({
         action={tools('points', points.length, points.map((p) => p.text))}
       >
         {points.map((p) => (
-          <RowCard key={p.text} icon="bulb" tone="blue" text={p.text} time={timeFor(p.line)} copyLabel={t('copy.point')} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
+          <RowCard key={p.text} icon="bulb" tone="point" label={t('point.label')} text={p.text} time={timeFor(p.line)} copyLabel={t('copy.point')} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
         ))}
       </Section>
       {settings.detect.actions && (
@@ -909,7 +912,7 @@ export function InsightsView({
           action={tools('decisions', decisions.length, decisions.map((d) => d.text))}
         >
           {decisions.map((d) => (
-            <RowCard key={d.text} icon="check" tone="green" text={d.text} time={timeFor(d.line)} copyLabel={t('copy.decision')} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
+            <RowCard key={d.text} icon="check" tone="decision" label={t('decision.label')} text={d.text} time={timeFor(d.line)} copyLabel={t('copy.decision')} onAsk={onAskAI} onSeen={onMarkSeen} seen={seen} onRemove={onRemove} dismiss={dismiss} />
           ))}
         </Section>
       )}
