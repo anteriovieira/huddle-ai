@@ -412,10 +412,10 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
             {onAsk && (
               <button
                 type="button"
+                className="icon-button"
                 onClick={ask}
                 title={`Perguntar no chat sobre ${first}`}
                 aria-label={`Perguntar no chat sobre ${first}`}
-                style={{ width: 28, height: 28, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${BORDER}`, borderRadius: 7, background: 'transparent', color: MUTED, cursor: 'pointer' }}
               >
                 <Icon name="chat-plus" />
               </button>
