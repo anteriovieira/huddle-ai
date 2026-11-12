@@ -11,6 +11,10 @@ export const PROVIDERS = {
   openrouter: { label: 'OpenRouter', keyPlaceholder: 'sk-or-…', keyUrl: 'https://openrouter.ai/keys' },
   cerebras: { label: 'Cerebras', keyPlaceholder: 'csk-…', keyUrl: 'https://cloud.cerebras.ai' },
   mistral: { label: 'Mistral', keyPlaceholder: 'chave da API', keyUrl: 'https://console.mistral.ai/api-keys' },
+  // Cloudflare Workers AI via provider nativo (workers-ai-provider, endpoint /ai/run) em modo REST.
+  // O account ID vai na URL (settings.cloudflareAccountId) e este campo guarda só o token (API token
+  // com permissão Workers AI → Read). O account ID tem campo próprio na seção da Cloudflare.
+  cloudflare: { label: 'Cloudflare', keyPlaceholder: 'token (Workers AI)', keyUrl: 'https://dash.cloudflare.com/profile/api-tokens' },
 };
 
 export const PROVIDER_IDS = Object.keys(PROVIDERS);
@@ -37,6 +41,10 @@ export const MODELS = [
   { id: 'llama3.1-8b', provider: 'cerebras', label: 'Llama 3.1 8B — grátis, mais rápido' },
   { id: 'mistral-large-latest', provider: 'mistral', label: 'Mistral Large — mais preciso' },
   { id: 'mistral-small-latest', provider: 'mistral', label: 'Mistral Small — grátis, rápido' },
+  { id: '@cf/meta/llama-3.1-8b-instruct-fast', provider: 'cloudflare', label: 'Llama 3.1 8B — rápido' },
+  { id: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', provider: 'cloudflare', label: 'Llama 3.3 70B — equilibrado' },
+  { id: '@cf/openai/gpt-oss-120b', provider: 'cloudflare', label: 'GPT-OSS 120B — raciocínio' },
+  { id: '@cf/moonshotai/kimi-k2.7-code', provider: 'cloudflare', label: 'Kimi K2.7 Code — código (Workers Pago)' },
 ];
 
 // Provider do modelo atual. Modelos conhecidos trazem o provider na lista; um modelo

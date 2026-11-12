@@ -396,6 +396,7 @@ export const STRINGS = {
   'settings.keysHint': 'They stay only in this browser. Fill in the one for the chosen model’s provider.',
   'settings.keyConfigured': 'Configured',
   'settings.keyEmpty': 'Empty',
+  'settings.cloudflareAccountId': 'Cloudflare Account ID',
   'settings.language': 'Language',
   'settings.analyzeEvery': 'Analyze every',
   'settings.responseSize': 'Response length',

@@ -29,10 +29,12 @@ import { Tooltip } from './ui/Tooltip.jsx';
 import { I18nProvider, translate } from './lib/i18n.js';
 
 const DEFAULT_SETTINGS = {
-  apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '' },
+  apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '', cloudflare: '' },
   model: 'claude-haiku-5-5',
   // Provider usado quando `model` é um ID personalizado (fora da lista MODELS).
   modelProvider: '',
+  // Account ID da Cloudflare: entra na URL do endpoint Workers AI (o token fica em apiKeys.cloudflare).
+  cloudflareAccountId: '',
   language: 'English',
   // Tamanho das respostas do modelo: 'curto' | 'normal' | 'detalhado' (ver insights.js VERBOSITY).
   verbosity: 'normal',

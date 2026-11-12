@@ -5,6 +5,7 @@ import { createGroq } from '@ai-sdk/groq';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createWorkersAI } from 'workers-ai-provider';
 import { APICallError, generateText, isStepCount, NoObjectGeneratedError, NoOutputGeneratedError, Output, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { formatClock, formatTranscript } from './lib/format.js';
@@ -103,6 +104,15 @@ function languageModel(settings) {
       return createCerebras({ apiKey })(settings.model);
     case 'mistral':
       return createMistral({ apiKey })(settings.model);
+    case 'cloudflare': {
+      // Provider nativo da Workers AI (endpoint /ai/run) em modo REST — accountId + token. Evitamos o
+      // shim OpenAI-compat (/ai/v1) porque ele serializa tokens numéricos de forma inválida no stream
+      // (delta.content vinha como número e o parser do AI SDK rejeitava). O nativo parseia o formato
+      // próprio da Cloudflare. apiKey é o token; accountId tem campo próprio nas configurações.
+      const accountId = settings.cloudflareAccountId?.trim();
+      if (!accountId) throw new Error('Informe o Account ID da Cloudflare nas configurações.');
+      return createWorkersAI({ accountId, apiKey })(settings.model);
+    }
     default:
       return createAnthropic({
         apiKey,

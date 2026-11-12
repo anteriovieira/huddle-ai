@@ -73,6 +73,7 @@ export function SettingsView({
     e.preventDefault();
     onSave({
       apiKeys: Object.fromEntries(PROVIDER_IDS.map((p) => [p, (draft.apiKeys[p] ?? '').trim()])),
+      cloudflareAccountId: (draft.cloudflareAccountId ?? '').trim(),
       model: draft.model.trim(),
       modelProvider: draft.modelProvider,
       language: draft.language,
@@ -205,6 +206,19 @@ export function SettingsView({
                         />
                       }
                     >
+                      {/* Cloudflare precisa do account ID (vai na URL) além do token: campo próprio acima. */}
+                      {p === 'cloudflare' && (
+                        <input
+                          id="cloudflare-account-id"
+                          type="text"
+                          style={{ marginBottom: '6px' }}
+                          value={draft.cloudflareAccountId ?? ''}
+                          autoComplete="off"
+                          placeholder={t('settings.cloudflareAccountId')}
+                          aria-label={t('settings.cloudflareAccountId')}
+                          onChange={(e) => set('cloudflareAccountId', e.target.value)}
+                        />
+                      )}
                       <input
                         id={`key-${p}`}
                         type="password"
