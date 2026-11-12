@@ -407,8 +407,10 @@ export async function askMeeting({ settings, utterances, history, question, sess
 export async function titleChat({ settings, question }) {
   try {
     const { text: raw } = await generateText({
+      // Folga de tokens: modelos com reasoning gastam parte do orçamento antes do texto; 64 era
+      // pequeno e voltava vazio em alguns providers, deixando a aba como "Chat N".
       model: languageModel(settings),
-      maxOutputTokens: 64,
+      maxOutputTokens: 200,
       instructions: `Create a very short title, 2 to 4 words, in ${settings.language}, naming what this question to a meeting assistant is about. Reply with the title only: no quotes, no trailing punctuation, no prefix.`,
       prompt: question,
     });

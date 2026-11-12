@@ -7,3 +7,16 @@ export function chatAfterClose(list, closingId, activeId) {
   const index = list.findIndex((c) => c.id === closingId);
   return (list[index - 1] ?? list[index + 1])?.id ?? null;
 }
+
+// A plain-text fallback title from the question, for when the model naming call fails or returns
+// nothing. Keeps the first few words, strips quotes and trailing punctuation, caps the length.
+// Returns null for empty input so the caller can keep the default "Chat N".
+export function fallbackTitle(question) {
+  const text = String(question ?? '')
+    .replace(/["'“”]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return null;
+  const short = text.split(' ').slice(0, 6).join(' ').replace(/[.!?…,:;]+$/, '');
+  return short ? short.slice(0, 40) : null;
+}

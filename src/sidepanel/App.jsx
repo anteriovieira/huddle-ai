@@ -12,7 +12,7 @@ import { CaptionsPanel } from './views/Captions.jsx';
 import { ChatDock } from './views/Chat.jsx';
 import { ThreadBar } from './views/Thread.jsx';
 import { threadStatus } from './lib/thread.js';
-import { chatAfterClose } from './lib/chats.js';
+import { chatAfterClose, fallbackTitle } from './lib/chats.js';
 import { Header, InfoBar, Tabs } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
@@ -1449,9 +1449,10 @@ export function App() {
     try {
       title = await titleChat({ settings: latest.current.settings, question });
     } catch (error) {
-      logEvent('warn', `Não consegui gerar o título do chat: ${error.message}`);
-      return;
+      logEvent('warn', `Não consegui gerar o título do chat pelo modelo: ${error.message}`);
     }
+    // Modelo falhou ou voltou vazio: nomeia pela própria pergunta em vez de manter "Chat N".
+    if (!title) title = fallbackTitle(question);
     if (!title) return;
     setChats((prev) => {
       const chat = prev.list.find((c) => c.id === chatId);
