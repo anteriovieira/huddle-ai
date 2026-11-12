@@ -1476,15 +1476,18 @@ export function App() {
       return;
     }
     if (chatBusy.has(chat.id)) return;
+    // O histórico enviado ao modelo usa o texto que o modelo viu (modelText) quando a mensagem
+    // carregava contexto, não só o texto exibido — assim o contexto (ex.: os scores da análise)
+    // continua presente nas mensagens seguintes, e o modelo não "esquece" os números na 2ª pergunta.
     const histTurns = chat.messages
       .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, text: m.text }));
+      .map((m) => ({ role: m.role, text: m.modelText ?? m.text }));
     const firstQuestion = !chat.messages.some((m) => m.role === 'user');
     const context = chat.context ?? null;
     // O que o modelo recebe inclui o contexto; a mensagem exibida mantém só a pergunta + o chip.
     const modelQuestion = context ? `${context.text}\n\n${question}` : question;
 
-    appendMessage(chat.id, { role: 'user', text: question, ...(context ? { context: context.label } : null) });
+    appendMessage(chat.id, { role: 'user', text: question, ...(context ? { context: context.label, modelText: modelQuestion } : null) });
     setDraft(chat.id, '');
     if (context) removeChatContext(chat.id);
     setChatBusy((b) => new Set(b).add(chat.id));
@@ -1533,9 +1536,11 @@ export function App() {
         return;
       }
       const chat = newChat();
+      const modelQuestion = context ? `${context.text}\n\n${question}` : question;
       // O contexto (ex.: o item de insight) vai como metadado da mensagem (chip/citação); o texto
-      // exibido é só a pergunta. O modelo recebe contexto + pergunta.
-      const userMessage = { role: 'user', text: question, ...(context ? { context: context.label } : null) };
+      // exibido é só a pergunta. O modelo recebe contexto + pergunta, e modelText guarda esse texto
+      // completo para o histórico das próximas mensagens (senão o contexto some na 2ª pergunta).
+      const userMessage = { role: 'user', text: question, ...(context ? { context: context.label, modelText: modelQuestion } : null) };
       setChats((prev) => ({
         ...prev,
         list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [userMessage] }],
@@ -1544,7 +1549,6 @@ export function App() {
       setChatBusy((b) => new Set(b).add(chat.id));
       setChatStream({ chatId: chat.id, text: '', steps: [] });
       nameChat(chat.id, context ? context.text : question);
-      const modelQuestion = context ? `${context.text}\n\n${question}` : question;
       logEvent('info', `Pergunta no chat (${latest.current.utterances.length} falas)`);
       const steps = [];
       try {
@@ -1830,6 +1834,7 @@ export function App() {
     hasKey: hasKeyForModel(settings),
     onScore: runScoring,
     onOpenSettings: openSettings,
+    onAsk: openAnalyticsChat,
   };
 
   // Conteúdo de uma seção — os painéis em si não mudam com a largura.

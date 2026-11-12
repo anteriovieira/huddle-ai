@@ -17,6 +17,7 @@ import {
   meetingAverage,
   normalizeScores,
   participantDetail,
+  participantScoresText,
 } from '../lib/scoring.js';
 
 const MUTED = 'var(--muted)';
@@ -373,12 +374,17 @@ function NextMeetingTips({ list }) {
 // analysis in THIS meeting — their per-criterion radar, strengths, what to improve, a focus tip and
 // prep for the next meetings — with no cross-session list (that lives in the general participant
 // detail opened from the header's "Análise geral").
-function SessionParticipantDetail({ participant: p, onBack }) {
+function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
   const first = p.name.split(/\s+/)[0];
   const ranked = p.criteria.slice().sort((a, b) => b.score - a.score);
   const strength = ranked[0] ?? null;
   const weakness = ranked[ranked.length - 1] ?? null;
   const strengthLabels = p.strengths.map(labelOf);
+  const ask = () =>
+    onAsk?.({
+      label: `Análise de ${p.name}`,
+      text: `Contexto — análise de ${p.name} nesta reunião:\n\n${participantScoresText(record, p)}`,
+    });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Backbar title="Participante" onBack={onBack} />
@@ -401,7 +407,20 @@ function SessionParticipantDetail({ participant: p, onBack }) {
       <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
-          <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
+            {onAsk && (
+              <button
+                type="button"
+                onClick={ask}
+                title={`Perguntar no chat sobre ${first}`}
+                aria-label={`Perguntar no chat sobre ${first}`}
+                style={{ width: 28, height: 28, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${BORDER}`, borderRadius: 7, background: 'transparent', color: MUTED, cursor: 'pointer' }}
+              >
+                <Icon name="chat-plus" />
+              </button>
+            )}
+          </div>
         </div>
         <Radar criteria={p.criteria} fill="#4a7dbf" />
       </div>
@@ -588,6 +607,7 @@ export function SessionAnalyticsView({
   hasKey = true,
   onScore,
   onOpenSettings,
+  onAsk,
 }) {
   const [name, setName] = useState(null);
   if (scoring) return <ScoreLoading />;
@@ -596,7 +616,7 @@ export function SessionAnalyticsView({
     // scores, never aggregated across other sessions. The cross-session view is the header's
     // "Análise geral" participant detail.
     const participant = normalizeScores(scores.data).participants.find((x) => x.name === name);
-    if (participant) return <SessionParticipantDetail participant={participant} onBack={() => setName(null)} />;
+    if (participant) return <SessionParticipantDetail participant={participant} record={scores} onBack={() => setName(null)} onAsk={onAsk} />;
   }
   if (!scores) {
     return (

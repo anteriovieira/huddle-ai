@@ -202,6 +202,32 @@ export function analysisContext(record) {
   return `Contexto — análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}.`;
 }
 
+// One participant's analysis in a single meeting, as plain text — the context handed to the chat
+// when the user opens it from that participant's detail to ask about these numbers.
+export function participantScoresText(record, p) {
+  if (!p) return '';
+  const title = record?.meta?.title || 'esta reunião';
+  const lines = [
+    `Participante: ${p.name}`,
+    `Reunião: ${title}`,
+    `Score geral: ${fmtScore(p.score)}/${SCORE_MAX}`,
+    '',
+    'Scores por critério:',
+    ...p.criteria.map((c) => `- ${c.label}: ${fmtScore(c.score)}/${SCORE_MAX}`),
+  ];
+  if (p.strengths?.length) lines.push('', `Pontos fortes: ${p.strengths.map(labelOf).join(', ')}`);
+  if (p.improvements?.length) {
+    lines.push('', 'O que melhorar:');
+    for (const r of p.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} Ação: ${r.action}`);
+  }
+  if (p.focus && p.tip) lines.push('', `Foco em ${labelOf(p.focus)}: ${p.tip}`);
+  if (p.prep?.length) {
+    lines.push('', 'Para as próximas reuniões:');
+    for (const t of p.prep) lines.push(`- ${t}`);
+  }
+  return lines.join('\n').trim();
+}
+
 // Per-participant detail across sessions: their score in each session they appear in (newest-first),
 // their overall average and the most recent focus/tip. `records` is the stored scores records.
 export function participantDetail(records, name) {
