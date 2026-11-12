@@ -1,14 +1,17 @@
 // Parsing a pasted transcript into utterances. Pure — unit-tested in Node.
 //
 // Three shapes are supported:
-//   A) "Name: text" lines (optionally prefixed by a [hh:mm:ss] stamp).
+//   A) "Name: text" lines (optionally prefixed by a "#N" line number and/or a [hh:mm:ss] stamp).
+//      This covers the exact shape formatTranscript() emits, so our own output re-imports cleanly.
 //   B) Blank-line-separated blocks where the FIRST line is the speaker and the following
 //      line(s) are what they said — the shape Slack/meeting exports produce, e.g.
 //          Onezino Moreira
 //          Highlight generated total.
 //   C) Fallback: one utterance per line when neither shape is detected.
 
-const INLINE = /^\s*(?:\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s+)?([^:]{1,40}?)\s*:\s*(.+?)\s*$/;
+// Optional leading "#N " is our own formatTranscript() line number, so a transcript we emit
+// parses back cleanly. Then the optional [hh:mm:ss] stamp, the speaker, and the text.
+const INLINE = /^\s*(?:#\d+\s+)?(?:\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s+)?([^:]{1,40}?)\s*:\s*(.+?)\s*$/;
 
 // "12:00" / "01:02:03" / "[00:12]" -> milliseconds, or null.
 export function parseStamp(value) {
@@ -19,8 +22,10 @@ export function parseStamp(value) {
 }
 
 // A short, punctuation-free label is probably a speaker name, not a sentence with a colon.
+// A trailing dot is tolerated — usernames like "bignerve123." carry one — but internal
+// sentence punctuation still disqualifies, as does the word-count cap.
 export function looksLikeSpeaker(name) {
-  const text = name.trim();
+  const text = name.trim().replace(/\.+$/, '');
   return !!text && text.length <= 40 && !/[.!?]/.test(text) && text.split(/\s+/).length <= 5;
 }
 

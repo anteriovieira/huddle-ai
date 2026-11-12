@@ -95,6 +95,21 @@ test('parseTranscript reads timestamps relative to the first', () => {
   assert.equal(out[1].at, 10 * 1000);
 });
 
+test('parseTranscript round-trips formatTranscript output (#N [clock] Speaker: text)', () => {
+  const utt = [
+    { id: 'a', speaker: 'Paul', text: 'so every user would just have that', at: 0 },
+    { id: 'b', speaker: 'bignerve123.', text: 'But the question would not be viewable.', at: 24 * 1000 },
+  ];
+  const out = parseTranscript(formatTranscript(utt));
+  assert.equal(out.length, 2);
+  assert.equal(out[0].speaker, 'Paul');
+  assert.equal(out[0].text, 'so every user would just have that');
+  assert.equal(out[0].at, 0);
+  assert.equal(out[1].speaker, 'bignerve123.');
+  assert.equal(out[1].text, 'But the question would not be viewable.');
+  assert.equal(out[1].at, 24 * 1000);
+});
+
 test('parseTranscript falls back to one utterance per line', () => {
   const out = parseTranscript('primeira linha\nsegunda linha');
   assert.equal(out.length, 2);
