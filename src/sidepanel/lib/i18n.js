@@ -501,6 +501,126 @@ export const STRINGS = {
 
   // Imported session default title
   'session.importedTitle': 'Imported session',
+
+  // Units (meetings / people)
+  'unit.meeting.one': 'meeting',
+  'unit.meeting.other': 'meetings',
+  'unit.person.one': 'person',
+  'unit.person.other': 'people',
+
+  // Relative time (lib/format.js ago)
+  'time.justNow': 'Just now',
+  'time.minAgo': '{n} min ago',
+  'time.hAgo': '{n} h ago',
+  'time.at': 'at',
+
+  // Score criteria (lib/scoring.js CRITERIA) — label + hint
+  'criteria.direcao.label': 'Direction',
+  'criteria.direcao.hint': 'clear goal and steering of the meeting',
+  'criteria.decisoes.label': 'Decisions',
+  'criteria.decisoes.hint': 'decisions made and recorded',
+  'criteria.execucao.label': 'Execution',
+  'criteria.execucao.hint': 'focus and concrete progress on the tasks',
+  'criteria.eficiencia.label': 'Efficiency',
+  'criteria.eficiencia.hint': 'use of time, without unnecessary detours',
+  'criteria.diagnostico.label': 'Diagnosis',
+  'criteria.diagnostico.hint': 'depth of understanding of the problem',
+  'criteria.alinhamento.label': 'Alignment',
+  'criteria.alinhamento.hint': 'everyone on the same page about what was covered',
+  'criteria.proximos_passos.label': 'Next steps',
+  'criteria.proximos_passos.hint': 'action items with owner and deadline',
+  'criteria.engajamento.label': 'Engagement',
+  'criteria.engajamento.hint': 'balanced participation of the group',
+
+  // Analytics tab (views/Analise.jsx)
+  'analytics.radarAria': 'Performance radar by criterion',
+  'analytics.trendAria': 'Score trend by session',
+  'analytics.improve': 'What to improve',
+  'analytics.actionColon': 'Action:',
+  'analytics.participant': 'Participant',
+  'analytics.session': 'Session',
+  'analytics.meeting': 'Meeting',
+  'analytics.ofMax': 'of {max}',
+  'analytics.strongest': 'Strongest',
+  'analytics.toImprove': 'To improve',
+  'analytics.profileOf': '{name}’s profile',
+  'analytics.focusOn': 'Focus on {label}: ',
+  'analytics.scorePerSession': 'Score per session',
+  'analytics.sessionsOf': '{name}’s sessions',
+  'analytics.forNextMeetings': 'For the next meetings',
+  'analytics.inThisMeeting': 'In this meeting',
+  'analytics.askAboutInChat': 'Ask in chat about {name}',
+  'analytics.strengths': 'Strengths',
+  'analytics.analysisOf': '{name}’s analysis',
+  'analytics.analysisContextOpen': 'Context — {name}’s analysis in this meeting:',
+  'analytics.meetingScores': 'Meeting scores',
+  'analytics.byParticipant': 'By participant',
+  'analytics.improveLabel': 'Improve {label}:',
+  'analytics.emptyTitle': 'No meeting scored yet',
+  'analytics.emptyDesc': 'The analysis scores each meeting by criterion (direction, decisions, execution…), by participant and suggests what to improve.',
+  'analytics.configureApiKey': 'Configure API key',
+  'analytics.scoreThisMeeting': 'Score this meeting',
+  'analytics.openEndedToScore': 'Open an ended meeting to score it.',
+  'analytics.scoringMeeting': 'Scoring the meeting…',
+  'analytics.scoresByCriterion': 'Scores by criterion',
+  'analytics.rescoreMeeting': 'Score again',
+  'analytics.overallTitle': 'Overall analysis',
+  'analytics.kpiMeetings': 'Meetings',
+  'analytics.kpiScored': 'scored',
+  'analytics.kpiAvgScore': 'Average score',
+  'analytics.kpiPctMax': '{pct}% of max',
+  'analytics.kpiTrend': 'Trend',
+  'analytics.kpiVsPrev': 'vs. previous',
+  'analytics.perfByCriterion': 'Performance by criterion',
+  'analytics.overallAvg': 'Overall average',
+  'analytics.scorePerParticipant': 'Score per participant',
+  'analytics.improveInline': 'improve {label}',
+  'analytics.recentSessions': 'Recent sessions',
+  'analytics.peopleCount': '{n} {unit}',
+
+  // Scoring plain-text/markdown builders (lib/scoring.js)
+  'scoring.title': 'Analysis — {title}',
+  'scoring.thisMeeting': 'this meeting',
+  'scoring.overallScore': 'Overall score: {score}/{max} ({pct}%)',
+  'scoring.byCriterion': 'Scores by criterion',
+  'scoring.whatToImprove': 'What to improve',
+  'scoring.byParticipant': 'By participant',
+  'scoring.action': 'Action',
+  'scoring.improve': 'improve',
+  'scoring.aboutAnalysis': 'About this meeting’s analysis: ',
+  'scoring.contextLine': 'Context — analysis of “{title}”: overall score {score}/{max} ({pct}%); weakest points: {low}.',
+  'scoring.participant': 'Participant',
+  'scoring.meeting': 'Meeting',
+  'scoring.strengths': 'Strengths',
+  'scoring.focusOn': 'Focus on {label}',
+  'scoring.forNextMeetings': 'For the next meetings',
+
+  // Minutes markdown/export + list grouping (lib/minutes.js)
+  'minutes.ataTitle': 'Minutes: {title}',
+  'minutes.dateTime': 'Date and time:',
+  'minutes.duration': 'Duration:',
+  'minutes.ended': 'Ended:',
+  'minutes.source': 'Source:',
+  'minutes.participants': 'Participants:',
+  'minutes.classification': 'Classification:',
+  'minutes.confidence': 'confidence',
+  'minutes.tags': 'Tags:',
+  'minutes.summary': 'Meeting summary',
+  'minutes.keyPoints': 'Key points',
+  'minutes.decisions': 'Decisions',
+  'minutes.nextSteps': 'Next steps',
+  'minutes.openQuestions': 'Open questions',
+  'minutes.risks': 'Risks and blockers',
+  'minutes.signals': 'Classification signals',
+  'minutes.dmWith': 'DM with {people}',
+  'minutes.pointsRaised': 'Points raised',
+  'minutes.actions': 'Actions',
+  'minutes.open': 'Open',
+  'minutes.references': 'References',
+  'minutes.acronyms': 'Acronyms',
+  'group.today': 'Today',
+  'group.thisWeek': 'This week',
+  'group.earlier': 'Earlier',
 };
 
 // Per-locale translation tables live in ./locales/*.json, assembled in ./locales/index.js and
@@ -533,6 +653,37 @@ export function translate(lang, key, vars) {
   if (value == null) value = STRINGS[key];
   if (value == null) return key;
   return vars ? interpolate(value, vars) : value;
+}
+
+// Global current language for the pure, non-React modules (lib/format.js, lib/scoring.js,
+// lib/minutes.js). React components read the language from context (useT) and re-render on change;
+// the lib helpers have no context, so App keeps this in sync via setLocale() whenever the language
+// setting changes. `tr(key, vars)` resolves against it. Defaults to English (the source).
+let currentLocale = DEFAULT_LANGUAGE;
+
+export function setLocale(lang) {
+  currentLocale = resolveLocale(lang);
+}
+
+// BCP-47 tag for Intl date/number formatting in the pure helpers, from the current language.
+const LOCALE_TAGS = {
+  English: 'en-US',
+  Portuguese: 'pt-BR',
+  'Portuguese (Portugal)': 'pt-PT',
+  Spanish: 'es-ES',
+  French: 'fr-FR',
+  German: 'de-DE',
+  Italian: 'it-IT',
+  Dutch: 'nl-NL',
+};
+
+export function localeTag() {
+  return LOCALE_TAGS[currentLocale] ?? 'en-US';
+}
+
+// translate() bound to the global current language, for the non-React lib helpers.
+export function tr(key, vars) {
+  return translate(currentLocale, key, vars);
 }
 
 const I18nContext = createContext(DEFAULT_LANGUAGE);

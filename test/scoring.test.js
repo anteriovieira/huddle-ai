@@ -90,7 +90,7 @@ test('analysisContext names the meeting, its score and the weakest criteria', ()
   const ctx = analysisContext(r);
   assert.match(ctx, /Discovery Acme/);
   assert.match(ctx, /\/3/);
-  assert.match(ctx, /Direção/); // weakest criterion label present
+  assert.match(ctx, /Direction/); // weakest criterion label present
   assert.doesNotMatch(ctx, /Minha pergunta/); // it is a prefix now, not a prompt
 });
 
@@ -98,6 +98,6 @@ test('scoresAsText renders a plain-text report', () => {
   const r = rec('h1', 'Reunião A', 1, { overall: allAt(2), summary: 's', improvements: [], participants: [{ name: 'Ana', score: 2, criteria: allAt(2), focus: 'direcao', tip: 't' }] });
   const txt = scoresAsText(r);
   assert.match(txt, /Reunião A/);
-  assert.match(txt, /Scores por critério/);
+  assert.match(txt, /Scores by criterion/);
   assert.match(txt, /Ana/);
 });

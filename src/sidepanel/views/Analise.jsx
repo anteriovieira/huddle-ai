@@ -6,6 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import { Icon } from '../ui/Icon.jsx';
+import { useT, localeTag } from '../lib/i18n.js';
 import {
   CRITERIA,
   SCORE_MAX,
@@ -55,7 +56,7 @@ function sectionTitle(text, action) {
 }
 
 function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  return new Date(ts).toLocaleDateString(localeTag(), { day: '2-digit', month: 'short' }).replace('.', '');
 }
 
 function initials(name) {
@@ -76,6 +77,7 @@ function avatarColor(name) {
 
 // --- Radar -------------------------------------------------------------------------------------
 function Radar({ criteria, fill = '#2bac76' }) {
+  const t = useT();
   const n = criteria.length;
   const cx = 180;
   const cy = 155;
@@ -98,7 +100,7 @@ function Radar({ criteria, fill = '#2bac76' }) {
     return { label: c.label, score: fmtScore(c.score), color: colorOf(c.score), bg: bgOf(c.score), anchor: 'middle', x: lx, ny: ly - 6, rx: lx - 15, ry: ly - 1, tx: lx, ty: ly + 10 };
   });
   return (
-    <svg viewBox="-14 0 388 310" role="img" aria-label="Radar de desempenho por critério" style={{ display: 'block', width: '100%', maxWidth: 420, margin: '0 auto' }}>
+    <svg viewBox="-14 0 388 310" role="img" aria-label={t('analytics.radarAria')} style={{ display: 'block', width: '100%', maxWidth: 420, margin: '0 auto' }}>
       {rings.map((pts, i) => (
         <polygon key={i} points={pts} fill="none" stroke="var(--border)" strokeWidth="1" />
       ))}
@@ -185,10 +187,11 @@ function ScoreChip({ score, suffix = `/${SCORE_MAX}` }) {
 }
 
 function Improvements({ list }) {
+  const t = useT();
   if (!list.length) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {sectionTitle('O que melhorar')}
+      {sectionTitle(t('analytics.improve'))}
       {list.map((r, i) => {
         const score = null;
         const name = labelOf(r.criterion);
@@ -204,7 +207,7 @@ function Improvements({ list }) {
                 <Icon name="bolt" />
               </span>
               <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
-                <b style={{ color: 'var(--green)' }}>Ação:</b> {r.action}
+                <b style={{ color: 'var(--green)' }}>{t('analytics.actionColon')}</b> {r.action}
               </span>
             </div>
           </div>
@@ -215,12 +218,13 @@ function Improvements({ list }) {
 }
 
 function Backbar({ title, onBack }) {
+  const t = useT();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
       <button
         type="button"
         onClick={onBack}
-        aria-label="Voltar"
+        aria-label={t('common.back')}
         style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: 'transparent', color: MUTED, cursor: 'pointer' }}
       >
         <Icon name="back" />
@@ -232,6 +236,7 @@ function Backbar({ title, onBack }) {
 
 // Score-per-session trend line (also used in the participant detail).
 function TrendLine({ points }) {
+  const t = useT();
   if (points.length < 2) return null;
   const x0 = 24;
   const x1 = 336;
@@ -242,7 +247,7 @@ function TrendLine({ points }) {
   const line = points.map((p, i) => `${xFor(i).toFixed(1)},${yFor(p.score).toFixed(1)}`).join(' ');
   return (
     <div style={card({ padding: '14px 14px 10px' })}>
-      <svg viewBox="0 0 360 140" role="img" aria-label="Evolução do score por sessão" style={{ display: 'block', width: '100%', maxWidth: 400, margin: '0 auto' }}>
+      <svg viewBox="0 0 360 140" role="img" aria-label={t('analytics.trendAria')} style={{ display: 'block', width: '100%', maxWidth: 400, margin: '0 auto' }}>
         {[yTop, (yTop + yBot) / 2, yBot].map((y, i) => (
           <line key={i} x1="14" y1={y} x2="346" y2={y} stroke="var(--surface-hover)" strokeWidth="1" />
         ))}
@@ -283,31 +288,33 @@ function HighlightPill({ tone, label, item }) {
 }
 
 function ParticipantDetail({ records, name, onBack, showTrend = true }) {
+  const t = useT();
   const d = useMemo(() => participantDetail(records, name), [records, name]);
   const trend = d.sessions.slice().reverse().map((s) => ({ score: s.score, label: fmtDate(s.startedAt) }));
   const first = name.split(/\s+/)[0];
+  const meetingsUnit = (n) => t(n === 1 ? 'unit.meeting.one' : 'unit.meeting.other');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Backbar title="Participante" onBack={onBack} />
+      <Backbar title={t('analytics.participant')} onBack={onBack} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
         <span style={{ width: 52, height: 52, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, color: '#fff', fontWeight: 900, fontSize: 18, background: avatarColor(name) }}>
           {initials(name)}
         </span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: STRONG }}>{name}</span>
-          <span style={{ fontSize: 13, color: MUTED }}>{d.meetings} {d.meetings === 1 ? 'reunião' : 'reuniões'}</span>
+          <span style={{ fontSize: 13, color: MUTED }}>{d.meetings} {meetingsUnit(d.meetings)}</span>
         </div>
-        <ScoreRing score={d.average} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
+        <ScoreRing score={d.average} size={56} stroke={5} label={t('analytics.ofMax', { max: SCORE_MAX })} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-        <HighlightPill tone="up" label="Mais forte" item={d.strength} />
-        <HighlightPill tone="down" label="A melhorar" item={d.weakness} />
+        <HighlightPill tone="up" label={t('analytics.strongest')} item={d.strength} />
+        <HighlightPill tone="down" label={t('analytics.toImprove')} item={d.weakness} />
       </div>
 
       <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>{t('analytics.profileOf', { name: first })}</h3>
           <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
         </div>
         <Radar criteria={d.criteria} fill="#4a7dbf" />
@@ -319,7 +326,7 @@ function ParticipantDetail({ records, name, onBack, showTrend = true }) {
             <Icon name="bulb" />
           </span>
           <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
-            {d.focus && <b style={{ color: STRONG }}>Foco em {labelOf(d.focus)}: </b>}
+            {d.focus && <b style={{ color: STRONG }}>{t('analytics.focusOn', { label: labelOf(d.focus) })}</b>}
             {d.tip}
           </span>
         </div>
@@ -331,13 +338,13 @@ function ParticipantDetail({ records, name, onBack, showTrend = true }) {
 
       {showTrend && trend.length >= 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sectionTitle('Score por sessão')}
+          {sectionTitle(t('analytics.scorePerSession'))}
           <TrendLine points={trend} />
         </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sectionTitle(`Sessões de ${first}`)}
+        {sectionTitle(t('analytics.sessionsOf', { name: first }))}
         {d.sessions.map((s) => (
           <div key={s.huddleId} style={card({ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px' })}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -354,10 +361,11 @@ function ParticipantDetail({ records, name, onBack, showTrend = true }) {
 
 // Concrete, actionable prep the participant can carry into their next meetings.
 function NextMeetingTips({ list }) {
+  const t = useT();
   if (!list.length) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {sectionTitle('Para as próximas reuniões')}
+      {sectionTitle(t('analytics.forNextMeetings'))}
       {list.map((text, i) => (
         <div key={i} style={card({ display: 'flex', gap: 9, alignItems: 'flex-start', padding: '11px 12px' })}>
           <span style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1, display: 'inline-flex' }} aria-hidden="true">
@@ -375,6 +383,7 @@ function NextMeetingTips({ list }) {
 // prep for the next meetings — with no cross-session list (that lives in the general participant
 // detail opened from the header's "Análise geral").
 function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
+  const t = useT();
   const first = p.name.split(/\s+/)[0];
   const ranked = p.criteria.slice().sort((a, b) => b.score - a.score);
   const strength = ranked[0] ?? null;
@@ -382,31 +391,31 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
   const strengthLabels = p.strengths.map(labelOf);
   const ask = () =>
     onAsk?.({
-      label: `Análise de ${p.name}`,
-      text: `Contexto — análise de ${p.name} nesta reunião:\n\n${participantScoresText(record, p)}`,
+      label: t('analytics.analysisOf', { name: p.name }),
+      text: `${t('analytics.analysisContextOpen', { name: p.name })}\n\n${participantScoresText(record, p)}`,
     });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Backbar title="Participante" onBack={onBack} />
+      <Backbar title={t('analytics.participant')} onBack={onBack} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
         <span style={{ width: 52, height: 52, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, color: '#fff', fontWeight: 900, fontSize: 18, background: avatarColor(p.name) }}>
           {initials(p.name)}
         </span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: STRONG }}>{p.name}</span>
-          <span style={{ fontSize: 13, color: MUTED }}>Nesta reunião</span>
+          <span style={{ fontSize: 13, color: MUTED }}>{t('analytics.inThisMeeting')}</span>
         </div>
-        <ScoreRing score={p.score} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
+        <ScoreRing score={p.score} size={56} stroke={5} label={t('analytics.ofMax', { max: SCORE_MAX })} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-        <HighlightPill tone="up" label="Mais forte" item={strength} />
-        <HighlightPill tone="down" label="A melhorar" item={weakness} />
+        <HighlightPill tone="up" label={t('analytics.strongest')} item={strength} />
+        <HighlightPill tone="down" label={t('analytics.toImprove')} item={weakness} />
       </div>
 
       <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Perfil de {first}</h3>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>{t('analytics.profileOf', { name: first })}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
             {onAsk && (
@@ -414,8 +423,8 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
                 type="button"
                 className="icon-button"
                 onClick={ask}
-                title={`Perguntar no chat sobre ${first}`}
-                aria-label={`Perguntar no chat sobre ${first}`}
+                title={t('analytics.askAboutInChat', { name: first })}
+                aria-label={t('analytics.askAboutInChat', { name: first })}
               >
                 <Icon name="chat-plus" />
               </button>
@@ -429,7 +438,7 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
         <div style={card({ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '11px 12px' })}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>
             <Icon name="check" />
-            Pontos fortes
+            {t('analytics.strengths')}
           </span>
           {strengthLabels.map((l) => (
             <span key={l} style={{ padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: 'var(--green-bg)', color: 'var(--green)' }}>
@@ -447,7 +456,7 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
             <Icon name="bulb" />
           </span>
           <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
-            {p.focus && <b style={{ color: STRONG }}>Foco em {labelOf(p.focus)}: </b>}
+            {p.focus && <b style={{ color: STRONG }}>{t('analytics.focusOn', { label: labelOf(p.focus) })}</b>}
             {p.tip}
           </span>
         </div>
@@ -459,27 +468,29 @@ function SessionParticipantDetail({ participant: p, record, onBack, onAsk }) {
 }
 
 function SessionDetail({ record, onBack, onOpenParticipant }) {
+  const t = useT();
   const data = normalizeScores(record.data);
   const avg = meetingAverage(record.data);
   const meta = record.meta ?? {};
   const strengthLabels = data.strengths.map(labelOf);
+  const peopleCount = (n) => `${n} ${t(n === 1 ? 'unit.person.one' : 'unit.person.other')}`;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {onBack && <Backbar title="Sessão" onBack={onBack} />}
+      {onBack && <Backbar title={t('analytics.session')} onBack={onBack} />}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: STRONG, lineHeight: 1.3 }}>{meta.title || 'Reunião'}</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: STRONG, lineHeight: 1.3 }}>{meta.title || t('analytics.meeting')}</span>
           <span style={{ fontSize: 13, color: MUTED }}>
-            {fmtDate(meta.startedAt ?? record.generatedAt ?? Date.now())} · {(meta.participants ?? []).length} pessoas
+            {fmtDate(meta.startedAt ?? record.generatedAt ?? Date.now())} · {peopleCount((meta.participants ?? []).length)}
           </span>
         </div>
-        <ScoreRing score={avg} size={56} stroke={5} label={`de ${SCORE_MAX}`} />
+        <ScoreRing score={avg} size={56} stroke={5} label={t('analytics.ofMax', { max: SCORE_MAX })} />
       </div>
 
       {data.summary && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text)' }}>{data.summary}</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {sectionTitle('Scores da reunião')}
+        {sectionTitle(t('analytics.meetingScores'))}
         <div style={card({ padding: 14 })}>
           <Radar criteria={data.overall} />
         </div>
@@ -490,7 +501,7 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
         <div style={card({ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '11px 12px' })}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>
             <Icon name="check" />
-            Pontos fortes
+            {t('analytics.strengths')}
           </span>
           {strengthLabels.map((l) => (
             <span key={l} style={{ padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: 'var(--green-bg)', color: 'var(--green)' }}>
@@ -504,7 +515,7 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
 
       {data.participants.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sectionTitle('Por participante')}
+          {sectionTitle(t('analytics.byParticipant'))}
           {data.participants.map((p) => (
             <button
               key={p.name}
@@ -519,7 +530,7 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
                 <span style={{ fontSize: 14, fontWeight: 700, color: STRONG }}>{p.name}</span>
                 {p.focus && (
                   <span style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--text)' }}>
-                    <b style={{ color: colorOf(p.score) }}>Melhorar {labelOf(p.focus)}:</b> {p.tip}
+                    <b style={{ color: colorOf(p.score) }}>{t('analytics.improveLabel', { label: labelOf(p.focus) })}</b> {p.tip}
                   </span>
                 )}
               </span>
@@ -534,27 +545,26 @@ function SessionDetail({ record, onBack, onOpenParticipant }) {
 
 // --- Overview ----------------------------------------------------------------------------------
 function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
+  const t = useT();
   return (
     <div style={{ padding: '40px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
       <span style={{ width: 64, height: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 16, border: `1px solid ${BORDER}`, background: SURFACE, color: MUTED }}>
         <Icon name="sparkles" />
       </span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 300 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: STRONG }}>Nenhuma reunião pontuada ainda</span>
-        <span style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
-          A análise pontua cada reunião por critério (direção, decisões, execução…), por participante e sugere o que melhorar.
-        </span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: STRONG }}>{t('analytics.emptyTitle')}</span>
+        <span style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>{t('analytics.emptyDesc')}</span>
       </div>
       {!hasKey ? (
         <button type="button" className="button button--primary" onClick={onOpenSettings}>
-          Configurar chave da API
+          {t('analytics.configureApiKey')}
         </button>
       ) : canScore ? (
         <button type="button" className="button button--primary" disabled={scoring} onClick={onScore}>
-          {scoring ? 'Analisando…' : 'Pontuar esta reunião'}
+          {scoring ? t('info.analyzing') : t('analytics.scoreThisMeeting')}
         </button>
       ) : (
-        <span style={{ fontSize: 13, color: MUTED }}>Abra uma reunião encerrada para pontuá-la.</span>
+        <span style={{ fontSize: 13, color: MUTED }}>{t('analytics.openEndedToScore')}</span>
       )}
     </div>
   );
@@ -569,15 +579,16 @@ function Empty({ canScore, scoring, onScore, hasKey, onOpenSettings }) {
 // Placeholder shown while scoring. No streaming: skeletons stand in for the sections and the whole
 // analysis replaces this at once when the result is ready.
 function ScoreLoading() {
+  const t = useT();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span className="spinner" aria-hidden="true" />
-        <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Analisando a reunião…</span>
+        <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>{t('analytics.scoringMeeting')}</span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} aria-hidden="true">
-        {sectionTitle('Scores por critério')}
+        {sectionTitle(t('analytics.scoresByCriterion'))}
         <div className="skeleton__grid">
           {CRITERIA.map((c) => (
             <div key={c.id ?? c} />
@@ -591,7 +602,7 @@ function ScoreLoading() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} aria-hidden="true">
-        {sectionTitle('O que melhorar')}
+        {sectionTitle(t('analytics.improve'))}
         <div className="skeleton__block" />
         <div className="skeleton__block" />
       </div>
@@ -609,6 +620,7 @@ export function SessionAnalyticsView({
   onOpenSettings,
   onAsk,
 }) {
+  const t = useT();
   const [name, setName] = useState(null);
   if (scoring) return <ScoreLoading />;
   if (name && scores) {
@@ -632,7 +644,7 @@ export function SessionAnalyticsView({
       <SessionDetail record={scores} onOpenParticipant={(n) => setName(n)} />
       {canScore && (
         <button type="button" className="button button--block" disabled={scoring} onClick={onScore}>
-          {scoring ? 'Analisando…' : 'Reavaliar reunião'}
+          {scoring ? t('info.analyzing') : t('analytics.rescoreMeeting')}
         </button>
       )}
     </div>
@@ -642,8 +654,11 @@ export function SessionAnalyticsView({
 // Global Analytics (header button, overlay): the dashboard aggregated over every scored session,
 // with participant drill-down. Clicking a session calls onOpenSession to load it and open its tab.
 export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpenSession, onClose }) {
+  const t = useT();
   const [name, setName] = useState(null);
   const agg = useMemo(() => aggregateScores(records), [records]);
+  const meetingsUnit = (n) => t(n === 1 ? 'unit.meeting.one' : 'unit.meeting.other');
+  const peopleCount = (n) => `${n} ${t(n === 1 ? 'unit.person.one' : 'unit.person.other')}`;
 
   if (name) {
     return <ParticipantDetail records={records} name={name} onBack={() => setName(null)} />;
@@ -654,12 +669,12 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
       <button
         type="button"
         onClick={onClose}
-        aria-label="Voltar"
+        aria-label={t('common.back')}
         style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: 'none', borderRadius: 6, background: 'transparent', color: MUTED, cursor: 'pointer' }}
       >
         <Icon name="back" />
       </button>
-      <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>Análise geral</span>
+      <span style={{ fontSize: 15, fontWeight: 900, color: STRONG }}>{t('analytics.overallTitle')}</span>
     </div>
   ) : null;
 
@@ -673,7 +688,8 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
   }
 
   const pct = Math.round((agg.overall / SCORE_MAX) * 100);
-  const trendStr = `${agg.trend >= 0 ? '+' : '−'}${Math.abs(agg.trend).toFixed(1).replace('.', ',')}`;
+  const decimal = localeTag().startsWith('pt') ? ',' : '.';
+  const trendStr = `${agg.trend >= 0 ? '+' : '−'}${Math.abs(agg.trend).toFixed(1).replace('.', decimal)}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -682,35 +698,35 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden', background: BORDER }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 13px', background: SURFACE }}>
-          <span style={{ fontSize: 12, color: MUTED }}>Reuniões</span>
+          <span style={{ fontSize: 12, color: MUTED }}>{t('analytics.kpiMeetings')}</span>
           <span style={{ fontSize: 24, fontWeight: 900, color: STRONG, lineHeight: 1 }}>{agg.count}</span>
-          <span style={{ fontSize: 11, color: MUTED }}>pontuadas</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{t('analytics.kpiScored')}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 13px', background: SURFACE }}>
-          <span style={{ fontSize: 12, color: MUTED }}>Score médio</span>
+          <span style={{ fontSize: 12, color: MUTED }}>{t('analytics.kpiAvgScore')}</span>
           <span style={{ fontSize: 24, fontWeight: 900, color: 'var(--yellow)', lineHeight: 1 }}>
             {fmtScore(agg.overall)}
             <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>/{SCORE_MAX}</span>
           </span>
-          <span style={{ fontSize: 11, color: MUTED }}>{pct}% do máximo</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{t('analytics.kpiPctMax', { pct })}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '12px 13px', background: SURFACE }}>
-          <span style={{ fontSize: 12, color: MUTED }}>Tendência</span>
+          <span style={{ fontSize: 12, color: MUTED }}>{t('analytics.kpiTrend')}</span>
           <span style={{ fontSize: 24, fontWeight: 900, color: agg.trend >= 0 ? 'var(--green)' : 'var(--danger)', lineHeight: 1 }}>{trendStr}</span>
-          <span style={{ fontSize: 11, color: MUTED }}>vs. anteriores</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{t('analytics.kpiVsPrev')}</span>
         </div>
       </div>
 
       {/* Radar */}
       <div style={card({ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 })}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>Desempenho por critério</h3>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: STRONG }}>{t('analytics.perfByCriterion')}</h3>
           <span style={{ fontSize: 12, fontWeight: 700, color: MUTED }}>0–{SCORE_MAX}</span>
         </div>
         <Radar criteria={agg.criteria} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4, borderTop: `1px solid ${BORDER}` }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--yellow)' }} />
-          <span style={{ fontSize: 13, color: MUTED }}>Média geral</span>
+          <span style={{ fontSize: 13, color: MUTED }}>{t('analytics.overallAvg')}</span>
           <span style={{ fontSize: 14, fontWeight: 900, color: STRONG }}>{fmtScore(agg.overall)}/{SCORE_MAX}</span>
           <span style={{ fontSize: 13, color: MUTED }}>({pct}%)</span>
         </div>
@@ -718,14 +734,14 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
 
       {/* Criteria grid */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {sectionTitle('Scores por critério')}
+        {sectionTitle(t('analytics.scoresByCriterion'))}
         <Scorecards criteria={agg.criteria} />
       </div>
 
       {/* Participants */}
       {agg.participants.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sectionTitle('Score por participante')}
+          {sectionTitle(t('analytics.scorePerParticipant'))}
           {agg.participants.map((p) => (
             <button
               key={p.name}
@@ -739,8 +755,8 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: STRONG, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                 <span style={{ fontSize: 12, color: MUTED }}>
-                  {p.meetings} {p.meetings === 1 ? 'reunião' : 'reuniões'}
-                  {p.focus ? ` · melhorar ${labelOf(p.focus).toLowerCase()}` : ''}
+                  {p.meetings} {meetingsUnit(p.meetings)}
+                  {p.focus ? ` · ${t('analytics.improveInline', { label: labelOf(p.focus).toLowerCase() })}` : ''}
                 </span>
               </span>
               <ScoreRing score={p.average} />
@@ -751,7 +767,7 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
 
       {/* Sessions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {sectionTitle('Sessões recentes')}
+        {sectionTitle(t('analytics.recentSessions'))}
         {agg.sessions.map((s) => (
           <button
             key={s.huddleId}
@@ -764,7 +780,7 @@ export function AnaliseView({ records = [], hasKey = true, onOpenSettings, onOpe
             </span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: STRONG, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
-              <span style={{ fontSize: 12, color: MUTED }}>{fmtDate(s.startedAt)} · {s.participants.length} pessoas</span>
+              <span style={{ fontSize: 12, color: MUTED }}>{fmtDate(s.startedAt)} · {peopleCount(s.participants.length)}</span>
             </span>
             <ScoreChip score={s.average} />
             <span style={{ flexShrink: 0, color: 'var(--border-strong)', display: 'inline-flex' }} aria-hidden="true">

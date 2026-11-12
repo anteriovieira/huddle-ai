@@ -228,6 +228,12 @@ async function capturePanels(browser, baseUrl) {
   await page.waitForTimeout(400);
   shots.minutes = await page.screenshot();
 
+  // Analytics: the scored-meeting dashboard (radar, criteria, strengths, per participant).
+  await page.setViewportSize({ width: PANEL_W, height: PANEL_H_TALL });
+  await page.getByRole('tab', { name: 'Analytics' }).click();
+  await page.waitForTimeout(400);
+  shots.analytics = await page.screenshot();
+
   await context.close();
   return shots;
 }
@@ -359,6 +365,7 @@ async function main() {
     insights: dataUri(shots.insights),
     captions: dataUri(shots.captions),
     minutes: dataUri(shots.minutes),
+    analytics: dataUri(shots.analytics),
   };
 
   const page = await browser.newPage();
@@ -367,6 +374,7 @@ async function main() {
     { name: 'insights', w: 1280, h: 800, copy: COPY.insights, panel: panels.insights },
     { name: 'captions', w: 1280, h: 800, copy: COPY.captions, panel: panels.captions },
     { name: 'ata', w: 1280, h: 800, copy: COPY.ata, panel: panels.minutes },
+    { name: 'analytics', w: 1280, h: 800, copy: COPY.analytics, panel: panels.analytics },
   ];
   for (const tile of tiles) {
     await page.setViewportSize({ width: tile.w, height: tile.h });

@@ -8,6 +8,7 @@ Chrome Web Store (see [`docs/chrome-web-store.md`](../../docs/chrome-web-store.m
 | `insights.png` | 1280×800 | Marketing copy + the Insights tab |
 | `captions.png` | 1280×800 | Marketing copy + the Captions tab |
 | `ata.png` | 1280×800 | Marketing copy + the Minutes tab |
+| `analytics.png` | 1280×800 | Marketing copy + the Analytics tab |
 | `marquee.png` | 1400×560 | Marquee promo tile (two panels) |
 | `small.png` | 440×280 | Small promo tile |
 

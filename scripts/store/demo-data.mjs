@@ -89,6 +89,78 @@ const MINUTES_DATA = {
   risks: ['The SLA blocker can push the production date.', 'PCI compliance still pending the PO’s review.'],
 };
 
+// Scored-meeting demo for the Analytics tab (lib/scoring.js shape; 0..3 per criterion).
+const crit = (o) => Object.entries(o).map(([id, score]) => ({ id, score }));
+const SCORES_DATA = {
+  overall: crit({
+    direcao: 2.6,
+    decisoes: 2.4,
+    execucao: 2.1,
+    eficiencia: 2.3,
+    diagnostico: 2.5,
+    alinhamento: 2.7,
+    proximos_passos: 2.2,
+    engajamento: 2.0,
+  }),
+  summary:
+    'A focused planning huddle with clear direction and strong alignment; execution and engagement have the most room to grow.',
+  strengths: ['alinhamento', 'direcao'],
+  improvements: [
+    {
+      criterion: 'engajamento',
+      analysis: 'Ana and Caio drove most of the discussion while others mostly reacted.',
+      action: 'Invite the quieter participants to weigh in before each decision is locked.',
+    },
+    {
+      criterion: 'proximos_passos',
+      analysis: 'One of the next steps was left without a clear due date.',
+      action: 'Set an owner and a date for every action item before closing the huddle.',
+    },
+  ],
+  participants: [
+    {
+      name: 'Ana',
+      score: 2.7,
+      criteria: crit({ direcao: 2.9, decisoes: 2.7, execucao: 2.4, eficiencia: 2.6, diagnostico: 2.6, alinhamento: 2.9, proximos_passos: 2.4, engajamento: 2.5 }),
+      focus: 'proximos_passos',
+      tip: 'Close each topic by naming the owner and the date out loud.',
+      strengths: ['direcao', 'alinhamento'],
+      improvements: [{ criterion: 'proximos_passos', analysis: 'Steered well but left one action undated.', action: 'Confirm dates before moving on.' }],
+      prep: ['Bring a one-line goal for the huddle.', 'Keep a running list of decisions to recap at the end.'],
+    },
+    {
+      name: 'Lucas',
+      score: 2.2,
+      criteria: crit({ direcao: 2.0, decisoes: 2.2, execucao: 2.5, eficiencia: 2.2, diagnostico: 2.1, alinhamento: 2.3, proximos_passos: 2.4, engajamento: 1.8 }),
+      focus: 'engajamento',
+      tip: 'Speak up on topics beyond your own area too.',
+      strengths: ['execucao'],
+      improvements: [{ criterion: 'engajamento', analysis: 'Engaged mainly on refunds.', action: 'Weigh in on the SLA and compliance items as well.' }],
+      prep: ['Skim the agenda and note where you can contribute.'],
+    },
+    {
+      name: 'Bia',
+      score: 2.3,
+      criteria: crit({ direcao: 2.2, decisoes: 2.3, execucao: 2.1, eficiencia: 2.4, diagnostico: 2.5, alinhamento: 2.4, proximos_passos: 2.2, engajamento: 2.3 }),
+      focus: 'execucao',
+      tip: 'Turn the compliance concern into a tracked task.',
+      strengths: ['diagnostico'],
+      improvements: [{ criterion: 'execucao', analysis: 'Raised PCI compliance but without a concrete next step.', action: 'Open a ticket and assign it.' }],
+      prep: ['List open risks before the huddle.'],
+    },
+    {
+      name: 'Caio',
+      score: 2.4,
+      criteria: crit({ direcao: 2.3, decisoes: 2.5, execucao: 2.2, eficiencia: 2.3, diagnostico: 2.7, alinhamento: 2.5, proximos_passos: 2.3, engajamento: 2.1 }),
+      focus: 'eficiencia',
+      tip: 'Timebox the deep-dives so the huddle keeps moving.',
+      strengths: ['diagnostico', 'decisoes'],
+      improvements: [{ criterion: 'eficiencia', analysis: 'Thorough on risks but spent long on the SLA detail.', action: 'Park deep-dives into a follow-up when they run long.' }],
+      prep: ['Bring the provider SLA numbers ready to share.'],
+    },
+  ],
+};
+
 const PARTICIPANTS = ['Ana', 'Lucas', 'Bia', 'Caio'];
 
 const SETTINGS = {
@@ -148,6 +220,20 @@ export function makeState(now = Date.now()) {
           utterances: UTTERANCES.length,
         },
         data: MINUTES_DATA,
+      },
+      scores: {
+        huddleId: HUDDLE_ID,
+        generatedAt: now - 2 * MIN,
+        model: '',
+        meta: {
+          title: 'Huddle in product-billing',
+          startedAt,
+          endedAt: now - 3000,
+          source: 'Slack · #product-billing',
+          participants: PARTICIPANTS,
+          utterances: UTTERANCES.length,
+        },
+        data: SCORES_DATA,
       },
       logs: [],
       chats: { huddleId: HUDDLE_ID, list: [{ id: 'c-demo-1', title: 'Chat 1', messages: [] }] },

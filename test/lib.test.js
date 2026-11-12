@@ -54,8 +54,8 @@ test('formatDuration rounds to minutes and hours', () => {
 test('ago uses injectable now', () => {
   const now = 1_000_000_000;
   assert.equal(ago(now - 10 * 1000, now), 'Just now');
-  assert.equal(ago(now - 5 * 60 * 1000, now), 'há 5 min');
-  assert.equal(ago(now - 2 * 3600 * 1000, now), 'há 2 h');
+  assert.equal(ago(now - 5 * 60 * 1000, now), '5 min ago');
+  assert.equal(ago(now - 2 * 3600 * 1000, now), '2 h ago');
 });
 
 test('fileStamp is a filesystem-safe timestamp', () => {
@@ -166,7 +166,7 @@ test('parseTranscript folds multi-line text within a block', () => {
 test('sourceFromTitle maps channel and DM titles', () => {
   assert.equal(sourceFromTitle('Huddle in general'), 'Slack · #general');
   assert.equal(sourceFromTitle('Huddle em #vendas'), 'Slack · #vendas');
-  assert.equal(sourceFromTitle('Huddle with Ana'), 'Slack · DM com Ana');
+  assert.equal(sourceFromTitle('Huddle with Ana'), 'Slack · DM with Ana');
   assert.equal(sourceFromTitle('algo'), 'Slack');
   assert.equal(sourceFromTitle(null), 'Slack');
 });
@@ -226,14 +226,14 @@ const sampleMinutes = {
 test('minutesAsText renders Markdown with checkboxes', () => {
   const md = minutesAsText(sampleMinutes);
   assert.match(md, /^# Planejamento do Q4/);
-  assert.match(md, /## Pontos principais/);
+  assert.match(md, /## Key points/);
   assert.match(md, /- \[ \] Entregar billing \(Lucas, sex, 31\/10\)/);
   assert.match(md, /\*\*Tags:\*\* q4, billing/);
 });
 
 test('minutesAsText renders Slack mrkdwn with bullets', () => {
   const slack = minutesAsText(sampleMinutes, 'slack');
-  assert.match(slack, /^\*Ata: Planejamento do Q4\*/);
+  assert.match(slack, /^\*Minutes: Planejamento do Q4\*/);
   assert.match(slack, /• Entregar billing \(Lucas, sex, 31\/10\)/);
   assert.doesNotMatch(slack, /- \[ \]/);
 });
@@ -487,7 +487,7 @@ test('groupSessions buckets by day label and filters by tag', () => {
   const now = Date.parse('2026-10-29T20:00:00Z');
   const { visible, groups } = groupSessions([sampleMinutes], '', 'q4', now);
   assert.equal(visible.length, 1);
-  assert.equal(groups[0][0], 'Hoje');
+  assert.equal(groups[0][0], 'Today');
   const none = groupSessions([sampleMinutes], '', 'inexistente', now);
   assert.equal(none.visible.length, 0);
 });
@@ -513,9 +513,9 @@ test('insightsAsText respects detect toggles', () => {
   );
   assert.match(withAnswer, /• e o Z\? → Z fica pra sexta\./);
   const minimal = insightsAsText(data, { actions: false, decisions: false, questions: false, references: false, acronyms: false });
-  assert.doesNotMatch(minimal, /Ações/);
-  assert.doesNotMatch(minimal, /Decisões/);
-  assert.match(minimal, /Pontos levantados/);
+  assert.doesNotMatch(minimal, /Actions/);
+  assert.doesNotMatch(minimal, /Decisions/);
+  assert.match(minimal, /Points raised/);
 });
 
 test('log text helpers format entries', () => {

@@ -4,10 +4,12 @@
 // of its criteria. The AI rates each criterion; everything here is deterministic shaping of that
 // output.
 
+import { tr, localeTag } from './i18n.js';
+
 // The effectiveness criteria every huddle is scored on. Generic enough to apply to any meeting
 // (daily, planning, sales, support…), not only sales calls. `id` is the stable key the model and
-// the stored data use; `label` is the fixed Portuguese name shown in the UI (like MINUTES_CATEGORIES,
-// these are not run through i18n).
+// the stored data use. `label`/`hint` here are the Portuguese source fed to the scoring PROMPT
+// (insights.js); the UI name shown to the user comes from i18n via labelOf() (keys `criteria.<id>`).
 export const CRITERIA = [
   { id: 'direcao', label: 'Direção', hint: 'objetivo claro e condução da reunião' },
   { id: 'decisoes', label: 'Decisões', hint: 'decisões tomadas e registradas' },
@@ -51,16 +53,18 @@ function criteriaFrom(list) {
       .filter((x) => x && typeof x.id === 'string')
       .map((x) => [x.id, clamp(x.score)]),
   );
-  return CRITERIA.map((c) => ({ id: c.id, label: c.label, score: byId.get(c.id) ?? 0 }));
+  return CRITERIA.map((c) => ({ id: c.id, label: labelOf(c.id), score: byId.get(c.id) ?? 0 }));
 }
 
-// Comma decimal for the UI (pt-BR): 2.3 -> "2,3".
+// Decimal per locale: 2.3 -> "2,3" in pt, "2.3" elsewhere.
 export function fmtScore(score) {
-  return clamp(score).toFixed(1).replace('.', ',');
+  const s = clamp(score).toFixed(1);
+  return localeTag().startsWith('pt') ? s.replace('.', ',') : s;
 }
 
+// UI name of a criterion, from i18n (falls back to the Portuguese source label, then the id).
 export function labelOf(id) {
-  return CRITERIA_BY_ID.get(id)?.label ?? id;
+  return tr(`criteria.${id}.label`) || CRITERIA_BY_ID.get(id)?.label || id;
 }
 
 // Shapes a raw model result into a stable scores object: every criterion present (missing ones = 0),
@@ -106,7 +110,7 @@ export function meetingAverage(scores) {
 export function sessionSummary(record) {
   return {
     huddleId: record.huddleId,
-    title: record.meta?.title || 'Reunião',
+    title: record.meta?.title || tr('scoring.meeting'),
     startedAt: record.meta?.startedAt ?? record.generatedAt ?? 0,
     participants: record.meta?.participants ?? [],
     average: meetingAverage(record.data),
@@ -126,7 +130,7 @@ export function aggregateScores(records) {
     for (const c of normalizeScores(r.data).overall) sums.set(c.id, sums.get(c.id) + c.score);
   }
   const n = scored.length || 1;
-  const criteria = CRITERIA.map((c) => ({ id: c.id, label: c.label, score: sums.get(c.id) / n }));
+  const criteria = CRITERIA.map((c) => ({ id: c.id, label: labelOf(c.id), score: sums.get(c.id) / n }));
   const overall = scored.length ? criteria.reduce((a, c) => a + c.score, 0) / criteria.length : 0;
 
   // Per-participant: mean of their per-session score across the sessions they appear in.
@@ -167,21 +171,21 @@ export function scoresAsText(record) {
   const meta = record.meta ?? {};
   const avg = meetingAverage(record.data);
   const lines = [
-    `# Análise — ${meta.title || 'Reunião'}`,
+    `# ${tr('scoring.title', { title: meta.title || tr('scoring.meeting') })}`,
     '',
-    `Score geral: ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%)`,
+    tr('scoring.overallScore', { score: fmtScore(avg), max: SCORE_MAX, pct: Math.round((avg / SCORE_MAX) * 100) }),
     '',
-    '## Scores por critério',
+    `## ${tr('scoring.byCriterion')}`,
     ...data.overall.map((c) => `- ${c.label}: ${fmtScore(c.score)}/${SCORE_MAX}`),
   ];
   if (data.improvements.length) {
-    lines.push('', '## O que melhorar');
-    for (const r of data.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} Ação: ${r.action}`);
+    lines.push('', `## ${tr('scoring.whatToImprove')}`);
+    for (const r of data.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} ${tr('scoring.action')}: ${r.action}`);
   }
   if (data.participants.length) {
-    lines.push('', '## Por participante');
+    lines.push('', `## ${tr('scoring.byParticipant')}`);
     for (const p of data.participants) {
-      lines.push(`- ${p.name}: ${fmtScore(p.score)}/${SCORE_MAX}${p.focus ? ` — melhorar ${labelOf(p.focus)}: ${p.tip}` : ''}`);
+      lines.push(`- ${p.name}: ${fmtScore(p.score)}/${SCORE_MAX}${p.focus ? ` — ${tr('scoring.improve')} ${labelOf(p.focus)}: ${p.tip}` : ''}`);
     }
   }
   return lines.join('\n').trim();
@@ -190,7 +194,7 @@ export function scoresAsText(record) {
 // A short context line to pre-fill the chat input when the user asks about a meeting's analysis
 // (the "chat+" action in the Análise info bar). Ends open so the user types their question after it.
 export function analysisContext(record) {
-  if (!record?.data) return 'Sobre a análise desta reunião: ';
+  if (!record?.data) return tr('scoring.aboutAnalysis');
   const data = normalizeScores(record.data);
   const avg = meetingAverage(record.data);
   const low = data.overall
@@ -198,31 +202,37 @@ export function analysisContext(record) {
     .sort((a, b) => a.score - b.score)
     .slice(0, 2)
     .map((c) => c.label);
-  const title = record.meta?.title || 'esta reunião';
-  return `Contexto — análise de "${title}": score geral ${fmtScore(avg)}/${SCORE_MAX} (${Math.round((avg / SCORE_MAX) * 100)}%); pontos mais fracos: ${low.join(', ')}.`;
+  const title = record.meta?.title || tr('scoring.thisMeeting');
+  return tr('scoring.contextLine', {
+    title,
+    score: fmtScore(avg),
+    max: SCORE_MAX,
+    pct: Math.round((avg / SCORE_MAX) * 100),
+    low: low.join(', '),
+  });
 }
 
 // One participant's analysis in a single meeting, as plain text — the context handed to the chat
 // when the user opens it from that participant's detail to ask about these numbers.
 export function participantScoresText(record, p) {
   if (!p) return '';
-  const title = record?.meta?.title || 'esta reunião';
+  const title = record?.meta?.title || tr('scoring.thisMeeting');
   const lines = [
-    `Participante: ${p.name}`,
-    `Reunião: ${title}`,
-    `Score geral: ${fmtScore(p.score)}/${SCORE_MAX}`,
+    `${tr('scoring.participant')}: ${p.name}`,
+    `${tr('scoring.meeting')}: ${title}`,
+    tr('scoring.overallScore', { score: fmtScore(p.score), max: SCORE_MAX, pct: Math.round((p.score / SCORE_MAX) * 100) }),
     '',
-    'Scores por critério:',
+    `${tr('scoring.byCriterion')}:`,
     ...p.criteria.map((c) => `- ${c.label}: ${fmtScore(c.score)}/${SCORE_MAX}`),
   ];
-  if (p.strengths?.length) lines.push('', `Pontos fortes: ${p.strengths.map(labelOf).join(', ')}`);
+  if (p.strengths?.length) lines.push('', `${tr('scoring.strengths')}: ${p.strengths.map(labelOf).join(', ')}`);
   if (p.improvements?.length) {
-    lines.push('', 'O que melhorar:');
-    for (const r of p.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} Ação: ${r.action}`);
+    lines.push('', `${tr('scoring.whatToImprove')}:`);
+    for (const r of p.improvements) lines.push(`- ${labelOf(r.criterion)}: ${r.analysis} ${tr('scoring.action')}: ${r.action}`);
   }
-  if (p.focus && p.tip) lines.push('', `Foco em ${labelOf(p.focus)}: ${p.tip}`);
+  if (p.focus && p.tip) lines.push('', `${tr('scoring.focusOn', { label: labelOf(p.focus) })}: ${p.tip}`);
   if (p.prep?.length) {
-    lines.push('', 'Para as próximas reuniões:');
+    lines.push('', `${tr('scoring.forNextMeetings')}:`);
     for (const t of p.prep) lines.push(`- ${t}`);
   }
   return lines.join('\n').trim();
@@ -244,7 +254,7 @@ export function participantDetail(records, name) {
     const p = normalizeScores(r.data).participants.find((x) => x.name.toLowerCase() === key);
     if (!p) continue;
     const startedAt = r.meta?.startedAt ?? r.generatedAt ?? 0;
-    rows.push({ huddleId: r.huddleId, title: r.meta?.title || 'Reunião', startedAt, score: p.score });
+    rows.push({ huddleId: r.huddleId, title: r.meta?.title || tr('scoring.meeting'), startedAt, score: p.score });
     total += p.score;
     for (const c of p.criteria) cSum.set(c.id, cSum.get(c.id) + c.score);
     cCount += 1;
@@ -255,7 +265,7 @@ export function participantDetail(records, name) {
     }
   }
   rows.sort((a, b) => b.startedAt - a.startedAt);
-  const criteria = CRITERIA.map((c) => ({ id: c.id, label: c.label, score: cCount ? cSum.get(c.id) / cCount : 0 }));
+  const criteria = CRITERIA.map((c) => ({ id: c.id, label: labelOf(c.id), score: cCount ? cSum.get(c.id) / cCount : 0 }));
   const ranked = criteria.slice().sort((a, b) => b.score - a.score);
   return {
     name,

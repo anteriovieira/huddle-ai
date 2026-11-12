@@ -98,23 +98,24 @@ Preencha as declarações de dados no dashboard conforme abaixo.
 | Campo | Valor para colar |
 |---|---|
 | **Nome** | Huddle AI |
-| **Resumo (≤132 car.)** | Insights ao vivo, transcrição e ata dos huddles do Slack — no painel lateral, com a sua chave de IA. |
+| **Resumo (≤132 car.)** | Live insights, captions and minutes for your Slack huddles — right in the side panel. |
 | **Categoria** | **Workflow & Planning** (taxonomia atual da store). Alternativa: **Communication**. |
-| **Idioma padrão da ficha** | Português (Brasil) |
+| **Idioma padrão da ficha** | English |
 
-> O resumo acima tem 108 caracteres (limite 132). O nome na store é **Huddle AI** (o `name` do manifest também é "Huddle AI").
+> O resumo acima tem 84 caracteres (limite 132) e é idêntico ao `description` do `manifest.json`. O nome na store é **Huddle AI** (o `name` do manifest também é "Huddle AI").
 
-**Descrição detalhada (rascunho para colar):**
+**Descrição detalhada (rascunho para colar — inglês, igual aos screenshots):**
 
-> O Huddle AI acompanha seus huddles do Slack na web e trabalha enquanto você conversa.
+> Huddle AI follows your Slack huddles in the browser and works while you talk.
 >
-> • **Insights ao vivo** — tópico atual, pontos levantados, ações (com responsável e prazo), decisões e perguntas em aberto, atualizados a cada poucos segundos.
-> • **Transcrição por participante** — as legendas do huddle viram um histórico limpo, com ações marcadas na linha. Copie ou baixe.
-> • **Ata automática** — resumo, decisões, próximos passos, perguntas em aberto e riscos ao fim da reunião. Exporte em Markdown, envie ao Google Drive ou poste no thread.
+> • **Live insights** — current topic, points raised, actions (with owner and due date), decisions and open questions, refreshed every few seconds.
+> • **Speaker-by-speaker transcript** — the huddle captions become a clean history, with actions flagged right on the line. Copy or download it.
+> • **Automatic minutes** — summary, decisions, next steps, open questions and risks when the meeting ends. Export to Markdown, send to Google Drive or post to the thread.
+> • **Meeting analytics** — each huddle scored by criterion and by participant, with strengths, what to improve and trends across your past sessions.
 >
-> Você usa a sua própria chave de API (Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Cerebras ou Mistral). Nada passa por servidores nossos: as legendas vão direto do seu navegador para o provedor que você escolher, e o histórico fica guardado localmente.
+> You use your own API key (Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Cerebras or Mistral). Nothing goes through our servers: the captions go straight from your browser to the provider you pick, and the history stays stored locally.
 >
-> Como usar: abra o painel, cole a chave da API em Configurações, entre num huddle no Slack e abra a aba de legendas (Captions).
+> How to use it: open the side panel, paste your API key in Settings, join a huddle in Slack and open the Captions tab.
 
 ---
 
@@ -156,6 +157,7 @@ Todos gerados, versionados e com as dimensões conferidas. Formatos aceitos pela
 | Screenshot 1 — Insights | 1280×800 | [`docs/store/insights.png`](./store/insights.png) | Sim (mín. 1) |
 | Screenshot 2 — Captions | 1280×800 | [`docs/store/captions.png`](./store/captions.png) | Recomendado |
 | Screenshot 3 — Ata | 1280×800 | [`docs/store/ata.png`](./store/ata.png) | Recomendado |
+| Screenshot 4 — Analytics | 1280×800 | [`docs/store/analytics.png`](./store/analytics.png) | Recomendado |
 | Small promo tile | 440×280 | [`docs/store/small.png`](./store/small.png) | Opcional |
 | Marquee promo tile | 1400×560 | [`docs/store/marquee.png`](./store/marquee.png) | Opcional |
 
@@ -171,7 +173,7 @@ Os screenshots usam dados de exemplo renderizados com os componentes reais do pa
 - [ ] Preencher propósito único, justificativas de permissão e host permissions (seções 1–3).
 - [ ] Declarar uso de dados e anexar a URL da política de privacidade (seção 5).
 - [ ] Preencher contato, distribuição e visibilidade (seção 7).
-- [ ] Enviar os 3 screenshots + ícone 128×128; opcionalmente os 2 promo tiles (seção 8).
+- [ ] Enviar os 4 screenshots + ícone 128×128; opcionalmente os 2 promo tiles (seção 8).
 - [ ] Revisar o nome, a categoria, a descrição e o resumo (seção 6).
 
 > **Dica do `.zip`:** para gerar o pacote sem o campo `key`, copie `extension/` para uma pasta temporária, remova a chave `"key"` do `manifest.json` dessa cópia e compacte o conteúdo dela. O repositório mantém o `key` de propósito — ele fixa o ID local `lnffnbbmkiafgmglepfcjdchaahjoooe`, de que depende o OAuth do Google Drive em desenvolvimento.

@@ -2,14 +2,22 @@
 // No DOM, no React — unit-tested in Node.
 
 import { formatDateTime, formatDuration, formatTranscript } from './format.js';
+import { tr, localeTag } from './i18n.js';
 import { MODELS } from './models.js';
 
+// Accent tone per meeting category. The category text comes from the model and follows the UI
+// language, so both the English and the Portuguese names are mapped.
 export const CATEGORY_TONES = {
+  Planning: 'blue',
   Planejamento: 'blue',
   Daily: 'green',
+  Alignment: 'yellow',
   Alinhamento: 'yellow',
+  Sales: 'purple',
   Vendas: 'purple',
+  Support: 'blue',
   Suporte: 'blue',
+  Retro: 'yellow',
   Retrospectiva: 'yellow',
 };
 
@@ -18,7 +26,7 @@ export function sourceFromTitle(title) {
   const channel = title?.match(/^Huddle (?:in|em|en) (.+)$/i)?.[1];
   if (channel) return `Slack · #${channel.replace(/^#/, '')}`;
   const people = title?.match(/^Huddle (?:with|com|con) (.+)$/i)?.[1];
-  if (people) return `Slack · DM com ${people}`;
+  if (people) return `Slack · ${tr('minutes.dmWith', { people })}`;
   return 'Slack';
 }
 
@@ -57,32 +65,32 @@ export function minutesAsText(record, format = 'markdown') {
     return slack ? `• ${line}` : `- [ ] ${line}`;
   };
   const lines = [
-    slack ? `*Ata: ${data.title}*` : `# ${data.title}`,
+    slack ? `*${tr('minutes.ataTitle', { title: data.title })}*` : `# ${data.title}`,
     '',
-    `${bold('Data e hora:')} ${formatDateTime(meta.startedAt)} · ${bold('Duração:')} ${formatDuration(meta.endedAt - meta.startedAt)} · ${bold('Término:')} ${formatDateTime(meta.endedAt)}`,
-    `${bold('Fonte:')} ${meta.source} · ${bold('Participantes:')} ${meta.participants.join(', ')}`,
-    `${bold('Classificação:')} ${data.classification.category} (confiança ${data.classification.confidence}%): ${data.classification.description}`,
-    data.tags.length ? `${bold('Tags:')} ${data.tags.join(', ')}` : '',
+    `${bold(tr('minutes.dateTime'))} ${formatDateTime(meta.startedAt)} · ${bold(tr('minutes.duration'))} ${formatDuration(meta.endedAt - meta.startedAt)} · ${bold(tr('minutes.ended'))} ${formatDateTime(meta.endedAt)}`,
+    `${bold(tr('minutes.source'))} ${meta.source} · ${bold(tr('minutes.participants'))} ${meta.participants.join(', ')}`,
+    `${bold(tr('minutes.classification'))} ${data.classification.category} (${tr('minutes.confidence')} ${data.classification.confidence}%): ${data.classification.description}`,
+    data.tags.length ? `${bold(tr('minutes.tags'))} ${data.tags.join(', ')}` : '',
     '',
-    heading('Resumo da reunião'),
+    heading(tr('minutes.summary')),
     data.summary,
     '',
-    heading('Pontos principais'),
+    heading(tr('minutes.keyPoints')),
     ...data.key_points.map(bullet),
     '',
-    (data.decisions ?? []).length ? heading('Decisões') : '',
+    (data.decisions ?? []).length ? heading(tr('minutes.decisions')) : '',
     ...(data.decisions ?? []).map(bullet),
     '',
-    data.next_steps.length ? heading('Próximos passos') : '',
+    data.next_steps.length ? heading(tr('minutes.nextSteps')) : '',
     ...data.next_steps.map(step),
     '',
-    (data.open_questions ?? []).length ? heading('Perguntas em aberto') : '',
+    (data.open_questions ?? []).length ? heading(tr('minutes.openQuestions')) : '',
     ...(data.open_questions ?? []).map(bullet),
     '',
-    (data.risks ?? []).length ? heading('Riscos e bloqueios') : '',
+    (data.risks ?? []).length ? heading(tr('minutes.risks')) : '',
     ...(data.risks ?? []).map(bullet),
     '',
-    heading('Sinais de classificação'),
+    heading(tr('minutes.signals')),
     ...data.signals.map(bullet),
   ];
   return lines
@@ -93,17 +101,18 @@ export function minutesAsText(record, format = 'markdown') {
 
 export function groupLabel(timestamp, now = Date.now()) {
   const startOfToday = new Date(now).setHours(0, 0, 0, 0);
-  if (timestamp >= startOfToday) return 'Hoje';
-  if (timestamp >= startOfToday - 6 * 24 * 3600 * 1000) return 'Esta semana';
-  return 'Anteriores';
+  if (timestamp >= startOfToday) return tr('group.today');
+  if (timestamp >= startOfToday - 6 * 24 * 3600 * 1000) return tr('group.thisWeek');
+  return tr('group.earlier');
 }
 
 export function listTime(timestamp, now = Date.now()) {
   const date = new Date(timestamp);
-  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  if (groupLabel(timestamp, now) === 'Hoje') return time;
-  const weekday = date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
-  return `${weekday}, ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
+  const tag = localeTag();
+  const time = date.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' });
+  if (groupLabel(timestamp, now) === tr('group.today')) return time;
+  const weekday = date.toLocaleDateString(tag, { weekday: 'short' }).replace('.', '');
+  return `${weekday}, ${date.toLocaleDateString(tag, { day: '2-digit', month: '2-digit' })}`;
 }
 
 export function matchesQuery(record, query) {
@@ -223,12 +232,12 @@ export function insightsAsText(data, detect) {
     `*${data.topic.title}*`,
     data.topic.summary,
     '',
-    ...list('Pontos levantados', data.points.map((p) => (typeof p === 'string' ? p : p.text))),
-    ...(detect.actions ? list('Ações', data.actions.map((a) => (a.owner ? `${a.text} (${a.owner})` : a.text))) : []),
-    ...(detect.decisions ? list('Decisões', data.decisions.map((d) => (typeof d === 'string' ? d : d.text))) : []),
+    ...list(tr('minutes.pointsRaised'), data.points.map((p) => (typeof p === 'string' ? p : p.text))),
+    ...(detect.actions ? list(tr('minutes.actions'), data.actions.map((a) => (a.owner ? `${a.text} (${a.owner})` : a.text))) : []),
+    ...(detect.decisions ? list(tr('minutes.decisions'), data.decisions.map((d) => (typeof d === 'string' ? d : d.text))) : []),
     ...(detect.questions
       ? list(
-          'Em aberto',
+          tr('minutes.open'),
           data.open_questions.map((q) => {
             if (typeof q === 'string') return q;
             return q.answer ? `${q.text} → ${q.answer}` : q.text;
@@ -236,9 +245,9 @@ export function insightsAsText(data, detect) {
         )
       : []),
     ...(detect.references
-      ? list('Referências', (data.references ?? []).map((r) => [r.title, r.by, r.description].filter(Boolean).join(' — ')))
+      ? list(tr('minutes.references'), (data.references ?? []).map((r) => [r.title, r.by, r.description].filter(Boolean).join(' — ')))
       : []),
-    ...(detect.acronyms ? list('Siglas', (data.acronyms ?? []).map((a) => (a.meaning ? `${a.term}: ${a.meaning}` : a.term))) : []),
+    ...(detect.acronyms ? list(tr('minutes.acronyms'), (data.acronyms ?? []).map((a) => (a.meaning ? `${a.term}: ${a.meaning}` : a.term))) : []),
   ]
     .join('\n')
     .trim();

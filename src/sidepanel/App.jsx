@@ -26,7 +26,7 @@ import { MarkDialog } from './ui/ConfirmDialog.jsx';
 import { toast } from 'sonner';
 import { Icon } from './ui/Icon.jsx';
 import { Tooltip } from './ui/Tooltip.jsx';
-import { I18nProvider, translate } from './lib/i18n.js';
+import { I18nProvider, setLocale, translate } from './lib/i18n.js';
 
 const DEFAULT_SETTINGS = {
   apiKeys: { anthropic: '', openai: '', google: '', groq: '', openrouter: '', cerebras: '', mistral: '', cloudflare: '' },
@@ -384,6 +384,10 @@ export function App() {
   // Translate a UI string using the current language (read from the live settings ref, so toasts
   // fired from async callbacks use the latest choice without re-creating the callbacks).
   const tr = useCallback((key, vars) => translate(latest.current.settings.language, key, vars), []);
+
+  // Keep the global locale (used by the pure lib helpers: format/scoring/minutes) in sync with the
+  // chosen language, so their user-visible strings and dates render in the UI language.
+  setLocale(settings.language);
 
   const transcriptKey = useCallback(() => {
     const { huddle: h, utterances: u } = latest.current;

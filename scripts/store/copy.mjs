@@ -20,6 +20,12 @@ export const COPY = {
     sub: 'Summary, decisions, next steps, open questions and risks — generated on their own when the meeting ends.',
     bullets: ['Next steps with owner and due date', 'Export to Markdown or Google Drive', 'Post the summary to the thread'],
   },
+  analytics: {
+    badge: 'Analytics',
+    h1: 'Every meeting, <span class="g">scored and coached</span>',
+    sub: 'Each huddle rated by criterion and by participant, with what went well and what to improve next time.',
+    bullets: ['Radar of direction, decisions and execution', 'Per-participant strengths and focus', 'Trends across your past sessions'],
+  },
   marquee: {
     h1: 'Your Slack huddle, <span class="g">organized on its own</span>',
     sub: 'Live insights, a speaker-by-speaker transcript and the minutes ready at the end — without leaving the meeting.',

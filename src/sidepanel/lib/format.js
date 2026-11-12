@@ -1,4 +1,8 @@
 // Pure formatting + avatar helpers. No DOM, no React — safe to unit-test in Node.
+// User-visible strings/dates go through i18n (tr / localeTag), keyed off the global current
+// language that App keeps in sync via setLocale().
+
+import { tr, localeTag } from './i18n.js';
 
 export const AVATAR_COLORS = ['#4A6FA5', '#7A4E8C', '#3E7D5E', '#9A6B2F', '#A04E5A', '#2F7F8F'];
 
@@ -26,16 +30,17 @@ export function formatTranscript(utterances, fromIndex = 0) {
 // `now` is injectable for tests.
 export function ago(timestamp, now = Date.now()) {
   const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
-  return `há ${Math.round(seconds / 3600)} h`;
+  if (seconds < 60) return tr('time.justNow');
+  if (seconds < 3600) return tr('time.minAgo', { n: Math.round(seconds / 60) });
+  return tr('time.hAgo', { n: Math.round(seconds / 3600) });
 }
 
 export function formatDateTime(timestamp) {
   const date = new Date(timestamp);
-  const day = date.toLocaleDateString('pt-BR');
-  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  return `${day} às ${time}`;
+  const tag = localeTag();
+  const day = date.toLocaleDateString(tag, { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = date.toLocaleTimeString(tag, { hour: 'numeric', minute: '2-digit' });
+  return `${day} ${tr('time.at')} ${time}`;
 }
 
 export function formatDuration(ms) {
