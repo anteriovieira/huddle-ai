@@ -3,6 +3,7 @@ import { MODELS, PROVIDERS, PROVIDER_IDS, providerOf, hasKeyForModel } from '../
 import { LANGUAGES, useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Field, Select, Toggle } from '../ui/primitives.jsx';
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 
 const FREQUENCIES = [15, 30, 60];
 
@@ -12,6 +13,7 @@ export function SettingsView({
   driveConnecting,
   notice,
   version,
+  historyCount = 0,
   onSave,
   onCancel,
   onClearHistory,
@@ -21,10 +23,21 @@ export function SettingsView({
   onDisconnectDrive,
 }) {
   const t = useT();
-  const [draft, setDraft] = useState(() => ({
+  const makeDraft = () => ({
     ...settings,
     detect: { ...settings.detect },
-  }));
+  });
+  const [draft, setDraft] = useState(makeDraft);
+  // Snapshot taken once, at mount, from the same shape as `draft` — compared against it to tell
+  // whether the user has unsaved changes (back arrow / Cancelar should warn before discarding).
+  const [initialDraft] = useState(() => JSON.stringify(makeDraft()));
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [confirmClearHistory, setConfirmClearHistory] = useState(false);
+  const isDirty = () => JSON.stringify(draft) !== initialDraft;
+  const requestCancel = () => {
+    if (isDirty()) setConfirmDiscard(true);
+    else onCancel();
+  };
   const set = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
   const setDetect = (key, value) => setDraft((d) => ({ ...d, detect: { ...d.detect, [key]: value } }));
   const setKey = (provider, value) => setDraft((d) => ({ ...d, apiKeys: { ...d.apiKeys, [provider]: value } }));
@@ -78,11 +91,39 @@ export function SettingsView({
   return (
     <>
       <header className="header">
-        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={onCancel}>
+        <button className="icon-button" type="button" aria-label={t('common.back')} onClick={requestCancel}>
           <Icon name="back" />
         </button>
         <h1 className="header__app">{t('settings.title')}</h1>
       </header>
+      {confirmDiscard && (
+        <ConfirmDialog
+          title={t('settings.discardTitle')}
+          message={t('settings.discardMessage')}
+          confirmLabel={t('settings.discardConfirm')}
+          cancelLabel={t('settings.keepEditing')}
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={() => {
+            setConfirmDiscard(false);
+            onCancel();
+          }}
+        />
+      )}
+      {confirmClearHistory && (
+        <ConfirmDialog
+          title={t('settings.clearHistoryTitle')}
+          message={t('settings.clearHistoryMessage', {
+            n: historyCount,
+            unit: t(historyCount === 1 ? 'unit.session.one' : 'unit.session.other'),
+          })}
+          confirmLabel={t('settings.clearHistory')}
+          onCancel={() => setConfirmClearHistory(false)}
+          onConfirm={() => {
+            setConfirmClearHistory(false);
+            onClearHistory();
+          }}
+        />
+      )}
       <main className="main" id="settings-main">
         <form className="settings" id="settings-form" onSubmit={submit}>
           <section className="settings-card">
@@ -325,7 +366,7 @@ export function SettingsView({
             </div>
             <Toggle id="saveHistory" label={t('settings.saveHistory')} checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
             <div className="buttons buttons--start">
-              <button className="button button--danger" type="button" onClick={onClearHistory}>
+              <button className="button button--danger" type="button" onClick={() => setConfirmClearHistory(true)}>
                 {t('settings.clearHistory')}
               </button>
               <button className="button" type="button" onClick={onRunDiagnostics}>
@@ -345,7 +386,7 @@ export function SettingsView({
       </main>
       <footer className="footer footer--row">
         <span className="muted small">v{version}</span>
-        <button className="button" type="button" onClick={onCancel}>
+        <button className="button" type="button" onClick={requestCancel}>
           {t('common.cancel')}
         </button>
         <button className="button button--primary" type="submit" form="settings-form">

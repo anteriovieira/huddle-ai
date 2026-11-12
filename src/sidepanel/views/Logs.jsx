@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { formatTime } from '../lib/format.js';
 import { LEVEL_LABELS, logEntryAsText } from '../lib/logs.js';
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 
 export function LogsView({ logs, onBack, onCopyAll, onCopyEntry, onClear }) {
   const t = useT();
   const eventUnit = t(logs.length === 1 ? 'unit.event.one' : 'unit.event.other');
+  const [confirmClear, setConfirmClear] = useState(false);
   return (
     <>
       <header className="header">
@@ -21,6 +24,18 @@ export function LogsView({ logs, onBack, onCopyAll, onCopyEntry, onClear }) {
           </button>
         </Tooltip>
       </header>
+      {confirmClear && (
+        <ConfirmDialog
+          title={t('logs.clearTitle')}
+          message={t('logs.clearMessage', { n: logs.length, unit: eventUnit })}
+          confirmLabel={t('common.clear')}
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => {
+            setConfirmClear(false);
+            onClear();
+          }}
+        />
+      )}
       <main className="main main--logs" id="main">
         {logs.length ? (
           <ol className="logs" aria-label={t('logs.eventsAria')}>
@@ -52,7 +67,7 @@ export function LogsView({ logs, onBack, onCopyAll, onCopyEntry, onClear }) {
           <button className="button button--primary" type="button" disabled={!logs.length} onClick={onCopyAll}>
             {t('logs.copy')}
           </button>
-          <button className="button" type="button" disabled={!logs.length} onClick={onClear}>
+          <button className="button" type="button" disabled={!logs.length} onClick={() => setConfirmClear(true)}>
             {t('common.clear')}
           </button>
         </div>

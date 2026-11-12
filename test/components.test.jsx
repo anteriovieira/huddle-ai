@@ -317,7 +317,7 @@ test('AtaEmpty disables generation without a key', () => {
   assert.match(html, /disabled/);
 });
 
-test('Header has the sessions button and no insights copy/post actions', () => {
+test('Header groups secondary actions (sessions, home, back to Slack) behind the "more" menu, and has no insights copy/post actions', () => {
   const html = render(
     h(
       TooltipProvider,
@@ -334,7 +334,7 @@ test('Header has the sessions button and no insights copy/post actions', () => {
       }),
     ),
   );
-  assert.match(html, /aria-label="Sessões anteriores"/);
+  assert.match(html, /aria-label="Mais"/);
   assert.doesNotMatch(html, /Copiar resumo/);
   assert.doesNotMatch(html, /Postar no thread/);
 });

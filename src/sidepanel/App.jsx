@@ -1655,6 +1655,7 @@ export function App() {
         driveConnecting={driveConnecting}
         notice={notice}
         version={version()}
+        historyCount={history.length}
         onSave={saveSettings}
         onCancel={() => setSettingsOpen(false)}
         onClearHistory={clearHistory}

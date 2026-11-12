@@ -51,17 +51,33 @@
 
   // A huddle shown inside the main window counts only while no popup has one.
   const popupActive = () => [...popups.values()].some((scanner) => scanner.isActive());
-  const main = createScanner(
-    window,
-    (message) => {
-      if (!popupActive()) post(message);
-    },
-    log,
-    'aba principal',
-  );
+  const createMain = () =>
+    createScanner(
+      window,
+      (message) => {
+        if (!popupActive()) post(message);
+      },
+      log,
+      'aba principal',
+    );
+  let mainVersion = globalThis.__huddleAiScannerVersion;
+  let main = createMain();
+
+  // Popups always get a fresh scanner on window.open (track() above), but the main-tab
+  // scanner is created once here. Uma reinjeção mais nova bumpa __huddleAiScannerVersion
+  // sem recriar `main`, então a aba principal ficava presa na versão antiga do scanner.
+  // Recria `main` quando a versão mudar, para a aba principal também pegar o código novo.
+  function getMain() {
+    if (globalThis.__huddleAiScannerVersion !== mainVersion) {
+      mainVersion = globalThis.__huddleAiScannerVersion;
+      main = createMain();
+    }
+    return main;
+  }
 
   function activeScanner() {
-    return [...popups.values()].find((scanner) => scanner.isActive()) ?? (main.isActive() ? main : null);
+    const currentMain = getMain();
+    return [...popups.values()].find((scanner) => scanner.isActive()) ?? (currentMain.isActive() ? currentMain : null);
   }
 
   window.addEventListener('message', async (event) => {
@@ -79,7 +95,7 @@
     } else if (request.type === 'thread:open') {
       response = scanner ? scanner.openThread() : { ok: false, error: 'Janela do huddle não encontrada.' };
     } else if (request.type === 'debug:dump') {
-      response = { ...(scanner ?? main).dump(), popupsTracked: popups.size };
+      response = { ...(scanner ?? getMain()).dump(), popupsTracked: popups.size };
     }
     window.postMessage({ __huddleAi: 'page-response', id, response }, origin);
   });

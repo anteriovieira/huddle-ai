@@ -154,6 +154,13 @@ select {
   border-bottom: 1px solid var(--border);
 }
 
+/* Icon-only buttons are borderless/transparent by default (see .icon-button below), which gives
+   them no visual affordance at rest. The header is where that hurts most (up to ~5 icon actions
+   in a row), so give its icon buttons a subtle resting outline. */
+.header .icon-button {
+  border: 1px solid var(--border);
+}
+
 .header__titles {
   display: flex;
   flex-direction: column;

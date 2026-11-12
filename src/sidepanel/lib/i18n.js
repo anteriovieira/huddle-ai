@@ -81,6 +81,7 @@ export const STRINGS = {
 
   // Header
   'header.ended': 'Ended',
+  'header.more': 'More',
   'header.backToSlack': 'Back to Slack',
   'header.home': 'Home',
   'header.sessions': 'Previous sessions',
@@ -372,6 +373,8 @@ export const STRINGS = {
   'logs.copyEntry': 'Copy this event',
   'logs.empty': 'No events yet. Reload the Slack tab after reloading the extension for logs to start.',
   'logs.copy': 'Copy logs',
+  'logs.clearTitle': 'Clear the logs?',
+  'logs.clearMessage': 'This permanently deletes {n} logged {unit}.',
 
   // Recent ticker
   'ticker.aria': 'Latest captions',
@@ -435,8 +438,14 @@ export const STRINGS = {
   'settings.privacy': 'Privacy',
   'settings.saveHistory': 'Save huddle and session history',
   'settings.clearHistory': 'Delete history',
+  'settings.clearHistoryTitle': 'Delete history?',
+  'settings.clearHistoryMessage': 'This permanently deletes {n} saved {unit}.',
   'settings.diagnostics': 'Diagnostics',
   'settings.viewLogs': 'View logs',
+  'settings.discardTitle': 'Discard changes?',
+  'settings.discardMessage': 'You have unsaved changes. Discard them?',
+  'settings.discardConfirm': 'Discard',
+  'settings.keepEditing': 'Keep editing',
 
   // App toasts / notices
   'toast.copied': 'Copied.',

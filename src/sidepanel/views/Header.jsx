@@ -3,6 +3,7 @@ import { hasKeyForModel } from '../lib/models.js';
 import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
+import { KebabMenu } from '../ui/Menu.jsx';
 import { AtaInfo } from './Ata.jsx';
 
 export function Header({
@@ -32,27 +33,15 @@ export function Header({
           <span id="clock">{formatClock(now - huddle.startedAt)}</span>
         </span>
       )}
-      {onReturnToSlack && (
-        <Tooltip label={t('header.backToSlack')} side="bottom">
-          <button className="icon-button" type="button" aria-label={t('header.backToSlack')} onClick={onReturnToSlack}>
-            <Icon name="slack" />
-          </button>
-        </Tooltip>
-      )}
-      {onHome && (
-        <Tooltip label={t('header.home')} side="bottom">
-          <button className="icon-button" type="button" aria-label={t('header.home')} onClick={onHome}>
-            <Icon name="home" />
-          </button>
-        </Tooltip>
-      )}
-      {onOpenAtas && (
-        <Tooltip label={t('header.sessions')} side="bottom">
-          <button className="icon-button" type="button" aria-label={t('header.sessions')} onClick={onOpenAtas}>
-            <Icon name="logs" />
-          </button>
-        </Tooltip>
-      )}
+      <KebabMenu
+        label={t('header.more')}
+        items={[
+          onReturnToSlack && { label: t('header.backToSlack'), icon: 'slack', onSelect: onReturnToSlack },
+          onHome && { label: t('header.home'), icon: 'home', onSelect: onHome },
+          onOpenAtas && { label: t('header.sessions'), icon: 'logs', onSelect: onOpenAtas },
+          { label: t('header.logs'), icon: 'history', onSelect: onOpenLogs },
+        ]}
+      />
       {onOpenAnalytics && (
         <Tooltip label={t('header.analytics')} side="bottom">
           <button className="icon-button" type="button" aria-label={t('header.analytics')} onClick={onOpenAnalytics}>
@@ -73,11 +62,6 @@ export function Header({
           </button>
         </Tooltip>
       )}
-      <Tooltip label={t('header.logs')} side="bottom">
-        <button className="icon-button" type="button" aria-label={t('header.logs')} onClick={onOpenLogs}>
-          <Icon name="history" />
-        </button>
-      </Tooltip>
       <Tooltip label={t('header.settings')} side="bottom">
         <button className="icon-button" type="button" aria-label={t('header.settings')} onClick={onOpenSettings}>
           <Icon name="sliders" />
