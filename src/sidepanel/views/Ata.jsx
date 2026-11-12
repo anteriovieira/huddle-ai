@@ -393,77 +393,33 @@ export function AtaEmpty({
 // While the minutes stream in, reveal each section (classification, summary, key points, decisions,
 // next steps) as the model fills it — the first still-empty section shows a spinner ("writing now"),
 // the ones already filled show their content with a check, and sections not reached yet stay hidden.
-// `partial` is the cumulative streamed object; before the first chunk arrives it shows a reading state.
-export function AtaLoading({ utterances, participants, partial }) {
+// Placeholder shown while the minutes are generated. No streaming: it stays until the full ata is
+// ready, then AtaContent replaces it all at once. Skeleton rows stand in for the sections to come.
+export function AtaLoading({ utterances, participants }) {
   const t = useT();
-  const p = partial ?? null;
   const uUnit = t(utterances === 1 ? 'unit.caption.one' : 'unit.caption.other');
   const pUnit = t(participants === 1 ? 'unit.participant.one' : 'unit.participant.other');
-
-  const strList = (x) => (Array.isArray(x) ? x.filter((s) => typeof s === 'string' && s.trim()) : []);
-  const category = typeof p?.classification?.category === 'string' ? p.classification.category.trim() : '';
-  const summary = typeof p?.summary === 'string' ? p.summary.trim() : '';
-  const nextSteps = Array.isArray(p?.next_steps)
-    ? p.next_steps.filter((s) => s && typeof s.text === 'string' && s.text.trim()).map((s) => s.text)
-    : [];
-
-  const sections = [
-    { key: 'class', label: t('ata.classification'), value: category },
-    { key: 'summary', label: t('ata.summary'), value: summary },
-    { key: 'points', label: t('ata.keyPoints'), items: strList(p?.key_points) },
-    { key: 'decisions', label: t('ata.decisions'), items: strList(p?.decisions) },
-    { key: 'steps', label: t('ata.nextSteps'), items: nextSteps },
+  const rows = [
+    { key: 'class', w: '38%' },
+    { key: 'summary', w: '90%' },
+    { key: 'points', w: '72%' },
+    { key: 'decisions', w: '64%' },
+    { key: 'steps', w: '80%' },
   ];
-  const filled = (s) => (s.items ? s.items.length > 0 : !!s.value);
-  const activeIdx = sections.findIndex((s) => !filled(s));
-
-  // Pré-stream: nada chegou ainda.
-  if (!p) {
-    return (
-      <div className="stack">
-        <section className="card progress" role="status" aria-label={t('ata.loading.progressAria')}>
-          <h1 className="card__title">{t('ata.loading.title')}</h1>
-          <div className="progress__step">
-            <span className="spinner" aria-hidden="true" />
-            <span className="strong">{t('ata.loading.reading', { n: utterances, uunit: uUnit, m: participants, punit: pUnit })}</span>
-          </div>
-          <p className="muted small">{t('ata.loading.note')}</p>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="stack">
       <section className="card progress" role="status" aria-label={t('ata.loading.progressAria')}>
-        <h1 className="card__title">{typeof p.title === 'string' && p.title.trim() ? p.title : t('ata.loading.title')}</h1>
-        {sections.map((s, i) => {
-          const isFilled = filled(s);
-          const isActive = i === activeIdx;
-          if (!isFilled && !isActive) return null;
-          return (
-            <div key={s.key} className="ata-stream">
-              <div className="progress__step">
-                {isActive ? (
-                  <span className="spinner" aria-hidden="true" />
-                ) : (
-                  <span className="check__mark check__mark--ok">
-                    <Icon name="check" />
-                  </span>
-                )}
-                <span className={isActive ? 'strong' : ''}>{s.label}</span>
-              </div>
-              {s.items && s.items.length > 0 && (
-                <ul className="ata-stream__list">
-                  {s.items.map((it, k) => (
-                    <li key={k}>{it}</li>
-                  ))}
-                </ul>
-              )}
-              {!s.items && s.value && <p className="ata-stream__text">{s.value}</p>}
-            </div>
-          );
-        })}
+        <h1 className="card__title">{t('ata.loading.title')}</h1>
+        <div className="progress__step">
+          <span className="spinner" aria-hidden="true" />
+          <span className="strong">{t('ata.loading.reading', { n: utterances, uunit: uUnit, m: participants, punit: pUnit })}</span>
+        </div>
+        <div className="skeleton" aria-hidden="true">
+          {rows.map((r) => (
+            <div key={r.key} className="skeleton__line" style={{ width: r.w }} />
+          ))}
+        </div>
         <p className="muted small">{t('ata.loading.note')}</p>
       </section>
     </div>

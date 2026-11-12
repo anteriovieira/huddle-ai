@@ -129,13 +129,7 @@ export function App() {
   const [extState, setExtState] = useState(EMPTY_STATE);
   const [insights, setInsights] = useState(null);
   const [minutes, setMinutes] = useState(null);
-  // Parcial do streaming da ata: objeto cumulativo que chega enquanto o modelo escreve, para o
-  // loader mostrar cada seção/ponto conforme é processado. Limpo ao terminar.
-  const [minutesPartial, setMinutesPartial] = useState(null);
   const [scores, setScores] = useState(null);
-  // Parcial do streaming da pontuação (aba Análise): objeto cumulativo enquanto o modelo pontua,
-  // para o loader revelar cada critério/participante conforme chega. Limpo ao terminar.
-  const [scoresPartial, setScoresPartial] = useState(null);
   const [history, setHistory] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState([]);
@@ -394,21 +388,8 @@ export function App() {
     return `${h?.id}:${u.length}:${u.at(-1)?.text.length ?? 0}`;
   }, []);
 
-  // Insights parciais (streaming): preenche o painel ao vivo só no PRIMEIRO resultado de um huddle
-  // (vazio → cheio). Depois que já há uma análise completa na tela, os parciais são ignorados e a
-  // próxima análise troca de uma vez só (atômica) — assim o painel não "recarrega" enquanto o
-  // usuário lê. Throttle de 120ms e nunca persiste (o registro final é que persiste).
-  const partialAt = useRef(0);
-  const completedHuddle = useRef(null);
-  const applyPartial = useCallback((huddleId, data) => {
-    if (completedHuddle.current === huddleId) return; // refresh: espera o resultado final
-    const t = Date.now();
-    if (t - partialAt.current < 120) return;
-    partialAt.current = t;
-    if (latest.current.huddle?.id !== huddleId) return;
-    setInsights({ huddleId, updatedAt: t, data });
-  }, []);
-
+  // Sem streaming de parciais: a análise mostra um placeholder enquanto roda e só preenche o painel
+  // quando o resultado final chega (de uma vez só). O registro final é o único que persiste.
   const maybeAnalyze = useCallback(async () => {
     const { huddle: h, utterances: u, settings: s, currentInsights: ci, analysisPaused: paused } = latest.current;
     const ctl = analysisCtl.current;
@@ -433,7 +414,6 @@ export function App() {
         sinceLine: ctl.lastCount ?? 0,
         nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
-        onPartial: (d) => applyPartial(h.id, d),
       });
       logEvent('info', `Insights atualizados em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
         topico: data.topic.title,
@@ -445,7 +425,6 @@ export function App() {
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
-      completedHuddle.current = h.id; // a partir daqui, próximas análises trocam de uma vez só
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
       if (ctrl.signal.aborted) return; // análise descartada (huddle mudou/encerrou)
@@ -456,7 +435,7 @@ export function App() {
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey, applyPartial]);
+  }, [transcriptKey]);
 
   // Análise sob demanda: ignora o intervalo e o throttle, e reinicia a contagem
   // a partir de agora (o próximo ciclo automático parte deste momento).
@@ -480,7 +459,6 @@ export function App() {
         sinceLine: ctl.lastCount ?? 0,
         nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
-        onPartial: (d) => applyPartial(h.id, d),
       });
       logEvent('info', `Insights atualizados em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`, {
         topico: data.topic.title,
@@ -494,7 +472,6 @@ export function App() {
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
-      completedHuddle.current = h.id;
       await chromeApi?.storage.session.set({ insights: record });
     } catch (error) {
       if (ctrl.signal.aborted) return;
@@ -505,7 +482,7 @@ export function App() {
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey, applyPartial]);
+  }, [transcriptKey]);
 
   // Persiste os insights no histórico local (chrome.storage.local), para a sessão mostrar o último
   // conjunto gerado quando for recarregada. Só atualiza uma sessão já arquivada no histórico.
@@ -557,7 +534,6 @@ export function App() {
         sinceLine: 0,
         nameOverrides: latest.current.nameOverrides,
         abortSignal: ctrl.signal,
-        onPartial: (d) => applyPartial(h.id, d),
       });
       logEvent('info', `Insights refeitos em ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
       ctl.lastKey = transcriptKey();
@@ -565,7 +541,6 @@ export function App() {
       setAnalysisError(null);
       const record = { huddleId: h.id, updatedAt: Date.now(), data };
       setInsights(record);
-      completedHuddle.current = h.id;
       await chromeApi?.storage.session.set({ insights: record });
       await saveInsightsToHistory(h.id, data);
     } catch (error) {
@@ -577,7 +552,7 @@ export function App() {
       ctl.running = false;
       setAnalysisRunning(false);
     }
-  }, [transcriptKey, applyPartial, saveInsightsToHistory]);
+  }, [transcriptKey, saveInsightsToHistory]);
 
   const saveMinutesToHistory = useCallback(async (record) => {
     if (!latest.current.settings.saveHistory || !chromeApi?.storage) return;
@@ -596,7 +571,6 @@ export function App() {
     setMinutesRunning(true);
     setMinutesStartedAt(minutesCtl.current.startedAt);
     setMinutesError(null);
-    setMinutesPartial(null);
     setTab('ata');
     logEvent('info', `Gerando ata de ${u.length} falas com ${s.model}`);
     try {
@@ -606,7 +580,6 @@ export function App() {
         meta,
         utterances: u,
         nameOverrides: latest.current.nameOverrides,
-        onPartial: (d) => setMinutesPartial(d),
       });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setMinutes(record);
@@ -624,7 +597,6 @@ export function App() {
     } finally {
       minutesCtl.current.running = false;
       setMinutesRunning(false);
-      setMinutesPartial(null);
     }
   }, [saveMinutesToHistory]);
 
@@ -656,7 +628,6 @@ export function App() {
     scoringCtl.current.running = true;
     setScoringRunning(true);
     setScoreError(null);
-    setScoresPartial(null);
     logEvent('info', `Pontuando reunião de ${u.length} falas com ${s.model}`);
     const startedAt = Date.now();
     try {
@@ -666,7 +637,6 @@ export function App() {
         meta,
         utterances: u,
         nameOverrides: latest.current.nameOverrides,
-        onPartial: (d) => setScoresPartial(d),
       });
       const record = { huddleId: h.id, generatedAt: Date.now(), model: s.model, meta, data };
       setScores(record);
@@ -681,7 +651,6 @@ export function App() {
     } finally {
       scoringCtl.current.running = false;
       setScoringRunning(false);
-      setScoresPartial(null);
     }
   }, [saveScoresToHistory]);
 
@@ -1200,12 +1169,10 @@ export function App() {
           previous: null,
           nameOverrides: latest.current.nameOverrides,
           abortSignal: ctrl.signal,
-          onPartial: (d) => applyPartial(huddleId, d),
         });
         if (latest.current.huddle?.id !== huddleId) return;
         const record = { huddleId, updatedAt: Date.now(), data };
         setInsights(record);
-        completedHuddle.current = huddleId;
         analysisCtl.current.lastCount = latest.current.utterances.length;
         await chromeApi?.storage.session.set({ insights: record });
         await saveInsightsToHistory(huddleId, data);
@@ -1219,7 +1186,7 @@ export function App() {
         setAnalysisRunning(false);
       }
     },
-    [saveInsightsToHistory, applyPartial],
+    [saveInsightsToHistory],
   );
 
   const importSession = useCallback(
@@ -1359,7 +1326,6 @@ export function App() {
   // as a context suggestion in Insights. Cards reset when the huddle changes. ---
   useEffect(() => {
     analysisCtl.current.ctrl?.abort(); // descarta análise em voo da sessão anterior
-    completedHuddle.current = null; // novo huddle volta a usar streaming no primeiro preenchimento
     analysisCtl.current.lastCount = 0; // novo huddle: próxima análise manda a transcrição inteira
     contextSeen.current = new Set();
     setContextCards([]);
@@ -1861,7 +1827,6 @@ export function App() {
     records: allScores,
     canScore,
     scoring: scoringRunning,
-    scoresPartial,
     scoreError,
     hasKey: hasKeyForModel(settings),
     onScore: runScoring,
@@ -1938,7 +1903,7 @@ export function App() {
       return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
     }
     return minutesRunning ? (
-      <AtaLoading startedAt={minutesStartedAt} utterances={utterances.length} participants={speakerCount} now={now} partial={minutesPartial} />
+      <AtaLoading utterances={utterances.length} participants={speakerCount} />
     ) : currentMinutes ? (
       <AtaContent record={currentMinutes} {...ataProps(currentMinutes)} />
     ) : (
