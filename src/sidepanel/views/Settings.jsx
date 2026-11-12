@@ -2,10 +2,81 @@ import { useState } from 'react';
 import { MODELS, PROVIDERS, PROVIDER_IDS, providerOf, hasKeyForModel } from '../lib/models.js';
 import { LANGUAGES, useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
-import { Field, Select, Toggle } from '../ui/primitives.jsx';
+import { Select } from '../ui/primitives.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 
 const FREQUENCIES = [15, 30, 60];
+
+// Section wrapper: a small uppercase label (icon + text, optional action) sitting ABOVE a rounded
+// group of rows — the flat, grouped settings layout. The card head no longer lives inside the card.
+function SettingsSection({ icon, title, action, children }) {
+  return (
+    <section className="set-section">
+      <div className="set-label">
+        <span className="set-label__main">
+          <Icon name={icon} />
+          <span className="set-label__text">{title}</span>
+        </span>
+        {action}
+      </div>
+      <div className="set-group">{children}</div>
+    </section>
+  );
+}
+
+// One row: title (+ optional description) on the left, a control on the right. `stack` drops the
+// control to its own full-width line below the text (selects, segmented, inputs).
+function SettingRow({ title, desc, control, aside, stack, titleFor, children }) {
+  // When `titleFor` is set the title renders as a <label> bound to that control id, so clicking the
+  // title toggles the control and the control gets an accessible name (used by the toggle rows).
+  const titleNode = title
+    ? titleFor
+      ? (
+          <label className="set-row__title" htmlFor={titleFor}>
+            {title}
+          </label>
+        )
+      : <div className="set-row__title">{title}</div>
+    : null;
+  return (
+    <div className={stack ? 'set-row set-row--stack' : 'set-row'}>
+      {(title || desc) && (
+        <div className="set-row__main">
+          {aside ? (
+            <div className="set-row__head">
+              {titleNode}
+              {aside}
+            </div>
+          ) : (
+            titleNode
+          )}
+          {desc && <div className="set-row__desc">{desc}</div>}
+        </div>
+      )}
+      {control && <div className="set-row__control">{control}</div>}
+      {children}
+    </div>
+  );
+}
+
+// A toggle row in the grouped style: title (+ desc) left, switch right.
+function ToggleRow({ id, title, desc, checked, onChange }) {
+  return (
+    <SettingRow
+      title={title}
+      titleFor={id}
+      desc={desc}
+      control={
+        <label className="switch">
+          <input type="checkbox" id={id} checked={checked} onChange={(e) => onChange(e.target.checked)} />
+          <span className="switch__track" aria-hidden="true">
+            <span className="switch__knob" />
+          </span>
+        </label>
+      }
+    />
+  );
+}
 
 export function SettingsView({
   settings,
@@ -127,157 +198,165 @@ export function SettingsView({
       )}
       <main className="main" id="settings-main">
         <form className="settings" id="settings-form" onSubmit={submit}>
-          <section className="settings-card">
-            <div className="card-head">
-              <span className="card-icon card-icon--purple">
+          <div className="set-intro">
+            <span className="set-intro__for">
+              <span className="set-intro__mark" aria-hidden="true">
                 <Icon name="sparkles" />
               </span>
-              <h2 className="section__title">{t('settings.intelligence')}</h2>
-            </div>
-            <Field
-              label={t('settings.model')}
-              htmlFor="model"
-              headAside={<span className="provider-pill">{PROVIDERS[needProvider].label}</span>}
-              hint={t('settings.modelHint')}
+              huddle-ai · {t('settings.tagline')}
+            </span>
+            <p className="set-intro__sub">{t('settings.subtitle')}</p>
+          </div>
+
+          {/* INTELIGÊNCIA */}
+          <SettingsSection icon="sparkles" title={t('settings.intelligence')}>
+            <SettingRow
+              stack
+              title={t('settings.model')}
+              desc={t('settings.modelHint')}
+              aside={<span className="provider-pill">{PROVIDERS[needProvider].label}</span>}
             >
-              <select id="model" value={modelIsKnown ? draft.model : CUSTOM_MODEL} onChange={(e) => onModelChange(e.target.value)}>
-                {PROVIDER_IDS.map((p) => (
-                  <optgroup key={p} label={PROVIDERS[p].label}>
-                    {MODELS.filter((m) => m.provider === p).map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-                <option value={CUSTOM_MODEL}>{t('settings.custom')}</option>
-              </select>
-            </Field>
-            {!modelIsKnown && (
-              <div className="field-row">
-                <Field label={t('settings.provider')} htmlFor="modelProvider">
-                  <Select
-                    id="modelProvider"
-                    options={PROVIDER_IDS.map((p) => [p, PROVIDERS[p].label])}
-                    value={draft.modelProvider || PROVIDER_IDS[0]}
-                    onChange={(v) => set('modelProvider', v)}
-                  />
-                </Field>
-                <Field label={t('settings.modelId')} htmlFor="customModel">
-                  <input
-                    id="customModel"
-                    type="text"
-                    value={draft.model}
-                    autoComplete="off"
-                    placeholder={t('settings.modelIdPlaceholder')}
-                    onChange={(e) => set('model', e.target.value)}
-                  />
-                </Field>
-              </div>
-            )}
-            <details className="provider-keys" open={keysOpen}>
-              <summary>
-                <span className="provider-keys__icon">
-                  <Icon name="key" />
-                </span>
-                <span className="provider-keys__label">{t('settings.apiKeys')}</span>
-                <span className={`key-count${missingKey ? ' key-count--warn' : ''}`}>
-                  {t('settings.keyCount', { n: configuredCount, m: PROVIDER_IDS.length })}
-                </span>
-                <span className="provider-keys__chevron" aria-hidden="true">
-                  <Icon name="back" />
-                </span>
-              </summary>
-              <div className="provider-keys__body">
-                <p className="muted small">{t('settings.keysHint')}</p>
-                {PROVIDER_IDS.map((p) => {
-                  const filled = Boolean(draft.apiKeys[p]?.trim());
-                  return (
-                    <Field
-                      key={p}
-                      label={PROVIDERS[p].label}
-                      htmlFor={`key-${p}`}
-                      headAside={
-                        <span
-                          className={`key-dot${filled ? ' key-dot--on' : ''}`}
-                          title={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
-                          aria-label={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
-                          role="img"
-                        />
-                      }
-                    >
-                      {/* Cloudflare precisa do account ID (vai na URL) além do token: campo próprio acima. */}
-                      {p === 'cloudflare' && (
-                        <input
-                          id="cloudflare-account-id"
-                          type="text"
-                          style={{ marginBottom: '6px' }}
-                          value={draft.cloudflareAccountId ?? ''}
-                          autoComplete="off"
-                          placeholder={t('settings.cloudflareAccountId')}
-                          aria-label={t('settings.cloudflareAccountId')}
-                          onChange={(e) => set('cloudflareAccountId', e.target.value)}
-                        />
-                      )}
-                      <input
-                        id={`key-${p}`}
-                        type="password"
-                        value={draft.apiKeys[p]}
-                        autoComplete="off"
-                        placeholder={PROVIDERS[p].keyPlaceholder}
-                        onChange={(e) => setKey(p, e.target.value)}
+              <div className="set-row__field">
+                <label className="sr-only" htmlFor="model">
+                  {t('settings.model')}
+                </label>
+                <select id="model" value={modelIsKnown ? draft.model : CUSTOM_MODEL} onChange={(e) => onModelChange(e.target.value)}>
+                  {PROVIDER_IDS.map((p) => (
+                    <optgroup key={p} label={PROVIDERS[p].label}>
+                      {MODELS.filter((m) => m.provider === p).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value={CUSTOM_MODEL}>{t('settings.custom')}</option>
+                </select>
+                {!modelIsKnown && (
+                  <div className="field-row">
+                    <div className="set-field">
+                      <label htmlFor="modelProvider">{t('settings.provider')}</label>
+                      <Select
+                        id="modelProvider"
+                        options={PROVIDER_IDS.map((p) => [p, PROVIDERS[p].label])}
+                        value={draft.modelProvider || PROVIDER_IDS[0]}
+                        onChange={(v) => set('modelProvider', v)}
                       />
-                    </Field>
-                  );
-                })}
+                    </div>
+                    <div className="set-field">
+                      <label htmlFor="customModel">{t('settings.modelId')}</label>
+                      <input
+                        id="customModel"
+                        type="text"
+                        value={draft.model}
+                        autoComplete="off"
+                        placeholder={t('settings.modelIdPlaceholder')}
+                        onChange={(e) => set('model', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </details>
-            <div className="field-row">
-              <Field label={t('settings.language')} htmlFor="language">
-                <Select id="language" options={LANGUAGES} value={draft.language} onChange={(v) => set('language', v)} />
-              </Field>
-              <Field label={t('settings.analyzeEvery')} htmlFor="freq">
+            </SettingRow>
+
+            <div className="set-row set-row--block">
+              <details className="provider-keys" open={keysOpen}>
+                <summary>
+                  <span className="provider-keys__icon">
+                    <Icon name="key" />
+                  </span>
+                  <span className="provider-keys__label">{t('settings.apiKeys')}</span>
+                  <span className={`key-count${missingKey ? ' key-count--warn' : ''}`}>
+                    {t('settings.keyCount', { n: configuredCount, m: PROVIDER_IDS.length })}
+                  </span>
+                  <span className="provider-keys__chevron" aria-hidden="true">
+                    <Icon name="back" />
+                  </span>
+                </summary>
+                <div className="provider-keys__body">
+                  <p className="muted small">{t('settings.keysHint')}</p>
+                  {PROVIDER_IDS.map((p) => {
+                    const filled = Boolean(draft.apiKeys[p]?.trim());
+                    return (
+                      <div className="set-field" key={p}>
+                        <div className="set-field__head">
+                          <label htmlFor={`key-${p}`}>{PROVIDERS[p].label}</label>
+                          <span
+                            className={`key-dot${filled ? ' key-dot--on' : ''}`}
+                            title={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
+                            aria-label={filled ? t('settings.keyConfigured') : t('settings.keyEmpty')}
+                            role="img"
+                          />
+                        </div>
+                        {/* Cloudflare precisa do account ID (vai na URL) além do token: campo próprio acima. */}
+                        {p === 'cloudflare' && (
+                          <input
+                            id="cloudflare-account-id"
+                            type="text"
+                            style={{ marginBottom: '6px' }}
+                            value={draft.cloudflareAccountId ?? ''}
+                            autoComplete="off"
+                            placeholder={t('settings.cloudflareAccountId')}
+                            aria-label={t('settings.cloudflareAccountId')}
+                            onChange={(e) => set('cloudflareAccountId', e.target.value)}
+                          />
+                        )}
+                        <input
+                          id={`key-${p}`}
+                          type="password"
+                          value={draft.apiKeys[p]}
+                          autoComplete="off"
+                          placeholder={PROVIDERS[p].keyPlaceholder}
+                          onChange={(e) => setKey(p, e.target.value)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            </div>
+
+            <SettingRow
+              title={t('settings.language')}
+              control={
+                <div className="set-inline-select">
+                  <label className="sr-only" htmlFor="language">
+                    {t('settings.language')}
+                  </label>
+                  <Select id="language" options={LANGUAGES} value={draft.language} onChange={(v) => set('language', v)} />
+                </div>
+              }
+            />
+
+            <SettingRow
+              title={t('settings.analyzeEvery')}
+              control={
                 <div className="segmented" role="radiogroup" aria-label={t('settings.analyzeEvery')}>
                   {FREQUENCIES.map((f) => (
                     <label key={f} className="segmented__opt">
-                      <input
-                        type="radio"
-                        name="freq"
-                        value={f}
-                        checked={Number(draft.freq) === f}
-                        onChange={() => set('freq', f)}
-                      />
+                      <input type="radio" name="freq" value={f} checked={Number(draft.freq) === f} onChange={() => set('freq', f)} />
                       <span>{f}s</span>
                     </label>
                   ))}
                 </div>
-              </Field>
-            </div>
-            <Field
-              label={t('settings.responseSize')}
-              htmlFor="verbosity"
-              hint={t('settings.responseSizeHint')}
-            >
-              <div className="segmented" role="radiogroup" aria-label={t('settings.responseSize')}>
+              }
+            />
+
+            <SettingRow stack title={t('settings.responseSize')} desc={t('settings.responseSizeHint')}>
+              <div className="segmented segmented--full" role="radiogroup" aria-label={t('settings.responseSize')}>
                 {VERBOSITY_OPTS.map(([value, label]) => (
                   <label key={value} className="segmented__opt">
-                    <input
-                      type="radio"
-                      name="verbosity"
-                      value={value}
-                      checked={draft.verbosity === value}
-                      onChange={() => set('verbosity', value)}
-                    />
+                    <input type="radio" name="verbosity" value={value} checked={draft.verbosity === value} onChange={() => set('verbosity', value)} />
                     <span>{label}</span>
                   </label>
                 ))}
               </div>
-            </Field>
-            <Field
-              label={t('settings.yourName')}
-              htmlFor="userName"
-              hint={t('settings.yourNameHint')}
-            >
+            </SettingRow>
+
+            <SettingRow stack title={t('settings.yourName')} desc={t('settings.yourNameHint')}>
+              <label className="sr-only" htmlFor="userName">
+                {t('settings.yourName')}
+              </label>
               <input
                 id="userName"
                 type="text"
@@ -286,116 +365,95 @@ export function SettingsView({
                 placeholder={t('settings.yourNamePlaceholder')}
                 onChange={(e) => set('userName', e.target.value)}
               />
-            </Field>
-          </section>
-          <section className="settings-card">
-            <div className="card-head">
-              <span className="card-icon card-icon--blue">
-                <Icon name="headphones" />
-              </span>
-              <h2 className="section__title">{t('settings.captions')}</h2>
-            </div>
-            <Field
-              label={t('settings.captureHow')}
-              htmlFor="captionSource"
-              hint={t('settings.captureHint')}
-            >
+            </SettingRow>
+          </SettingsSection>
+
+          {/* LEGENDAS */}
+          <SettingsSection icon="headphones" title={t('settings.captions')}>
+            <SettingRow stack title={t('settings.captureHow')} desc={t('settings.captureHint')}>
+              <label className="sr-only" htmlFor="captionSource">
+                {t('settings.captureHow')}
+              </label>
               <Select id="captionSource" options={CAPTION_SOURCES} value={draft.captionSource} onChange={(v) => set('captionSource', v)} />
-            </Field>
-          </section>
-          <section className="settings-card">
-            <div className="card-head">
-              <span className="card-icon card-icon--yellow">
-                <Icon name="bulb" />
-              </span>
-              <h2 className="section__title">{t('settings.insights')}</h2>
-            </div>
-            <Toggle id="detect-alerts" label={t('detect.alerts')} checked={draft.detect.alerts} onChange={(v) => setDetect('alerts', v)} />
-            <Toggle id="detect-actions" label={t('detect.actions')} checked={draft.detect.actions} onChange={(v) => setDetect('actions', v)} />
-            <Toggle id="detect-decisions" label={t('detect.decisions')} checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
-            <Toggle id="detect-questions" label={t('detect.questions')} checked={draft.detect.questions} onChange={(v) => setDetect('questions', v)} />
-            <Toggle id="detect-context" label={t('detect.context')} checked={draft.detect.context} onChange={(v) => setDetect('context', v)} />
-            <Toggle id="detect-suggestions" label={t('detect.suggestions')} checked={draft.detect.suggestions} onChange={(v) => setDetect('suggestions', v)} />
-            <Toggle id="detect-replies" label={t('detect.replies')} checked={draft.detect.replies} onChange={(v) => setDetect('replies', v)} />
-            <Toggle id="detect-references" label={t('detect.references')} checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
-            <Toggle id="detect-acronyms" label={t('detect.acronyms')} checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
-          </section>
-          <section className="settings-card settings-card--tight">
-            <div className="card-head">
-              <span className="card-icon card-icon--green">
-                <Icon name="doc" />
-              </span>
-              <h2 className="section__title">{t('settings.ata')}</h2>
-            </div>
-            <Toggle id="autoMinutes" label={t('settings.autoMinutes')} checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
-          </section>
-          <section className="settings-card settings-card--tight">
-            <div className="card-head">
-              <span className="card-icon card-icon--yellow">
-                <Icon name="sparkles" />
-              </span>
-              <h2 className="section__title">{t('settings.analise')}</h2>
-            </div>
-            <Toggle id="autoScore" label={t('settings.autoScore')} checked={draft.autoScore} onChange={(v) => set('autoScore', v)} />
-            <span className="muted small">{t('settings.autoScoreHint')}</span>
-          </section>
-          <section className="settings-card settings-card--tight">
-            <div className="card-head">
-              <span className="card-icon card-icon--muted">
-                <Icon name="cloud" />
-              </span>
-              <h2 className="section__title">{t('settings.drive')}</h2>
-            </div>
-            {driveState.connected ? (
-              <p className="muted small">
-                {driveState.email ? t('settings.driveConnectedEmail', { email: driveState.email }) : t('settings.driveConnectedNoEmail')}
-                {t('settings.driveConnectedSuffix')}
-              </p>
-            ) : (
-              <p className="muted small">{t('settings.driveDisconnected')}</p>
-            )}
-            <div className="buttons buttons--start">
-              {driveState.connected ? (
-                <button id="drive-connect-btn" className="button" type="button" onClick={onDisconnectDrive}>
-                  {t('settings.disconnect')}
+            </SettingRow>
+          </SettingsSection>
+
+          {/* INSIGHTS */}
+          <SettingsSection icon="bulb" title={t('settings.insights')}>
+            <ToggleRow id="detect-alerts" title={t('detect.alerts')} checked={draft.detect.alerts} onChange={(v) => setDetect('alerts', v)} />
+            <ToggleRow id="detect-actions" title={t('detect.actions')} checked={draft.detect.actions} onChange={(v) => setDetect('actions', v)} />
+            <ToggleRow id="detect-decisions" title={t('detect.decisions')} checked={draft.detect.decisions} onChange={(v) => setDetect('decisions', v)} />
+            <ToggleRow id="detect-questions" title={t('detect.questions')} checked={draft.detect.questions} onChange={(v) => setDetect('questions', v)} />
+            <ToggleRow id="detect-context" title={t('detect.context')} checked={draft.detect.context} onChange={(v) => setDetect('context', v)} />
+            <ToggleRow id="detect-suggestions" title={t('detect.suggestions')} checked={draft.detect.suggestions} onChange={(v) => setDetect('suggestions', v)} />
+            <ToggleRow id="detect-replies" title={t('detect.replies')} checked={draft.detect.replies} onChange={(v) => setDetect('replies', v)} />
+            <ToggleRow id="detect-references" title={t('detect.references')} checked={draft.detect.references} onChange={(v) => setDetect('references', v)} />
+            <ToggleRow id="detect-acronyms" title={t('detect.acronyms')} checked={draft.detect.acronyms} onChange={(v) => setDetect('acronyms', v)} />
+          </SettingsSection>
+
+          {/* ATA & ANÁLISE */}
+          <SettingsSection icon="doc" title={t('settings.ataAnalise')}>
+            <ToggleRow id="autoMinutes" title={t('settings.autoMinutes')} checked={draft.autoMinutes} onChange={(v) => set('autoMinutes', v)} />
+            <ToggleRow
+              id="autoScore"
+              title={t('settings.autoScore')}
+              desc={t('settings.autoScoreHint')}
+              checked={draft.autoScore}
+              onChange={(v) => set('autoScore', v)}
+            />
+          </SettingsSection>
+
+          {/* GOOGLE DRIVE */}
+          <SettingsSection icon="cloud" title={t('settings.drive')}>
+            <SettingRow
+              stack
+              desc={
+                driveState.connected
+                  ? `${driveState.email ? t('settings.driveConnectedEmail', { email: driveState.email }) : t('settings.driveConnectedNoEmail')}${t('settings.driveConnectedSuffix')}`
+                  : t('settings.driveDisconnected')
+              }
+            >
+              <div className="buttons buttons--start">
+                {driveState.connected ? (
+                  <button id="drive-connect-btn" className="button" type="button" onClick={onDisconnectDrive}>
+                    {t('settings.disconnect')}
+                  </button>
+                ) : driveConnecting ? (
+                  <button id="drive-connect-btn" className="button button--primary" type="button" disabled>
+                    <span className="spinner" aria-hidden="true" />
+                    {t('settings.driveOpening')}
+                  </button>
+                ) : (
+                  <button id="drive-connect-btn" className="button button--primary" type="button" onClick={onConnectDrive}>
+                    {t('settings.connectDrive')}
+                  </button>
+                )}
+              </div>
+            </SettingRow>
+          </SettingsSection>
+
+          {/* PRIVACIDADE */}
+          <SettingsSection icon="shield" title={t('settings.privacy')}>
+            <ToggleRow id="saveHistory" title={t('settings.saveHistory')} checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
+            <div className="set-row set-row--block">
+              <div className="buttons buttons--start">
+                <button className="button button--danger" type="button" onClick={() => setConfirmClearHistory(true)}>
+                  {t('settings.clearHistory')}
                 </button>
-              ) : driveConnecting ? (
-                <button id="drive-connect-btn" className="button button--primary" type="button" disabled>
-                  <span className="spinner" aria-hidden="true" />
-                  {t('settings.driveOpening')}
+                <button className="button" type="button" onClick={onRunDiagnostics}>
+                  {t('settings.diagnostics')}
                 </button>
-              ) : (
-                <button id="drive-connect-btn" className="button button--primary" type="button" onClick={onConnectDrive}>
-                  {t('settings.connectDrive')}
+                <button className="button" type="button" onClick={onOpenLogs}>
+                  {t('settings.viewLogs')}
                 </button>
+              </div>
+              {notice && (
+                <p className="muted small" role="status">
+                  {notice}
+                </p>
               )}
             </div>
-          </section>
-          <section className="settings-card settings-card--tight">
-            <div className="card-head">
-              <span className="card-icon card-icon--muted">
-                <Icon name="shield" />
-              </span>
-              <h2 className="section__title">{t('settings.privacy')}</h2>
-            </div>
-            <Toggle id="saveHistory" label={t('settings.saveHistory')} checked={draft.saveHistory} onChange={(v) => set('saveHistory', v)} />
-            <div className="buttons buttons--start">
-              <button className="button button--danger" type="button" onClick={() => setConfirmClearHistory(true)}>
-                {t('settings.clearHistory')}
-              </button>
-              <button className="button" type="button" onClick={onRunDiagnostics}>
-                {t('settings.diagnostics')}
-              </button>
-              <button className="button" type="button" onClick={onOpenLogs}>
-                {t('settings.viewLogs')}
-              </button>
-            </div>
-            {notice && (
-              <p className="muted small" role="status">
-                {notice}
-              </p>
-            )}
-          </section>
+          </SettingsSection>
         </form>
       </main>
       <footer className="footer footer--row">

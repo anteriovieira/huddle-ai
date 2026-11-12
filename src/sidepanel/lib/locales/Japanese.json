@@ -310,7 +310,6 @@
   "detect.replies": "返信の候補",
   "detect.references": "参考資料（書籍、アプリ、リンク）",
   "detect.acronyms": "言及された略語",
-  "settings.ata": "議事録",
   "settings.autoMinutes": "ハドル終了時に議事録を生成",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "{email} として接続済み。 ",

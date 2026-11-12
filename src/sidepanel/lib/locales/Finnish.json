@@ -310,7 +310,6 @@
   "detect.replies": "Ehdotetut vastaukset",
   "detect.references": "Viittaukset (kirjat, sovellukset, linkit)",
   "detect.acronyms": "Mainitut lyhenteet",
-  "settings.ata": "Muistio",
   "settings.autoMinutes": "Luo muistio, kun huddle päättyy",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Yhdistetty tilillä {email}. ",

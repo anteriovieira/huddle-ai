@@ -310,7 +310,6 @@
   "detect.replies": "建議回覆",
   "detect.references": "參考資料（書籍、應用程式、連結）",
   "detect.acronyms": "提到的縮寫",
-  "settings.ata": "紀要",
   "settings.autoMinutes": "huddle 結束時產生紀要",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "已連接為 {email}。 ",

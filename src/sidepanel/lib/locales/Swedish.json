@@ -310,7 +310,6 @@
   "detect.replies": "Föreslagna svar",
   "detect.references": "Referenser (böcker, appar, länkar)",
   "detect.acronyms": "Omnämnda förkortningar",
-  "settings.ata": "Mötesanteckningar",
   "settings.autoMinutes": "Generera anteckningarna när huddlen avslutas",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Ansluten som {email}. ",

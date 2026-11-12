@@ -310,7 +310,6 @@
   "detect.replies": "ردود مقترحة",
   "detect.references": "المراجع (كتب، تطبيقات، روابط)",
   "detect.acronyms": "الاختصارات المذكورة",
-  "settings.ata": "المحضر",
   "settings.autoMinutes": "إنشاء المحضر عند انتهاء huddle",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "متصل باسم {email}. ",

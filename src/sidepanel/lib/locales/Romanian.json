@@ -310,7 +310,6 @@
   "detect.replies": "Răspunsuri sugerate",
   "detect.references": "Referințe (cărți, aplicații, linkuri)",
   "detect.acronyms": "Acronime menționate",
-  "settings.ata": "Minută",
   "settings.autoMinutes": "Generează minuta la încheierea huddle-ului",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Conectat ca {email}. ",

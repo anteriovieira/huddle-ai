@@ -310,7 +310,6 @@
   "detect.replies": "建议回复",
   "detect.references": "参考资料（书籍、应用、链接）",
   "detect.acronyms": "提到的缩写",
-  "settings.ata": "纪要",
   "settings.autoMinutes": "huddle 结束时生成纪要",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "已连接为 {email}。 ",

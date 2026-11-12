@@ -386,6 +386,9 @@ export const STRINGS = {
 
   // Settings
   'settings.title': 'Settings',
+  'settings.tagline': 'Meeting assistant',
+  'settings.subtitle': 'How the assistant listens to the meeting, what it highlights in the panel, and where your data goes.',
+  'settings.ataAnalise': 'Minutes & Analytics',
   'settings.intelligence': 'Intelligence',
   'settings.model': 'Model',
   'settings.modelHint': 'Anthropic, OpenAI, Google and providers with a free tier. The key used follows the provider.',
@@ -425,9 +428,7 @@ export const STRINGS = {
   'detect.replies': 'Suggested replies',
   'detect.references': 'References (books, apps, links)',
   'detect.acronyms': 'Acronyms mentioned',
-  'settings.ata': 'Minutes',
   'settings.autoMinutes': 'Generate the minutes when the huddle ends',
-  'settings.analise': 'Analytics',
   'settings.autoScore': 'Score the meeting when the huddle ends',
   'settings.autoScoreHint': 'Rates each finished meeting by criteria and participant. One extra AI call per meeting; off by default.',
   'settings.drive': 'Google Drive',

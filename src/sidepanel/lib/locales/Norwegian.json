@@ -310,7 +310,6 @@
   "detect.replies": "Foreslåtte svar",
   "detect.references": "Referanser (bøker, apper, lenker)",
   "detect.acronyms": "Nevnte forkortelser",
-  "settings.ata": "Møtereferat",
   "settings.autoMinutes": "Generer referatet når huddelen avsluttes",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Koblet til som {email}. ",

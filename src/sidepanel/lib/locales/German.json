@@ -310,7 +310,6 @@
   "detect.replies": "Vorgeschlagene Antworten",
   "detect.references": "Referenzen (Bücher, Apps, Links)",
   "detect.acronyms": "Genannte Abkürzungen",
-  "settings.ata": "Protokoll",
   "settings.autoMinutes": "Protokoll erstellen, wenn das Huddle endet",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Verbunden als {email}. ",

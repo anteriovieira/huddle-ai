@@ -310,7 +310,6 @@
   "detect.replies": "Balasan yang disarankan",
   "detect.references": "Referensi (buku, aplikasi, tautan)",
   "detect.acronyms": "Akronim yang disebut",
-  "settings.ata": "Notulen",
   "settings.autoMinutes": "Buat notulen saat huddle berakhir",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Terhubung sebagai {email}. ",

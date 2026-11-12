@@ -310,7 +310,6 @@
   "detect.replies": "Réponses suggérées",
   "detect.references": "Références (livres, apps, liens)",
   "detect.acronyms": "Sigles mentionnés",
-  "settings.ata": "Compte rendu",
   "settings.autoMinutes": "Générer le compte rendu à la fin du huddle",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Connecté en tant que {email}. ",

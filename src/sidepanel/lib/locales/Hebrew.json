@@ -310,7 +310,6 @@
   "detect.replies": "תשובות מוצעות",
   "detect.references": "מקורות (ספרים, אפליקציות, קישורים)",
   "detect.acronyms": "ראשי תיבות שהוזכרו",
-  "settings.ata": "פרוטוקול",
   "settings.autoMinutes": "צור את הפרוטוקול כש-huddle מסתיים",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "מחובר בתור {email}. ",

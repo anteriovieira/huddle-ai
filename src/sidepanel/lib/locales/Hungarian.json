@@ -310,7 +310,6 @@
   "detect.replies": "Javasolt válaszok",
   "detect.references": "Hivatkozások (könyvek, alkalmazások, linkek)",
   "detect.acronyms": "Említett rövidítések",
-  "settings.ata": "Jegyzőkönyv",
   "settings.autoMinutes": "Jegyzőkönyv létrehozása a huddle végén",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Csatlakozva mint {email}. ",

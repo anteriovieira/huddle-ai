@@ -310,7 +310,6 @@
   "detect.replies": "Câu trả lời gợi ý",
   "detect.references": "Tham chiếu (sách, ứng dụng, liên kết)",
   "detect.acronyms": "Từ viết tắt được nhắc đến",
-  "settings.ata": "Biên bản",
   "settings.autoMinutes": "Tạo biên bản khi huddle kết thúc",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Đã kết nối với tư cách {email}. ",

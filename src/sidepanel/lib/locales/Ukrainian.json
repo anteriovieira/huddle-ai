@@ -310,7 +310,6 @@
   "detect.replies": "Запропоновані відповіді",
   "detect.references": "Джерела (книги, застосунки, посилання)",
   "detect.acronyms": "Згадані абревіатури",
-  "settings.ata": "Протокол",
   "settings.autoMinutes": "Створювати протокол, коли гадл завершується",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Під’єднано як {email}. ",

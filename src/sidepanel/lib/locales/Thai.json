@@ -310,7 +310,6 @@
   "detect.replies": "คำตอบที่แนะนำ",
   "detect.references": "การอ้างอิง (หนังสือ แอป ลิงก์)",
   "detect.acronyms": "ตัวย่อที่กล่าวถึง",
-  "settings.ata": "บันทึกประชุม",
   "settings.autoMinutes": "สร้างบันทึกการประชุมเมื่อ huddle สิ้นสุด",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "เชื่อมต่อในชื่อ {email} ",

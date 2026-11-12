@@ -310,7 +310,6 @@
   "detect.replies": "Предложенные ответы",
   "detect.references": "Источники (книги, приложения, ссылки)",
   "detect.acronyms": "Упомянутые аббревиатуры",
-  "settings.ata": "Протокол",
   "settings.autoMinutes": "Создавать протокол по завершении хадла",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Подключено как {email}. ",

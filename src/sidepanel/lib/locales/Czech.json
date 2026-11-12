@@ -310,7 +310,6 @@
   "detect.replies": "Navržené odpovědi",
   "detect.references": "Reference (knihy, aplikace, odkazy)",
   "detect.acronyms": "Zmíněné zkratky",
-  "settings.ata": "Zápis",
   "settings.autoMinutes": "Vytvořit zápis po skončení huddle",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Připojeno jako {email}. ",

@@ -1133,78 +1133,281 @@ select {
   accent-color: var(--button);
 }
 
-/* --- Configurações redesenhadas: seções em cards --- */
+/* --- Configurações: layout plano em seções agrupadas (estilo OpenMausBot) --- */
 .settings {
-  gap: 12px;
+  gap: 26px;
+  padding-bottom: 8px;
 }
 
-.settings-card {
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Intro: marca + tagline + subtítulo */
+.set-intro {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  gap: 6px;
 }
 
-.settings-card--tight {
-  gap: 12px;
-}
-
-.card-head {
-  display: flex;
+.set-intro__for {
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
-.card-icon {
+.set-intro__mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.card-icon .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.card-icon--purple {
-  background: var(--purple-bg);
-  color: var(--purple);
-}
-.card-icon--blue {
-  background: var(--blue-bg);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--blue);
 }
-.card-icon--yellow {
-  background: var(--yellow-bg);
-  color: var(--yellow);
-}
-.card-icon--green {
-  background: var(--green-bg);
-  color: var(--green);
-}
-.card-icon--muted {
-  background: var(--surface-hover);
-  color: var(--text);
+
+.set-intro__mark .icon {
+  width: 13px;
+  height: 13px;
 }
 
-.settings-card .section__title {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+.set-intro__sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 
-.field__head {
+/* Rótulo da seção, acima do grupo */
+.set-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding-left: 2px;
+}
+
+.set-label__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.set-label__main .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.set-label__text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Grupo arredondado com linhas separadas por divisórias */
+.set-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+}
+
+.set-row + .set-row {
+  border-top: 1px solid var(--border);
+}
+
+.set-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.set-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.set-row__title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-strong);
+}
+
+label.set-row__title {
+  cursor: pointer;
+}
+
+.set-row__desc {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.set-row__control {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Variante que leva o controle para a própria linha, largura total */
+.set-row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.set-row--stack .set-row__control {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+/* Numa linha empilhada, um pill (ex.: provedor) fica alinhado à esquerda */
+.set-row--stack .provider-pill {
+  align-self: flex-start;
+}
+
+/* Linha que só embrulha conteúdo livre (chaves de API, botões) */
+.set-row--block {
+  display: block;
+}
+
+/* Campos dentro das linhas */
+.set-row input[type="text"],
+.set-row input[type="password"],
+.set-row select,
+.set-field input,
+.set-field select,
+.set-inline-select select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text-strong);
+  font: inherit;
+}
+
+.set-row select,
+.set-field select,
+.set-inline-select select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ababad' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+
+.set-inline-select {
+  min-width: 160px;
+}
+
+.set-row__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.set-field label {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text-strong);
+}
+
+.set-field__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Switch (toggle) usado nas linhas */
+.switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch__track {
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 0.15s;
+  position: relative;
+  display: inline-block;
+}
+
+.switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-strong);
+  transition: left 0.15s;
+}
+
+.switch input:checked + .switch__track {
+  background: var(--button);
+}
+
+.switch input:checked + .switch__track .switch__knob {
+  left: 18px;
+}
+
+.switch input:focus-visible + .switch__track {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .provider-pill {
@@ -1214,13 +1417,6 @@ select {
   background: var(--purple-bg);
   border-radius: 5px;
   padding: 3px 8px;
-}
-
-.settings-card .field input,
-.settings-card .field select {
-  background: var(--bg);
-  border-color: var(--border);
-  border-radius: 8px;
 }
 
 /* Chaves de API por provedor */
@@ -1312,16 +1508,21 @@ select {
   background: var(--green);
 }
 
-/* Segmented control (frequência) */
+/* Segmented control (frequência, tamanho de resposta) */
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px;
   padding: 3px;
   height: 40px;
+  min-width: 168px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
+}
+
+.segmented--full {
+  width: 100%;
 }
 
 .segmented__opt {
@@ -1358,53 +1559,6 @@ select {
 .segmented__opt > input:focus-visible + span {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
-}
-
-/* Toggles como switch dentro das configurações */
-.settings .toggle {
-  flex-direction: row-reverse;
-  justify-content: space-between;
-  min-height: 40px;
-}
-
-.settings .toggle > span {
-  flex: 1;
-  font-size: 13.5px;
-  color: var(--text);
-}
-
-.settings .toggle input {
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 999px;
-  background: var(--border-strong);
-  flex-shrink: 0;
-  margin: 0;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.settings .toggle input::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--text-strong);
-  transition: left 0.15s;
-}
-
-.settings .toggle input:checked {
-  background: var(--button);
-}
-
-.settings .toggle input:checked::after {
-  left: 18px;
 }
 
 :focus-visible {

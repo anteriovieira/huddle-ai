@@ -310,7 +310,6 @@
   "detect.replies": "Voorgestelde antwoorden",
   "detect.references": "Referenties (boeken, apps, links)",
   "detect.acronyms": "Genoemde afkortingen",
-  "settings.ata": "Notulen",
   "settings.autoMinutes": "De notulen genereren wanneer de huddle eindigt",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Verbonden als {email}. ",

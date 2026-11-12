@@ -310,7 +310,6 @@
   "detect.replies": "Önerilen yanıtlar",
   "detect.references": "Kaynaklar (kitaplar, uygulamalar, bağlantılar)",
   "detect.acronyms": "Bahsedilen kısaltmalar",
-  "settings.ata": "Tutanak",
   "settings.autoMinutes": "Huddle bittiğinde tutanağı oluştur",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "{email} olarak bağlandı. ",

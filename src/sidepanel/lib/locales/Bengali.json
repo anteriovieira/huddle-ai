@@ -310,7 +310,6 @@
   "detect.replies": "প্রস্তাবিত উত্তর",
   "detect.references": "রেফারেন্স (বই, অ্যাপ, লিঙ্ক)",
   "detect.acronyms": "উল্লিখিত সংক্ষিপ্ত রূপ",
-  "settings.ata": "কার্যবিবরণী",
   "settings.autoMinutes": "huddle শেষ হলে কার্যবিবরণী তৈরি করুন",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "{email} হিসেবে সংযুক্ত। ",

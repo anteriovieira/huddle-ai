@@ -310,7 +310,6 @@
   "detect.replies": "제안된 답변",
   "detect.references": "참고 자료(책, 앱, 링크)",
   "detect.acronyms": "언급된 약어",
-  "settings.ata": "회의록",
   "settings.autoMinutes": "허들이 끝나면 회의록 생성",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "{email}(으)로 연결됨. ",

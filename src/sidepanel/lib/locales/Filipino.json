@@ -310,7 +310,6 @@
   "detect.replies": "Mga iminumungkahing sagot",
   "detect.references": "Mga reperensya (libro, app, link)",
   "detect.acronyms": "Mga akronim na binanggit",
-  "settings.ata": "Katitikan",
   "settings.autoMinutes": "Bumuo ng katitikan kapag natapos ang huddle",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Nakakonekta bilang {email}. ",

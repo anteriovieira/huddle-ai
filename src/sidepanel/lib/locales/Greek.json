@@ -310,7 +310,6 @@
   "detect.replies": "Προτεινόμενες απαντήσεις",
   "detect.references": "Αναφορές (βιβλία, εφαρμογές, σύνδεσμοι)",
   "detect.acronyms": "Ακρωνύμια που αναφέρθηκαν",
-  "settings.ata": "Πρακτικά",
   "settings.autoMinutes": "Δημιουργία των πρακτικών όταν λήγει το huddle",
   "settings.drive": "Google Drive",
   "settings.driveConnectedEmail": "Συνδεδεμένο ως {email}. ",
