@@ -3,7 +3,12 @@
 // Loaded in the page's own JS world (see page-hook.js), where it can reach the
 // about:blank huddle popup that Slack opens and renders into from app.slack.com.
 (() => {
-  if (globalThis.__huddleAiCreateScanner) return;
+  // Bump quando createScanner mudar. Uma injeção mais nova (via connect:tab ao abrir o painel)
+  // substitui a global antiga, em vez de abortar — assim um huddle novo pega o código novo sem
+  // precisar recarregar a página do Slack. O huddle já aberto segue na versão que o criou.
+  const SCANNER_VERSION = 2;
+  if ((globalThis.__huddleAiScannerVersion ?? 0) >= SCANNER_VERSION) return;
+  globalThis.__huddleAiScannerVersion = SCANNER_VERSION;
 
   const HUDDLE_ROOT_SELECTOR = '.p-huddle_window';
   const TITLE_SELECTOR = '[data-qa="huddle_window_titlebar_title"]';
@@ -16,6 +21,8 @@
   const OVERLAY_NAME_SELECTOR = '.p-huddle_closed_caption_event__member_name';
   const OVERLAY_TEXT_SELECTOR = '.p-huddle_closed_caption_event__transcription, [data-qa="huddle_closed_caption_event"]';
   const THREAD_TAB_TEXT = /thread|conversa|hilo/i;
+  // Toolbar thread button in the compact/docked huddle (no Thread tab there).
+  const THREAD_BUTTON_SELECTOR = '[data-qa="huddle_toolbar_thread_button"]';
   // Slack's message markup inside the Thread panel (the same markup as channel messages).
   const THREAD_MESSAGE_SELECTOR = '[data-qa="message_container"]';
   const THREAD_SENDER_SELECTOR = '[data-qa="message_sender_name"]';
@@ -491,13 +498,17 @@
         scheduleScan();
         return { ok: true };
       }
-      // No tabbed layout yet: the huddle toolbar shows an "Open thread" button (speech-bubble
-      // icon) that reveals the thread panel. Match it by aria-label across Slack's languages.
-      const button = [...scope.querySelectorAll('button, [role="button"]')].find((el) =>
-        THREAD_TAB_TEXT.test(`${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('data-qa') ?? ''}`),
-      );
-      if (!button) return { ok: false, error: 'Thread não encontrada.' };
-      button.click();
+      // No tabbed layout: the huddle toolbar carries a thread button (data-qa
+      // "huddle_toolbar_thread_button", aria-label "Show/hide Thread") that toggles the thread
+      // panel. Prefer the stable data-qa; fall back to the aria-label across Slack's languages.
+      const button =
+        scope.querySelector(THREAD_BUTTON_SELECTOR) ??
+        [...scope.querySelectorAll('button, [role="button"]')].find((el) =>
+          THREAD_TAB_TEXT.test(`${el.getAttribute('aria-label') ?? ''} ${el.getAttribute('data-qa') ?? ''}`),
+        );
+      if (!button) return { ok: false, error: 'Botão de thread não encontrado.' };
+      // The button toggles, so only click to open: never click when already expanded.
+      if (button.getAttribute('aria-expanded') !== 'true') button.click();
       scheduleScan();
       return { ok: true };
     }

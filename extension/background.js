@@ -163,3 +163,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   update((state) => (state.huddle?.active && state.huddle.tabId === tabId ? endHuddle(state) : null));
 });
+
+// Conecta as abas do Slack abertas antes da extensão (ou antes de um reload), sem esperar o
+// usuário abrir o painel pelo ícone. Para cada aba app.slack.com que não responde ao ping (scripts
+// ainda não injetados), injeta os scripts de captura. Abas abertas depois rodam os content scripts
+// do manifest sozinhas, então não precisam disto.
+async function autoConnectSlackTabs() {
+  let tabs;
+  try {
+    tabs = await chrome.tabs.query({ url: 'https://app.slack.com/*' });
+  } catch (error) {
+    addLog({ level: 'error', source: 'background', message: `Falha ao listar abas do Slack: ${error.message}` });
+    return;
+  }
+  for (const tab of tabs) {
+    if (tab.id == null) continue;
+    const pong = await chrome.tabs.sendMessage(tab.id, { type: 'huddle:ping' }).catch(() => null);
+    if (pong?.ok) continue; // já conectada
+    try {
+      await connectTab(tab.id);
+      addLog({ source: 'background', message: 'Aba do Slack conectada automaticamente', data: { aba: tab.id } });
+    } catch (error) {
+      addLog({ level: 'error', source: 'background', message: `Falha ao conectar aba automaticamente: ${error.message}`, data: { aba: tab.id } });
+    }
+  }
+}
+
+chrome.runtime.onInstalled.addListener(() => autoConnectSlackTabs());
+chrome.runtime.onStartup.addListener(() => autoConnectSlackTabs());

@@ -11,7 +11,9 @@
   // Scanner config set by the side panel (caption source). Default until content.js replies.
   window.__huddleAiConfig = window.__huddleAiConfig ?? { captionSource: 'auto' };
 
-  const createScanner = globalThis.__huddleAiCreateScanner;
+  // Sempre a versão mais recente da global (uma re-injeção pode tê-la atualizado), não um valor
+  // cacheado — assim popups criados depois de um update usam o código novo.
+  const createScanner = (...args) => globalThis.__huddleAiCreateScanner(...args);
   const origin = window.location.origin;
   const popups = new Map(); // window -> scanner
   let popupCount = 0;

@@ -770,15 +770,16 @@ export function App() {
     }
   }, [flash]);
 
-  // Ao começar a captura das legendas e chegarem as primeiras falas, seleciona a aba Thread do
-  // huddle no Slack (abertura automática) — uma única vez por huddle. Só para huddle ao vivo.
+  // Ao começar a captura das legendas e chegarem as primeiras falas, abre a thread do huddle no
+  // Slack (clica o botão da toolbar) — uma única vez por huddle. Só para huddle ao vivo.
+  const AUTO_OPEN_THREAD = true;
   const threadAutoOpened = useRef(null);
   useEffect(() => {
-    if (!huddle?.active || !utterances.length) return;
+    if (!AUTO_OPEN_THREAD || !huddle?.active || !utterances.length) return;
     if (threadAutoOpened.current === huddle.id) return;
     threadAutoOpened.current = huddle.id;
     openThread();
-  }, [huddle?.id, huddle?.active, utterances.length, openThread]);
+  }, [AUTO_OPEN_THREAD, huddle?.id, huddle?.active, utterances.length, openThread]);
 
   const setThreadContext = useCallback((value) => {
     setSettings((prev) => {
@@ -842,6 +843,17 @@ export function App() {
     if (slackReloadTabId == null || !chromeApi?.runtime) return goToSlack();
     await connectTab(slackReloadTabId);
   }, [slackReloadTabId, goToSlack, connectTab]);
+
+  // Ao abrir a extensão estando numa aba do Slack ainda não conectada, injeta os scripts de captura
+  // sozinho — sem esperar o clique no botão da home. Uma tentativa por aba (silenciosa); se falhar,
+  // o botão manual continua disponível. Marca a aba antes de tentar, para o loop de 5s não repetir.
+  const autoConnected = useRef(new Set());
+  useEffect(() => {
+    if (!onSlackTab || slackReloadTabId == null || !chromeApi?.runtime) return;
+    if (autoConnected.current.has(slackReloadTabId)) return;
+    autoConnected.current.add(slackReloadTabId);
+    connectTab(slackReloadTabId, { quiet: true });
+  }, [onSlackTab, slackReloadTabId, connectTab]);
 
   // --- Alerts ---
   const acceptAlert = useCallback((alert) => {
@@ -1864,6 +1876,17 @@ export function App() {
     if (section === 'insights') {
       return (
         <>
+          {huddle?.active && threadState === 'none' && utterances.length > 0 && (
+            <div className="threadbar threadbar--none" role="status">
+              <Icon name="chat" />
+              <span className="threadbar__text">
+                <span className="threadbar__title">{tr('thread.title')}</span>
+              </span>
+              <button className="icon-button icon-button--sm" type="button" aria-label={tr('thread.open')} onClick={openThread}>
+                <Icon name="open" />
+              </button>
+            </div>
+          )}
           {huddle?.active && threadState !== 'none' && (
             <ThreadBar
               status={threadState}
