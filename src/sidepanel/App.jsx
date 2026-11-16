@@ -35,6 +35,8 @@ const DEFAULT_SETTINGS = {
   modelProvider: '',
   // Account ID da Cloudflare: entra na URL do endpoint Workers AI (o token fica em apiKeys.cloudflare).
   cloudflareAccountId: '',
+  // Chave da API do Firecrawl (firecrawl.dev) para a busca na web no chat. Vazia = recurso off.
+  firecrawlKey: '',
   language: 'English',
   // Tamanho das respostas do modelo: 'curto' | 'normal' | 'detalhado' (ver insights.js VERBOSITY).
   verbosity: 'normal',
@@ -164,6 +166,9 @@ export function App() {
   const [chatExpanded, setChatExpanded] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
   const [chatDrafts, setChatDrafts] = useState({});
+  // Busca na web ligada por aba, só em memória (chatId -> bool). Não entra no objeto do chat para
+  // não ser persistido em chrome.storage: reabrir a extensão volta ao padrão (desligado).
+  const [chatWebSearch, setChatWebSearch] = useState({});
   const [chatBusy, setChatBusy] = useState(() => new Set());
   const [chatStream, setChatStream] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -1450,6 +1455,11 @@ export function App() {
     setChats((prev) => ({ ...prev, list: prev.list.map((c) => (c.id === chatId ? { ...c, context: null } : c)) }));
   }, []);
 
+  // Liga/desliga a busca na web nesta conversa (efêmero, por aba — não persiste em chrome.storage).
+  const toggleChatWebSearch = useCallback((chatId) => {
+    setChatWebSearch((m) => ({ ...m, [chatId]: !m[chatId] }));
+  }, []);
+
   const nameChat = useCallback(async (chatId, question) => {
     let title;
     try {
@@ -1513,6 +1523,8 @@ export function App() {
         question: modelQuestion,
         sessions: latest.current.pastSessions,
         thread: latest.current.threadForAI,
+        webSearch: chatWebSearch[chat.id],
+        firecrawlKey: latest.current.settings.firecrawlKey,
         onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
         onStep: (step) => {
           steps.push(step);
@@ -1532,7 +1544,7 @@ export function App() {
       });
       setChatStream(null);
     }
-  }, [chats, activeChatId, chatDrafts, settings, chatBusy, appendMessage, setDraft, removeChatContext, nameChat, flash]);
+  }, [chats, activeChatId, chatDrafts, chatWebSearch, settings, chatBusy, appendMessage, setDraft, removeChatContext, nameChat, flash]);
 
   // Opens the chat on a fresh thread asking the model to expand on one insight item (a point,
   // decision, action, question, reference…). Posts the question and streams the answer right away.
@@ -1568,6 +1580,9 @@ export function App() {
           question: modelQuestion,
           sessions: latest.current.pastSessions,
           thread: latest.current.threadForAI,
+          // Chat de insight começa sem busca na web (padrão desligado); o usuário pode ligar pelo menu +.
+          webSearch: false,
+          firecrawlKey: latest.current.settings.firecrawlKey,
           onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
           onStep: (step) => {
             steps.push(step);
@@ -2071,6 +2086,8 @@ export function App() {
           draft={activeChat ? chatDrafts[activeChat.id] ?? '' : ''}
           expanded={chatExpanded}
           floating={cols >= 2}
+          webSearch={activeChat ? Boolean(chatWebSearch[activeChat.id]) : false}
+          webSearchAvailable={Boolean(settings.firecrawlKey?.trim())}
           streamText={chatStream?.chatId === activeChatId ? chatStream.text : ''}
           streamSteps={chatStream?.chatId === activeChatId ? chatStream.steps : undefined}
           onSelectChat={selectChat}
@@ -2078,6 +2095,8 @@ export function App() {
           onAddChat={addChat}
           onToggleExpand={() => setChatExpanded((v) => !v)}
           onCloseDock={toggleChat}
+          onToggleWebSearch={() => activeChat && toggleChatWebSearch(activeChat.id)}
+          onOpenSettings={openSettings}
           onDraftChange={(value) => activeChat && setDraft(activeChat.id, value)}
           onSubmit={sendChat}
           onRemoveContext={() => activeChat && removeChatContext(activeChat.id)}

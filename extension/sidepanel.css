@@ -1272,6 +1272,18 @@ label.set-row__title {
   color: var(--muted);
 }
 
+/* Inline helper link under a settings field (e.g. "Get a key at firecrawl.dev"). */
+.set-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--blue);
+  text-decoration: none;
+}
+.set-link:hover {
+  text-decoration: underline;
+}
+
 .set-row__control {
   flex: 0 0 auto;
   display: flex;
@@ -3298,7 +3310,7 @@ body.is-resizing {
   width: 100%;
   min-height: 40px;
   max-height: 148px;
-  padding: 9px 44px 9px 12px;
+  padding: 9px 44px 9px 44px;
   border: none;
   background: transparent;
   color: var(--text);
@@ -3346,6 +3358,39 @@ body.is-resizing {
 .chatdock__send .icon {
   width: 15px;
   height: 15px;
+}
+
+/* "+" tools button in the chat input (opens the Web search dropdown). */
+.chatdock__tools {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.chatdock__tools:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.chatdock__tools[data-state='open'] {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.chatdock__tools--on {
+  color: var(--green);
+  border-color: var(--green);
+}
+.chatdock__tools .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Referências e siglas */
@@ -3790,6 +3835,64 @@ a.ref__title {
   color: var(--danger);
 }
 
+/* Chat tools dropdown (Web search) */
+.chat-tools {
+  min-width: 208px;
+}
+.chat-tools__label {
+  padding: 4px 9px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.chat-tools__item {
+  gap: 9px;
+}
+.chat-tools__lead {
+  flex-shrink: 0;
+  color: var(--green);
+}
+.chat-tools__name {
+  flex-grow: 1;
+  min-width: 0;
+}
+.chat-tools__item--off .chat-tools__lead,
+.chat-tools__item--off .chat-tools__name {
+  color: var(--muted);
+}
+.chat-tools__prefs {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+/* Visual-only switch shown inside the checkbox menu item. */
+.toggle-visual {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 0.15s ease;
+}
+.toggle-visual__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-strong);
+  transition: transform 0.15s ease;
+}
+.toggle-visual--on {
+  background: var(--green);
+}
+.toggle-visual--on .toggle-visual__knob {
+  transform: translateX(12px);
+  background: #fff;
+}
+
 /* Floating "últimas falas" popover (insights footer) --------------------- */
 .footer--insights {
   position: absolute;
@@ -3921,6 +4024,38 @@ a.ref__title {
 }
 .chat-step__meta b {
   color: var(--text);
+}
+/* Web search step: a globe marker in the label and result rows as links. */
+.chat-step__kind {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--blue);
+}
+.chat-step__result {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chat-step__link {
+  color: var(--blue);
+  text-decoration: none;
+  word-break: break-word;
+}
+.chat-step__link:hover {
+  text-decoration: underline;
+}
+.chat-step__snippet {
+  font-size: 12px;
+  color: var(--muted);
+}
+.chat-step__error {
+  margin: 4px 0 8px;
+  padding: 0 0 0 10px;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* --- Minutes: classification as a quiet chip in the header ("● Daily 70%"), details in a modal --- */

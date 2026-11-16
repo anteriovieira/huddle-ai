@@ -3,36 +3,79 @@ import { useT } from '../lib/i18n.js';
 import { Icon } from '../ui/Icon.jsx';
 import { Markdown } from '../ui/Markdown.jsx';
 import { Tooltip } from '../ui/Tooltip.jsx';
+import { ChatToolsMenu } from '../ui/ChatToolsMenu.jsx';
 
-// What the model looked up before answering: one collapsible row per thread search, opening to
-// the messages it read, so the user can see where an answer came from.
-function ChatSteps({ steps }) {
+// One expandable row for a web_search lookup: the query, how many results (or an error), opening to
+// the sources as links so the user can see where a web-backed answer came from.
+function WebStep({ step }) {
   const t = useT();
+  const count = step.results?.length ?? 0;
+  return (
+    <details className="chat-step">
+      <summary className="chat-step__summary">
+        <span className="chat-step__label">
+          <Icon name="globe" className="icon chat-step__kind" />
+          {step.query ? t('chat.stepWebSearch', { query: `“${step.query}”` }) : t('chat.stepWebLatest')}
+          {' · '}
+          {step.error
+            ? t('chat.stepWebError')
+            : count === 1
+              ? t('chat.stepWebResult')
+              : t('chat.stepWebResults', { count })}
+        </span>
+        <Icon name="back" className="icon chat-step__chevron" />
+      </summary>
+      {step.error ? (
+        <p className="chat-step__error">{step.error}</p>
+      ) : (
+        <ul className="chat-step__messages">
+          {step.results.map((r, j) => (
+            <li key={j} className="chat-step__result">
+              <a href={r.url} target="_blank" rel="noopener noreferrer" className="chat-step__link">
+                {r.title || r.url}
+              </a>
+              {r.description && <span className="chat-step__snippet">{r.description}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
+  );
+}
+
+// One expandable row for a search_thread lookup: the query and the thread messages it read.
+function ThreadStep({ step }) {
+  const t = useT();
+  return (
+    <details className="chat-step">
+      <summary className="chat-step__summary">
+        <span className="chat-step__label">
+          {step.query ? t('chat.stepThreadSearch', { query: `“${step.query}”` }) : t('chat.stepThreadLatest')}
+          {' · '}
+          {step.messages.length === 1 ? t('chat.stepMessage') : t('chat.stepMessages', { count: step.messages.length })}
+        </span>
+        <Icon name="back" className="icon chat-step__chevron" />
+      </summary>
+      <ul className="chat-step__messages">
+        {step.messages.map((m, j) => (
+          <li key={j} className="chat-step__message">
+            <span className="chat-step__meta">
+              <b>{m.author}</b> {m.time}
+            </span>
+            <span>{m.text}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+// What the model looked up before answering: one collapsible row per lookup (thread or web).
+function ChatSteps({ steps }) {
   if (!steps?.length) return null;
   return (
     <div className="chat-steps">
-      {steps.map((step, i) => (
-        <details key={i} className="chat-step">
-          <summary className="chat-step__summary">
-            <span className="chat-step__label">
-              {step.query ? t('chat.stepThreadSearch', { query: `“${step.query}”` }) : t('chat.stepThreadLatest')}
-              {' · '}
-              {step.messages.length === 1 ? t('chat.stepMessage') : t('chat.stepMessages', { count: step.messages.length })}
-            </span>
-            <Icon name="back" className="icon chat-step__chevron" />
-          </summary>
-          <ul className="chat-step__messages">
-            {step.messages.map((m, j) => (
-              <li key={j} className="chat-step__message">
-                <span className="chat-step__meta">
-                  <b>{m.author}</b> {m.time}
-                </span>
-                <span>{m.text}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ))}
+      {steps.map((step, i) => (step.tool === 'web_search' ? <WebStep key={i} step={step} /> : <ThreadStep key={i} step={step} />))}
     </div>
   );
 }
@@ -176,6 +219,8 @@ export function ChatDock({
   draft,
   expanded,
   floating,
+  webSearch,
+  webSearchAvailable,
   streamText,
   streamSteps,
   onSelectChat,
@@ -183,6 +228,8 @@ export function ChatDock({
   onAddChat,
   onToggleExpand,
   onCloseDock,
+  onToggleWebSearch,
+  onOpenSettings,
   onDraftChange,
   onSubmit,
   onRemoveContext,
@@ -334,6 +381,12 @@ export function ChatDock({
           </div>
         )}
         <div className="chatdock__field">
+          <ChatToolsMenu
+            webSearch={webSearch}
+            available={webSearchAvailable}
+            onToggleWebSearch={onToggleWebSearch}
+            onOpenSettings={onOpenSettings}
+          />
           <textarea
             ref={inputRef}
             id="chat-input"

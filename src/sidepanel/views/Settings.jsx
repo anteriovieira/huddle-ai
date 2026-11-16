@@ -145,6 +145,7 @@ export function SettingsView({
     onSave({
       apiKeys: Object.fromEntries(PROVIDER_IDS.map((p) => [p, (draft.apiKeys[p] ?? '').trim()])),
       cloudflareAccountId: (draft.cloudflareAccountId ?? '').trim(),
+      firecrawlKey: (draft.firecrawlKey ?? '').trim(),
       model: draft.model.trim(),
       modelProvider: draft.modelProvider,
       language: draft.language,
@@ -365,6 +366,26 @@ export function SettingsView({
                 placeholder={t('settings.yourNamePlaceholder')}
                 onChange={(e) => set('userName', e.target.value)}
               />
+            </SettingRow>
+          </SettingsSection>
+
+          {/* BUSCA NA WEB */}
+          <SettingsSection icon="globe" title={t('settings.webSearch')}>
+            <SettingRow stack title={t('settings.firecrawlKey')} desc={t('settings.webSearchDesc')}>
+              <label className="sr-only" htmlFor="firecrawl-key">
+                {t('settings.firecrawlKey')}
+              </label>
+              <input
+                id="firecrawl-key"
+                type="password"
+                value={draft.firecrawlKey ?? ''}
+                autoComplete="off"
+                placeholder="fc-…"
+                onChange={(e) => set('firecrawlKey', e.target.value)}
+              />
+              <a className="set-link" href="https://firecrawl.dev/app/api-keys" target="_blank" rel="noopener noreferrer">
+                {t('settings.getFirecrawlKey')}
+              </a>
             </SettingRow>
           </SettingsSection>
 
