@@ -12,7 +12,7 @@ import { CaptionsPanel } from './views/Captions.jsx';
 import { ChatDock } from './views/Chat.jsx';
 import { ThreadBar } from './views/Thread.jsx';
 import { threadStatus } from './lib/thread.js';
-import { chatAfterClose, fallbackTitle } from './lib/chats.js';
+import { chatAfterClose, chatsForHuddle, fallbackTitle } from './lib/chats.js';
 import { Header, InfoBar, Tabs, TAB_ITEMS } from './views/Header.jsx';
 import { IdleView } from './views/Idle.jsx';
 import { ImportView } from './views/Import.jsx';
@@ -266,9 +266,12 @@ export function App() {
       setMinutes(session.minutes ?? null);
       setScores(session.scores ?? null);
       setLogs(session.logs ?? []);
-      if (session.chats) {
-        setChats(session.chats);
-        setActiveChatId(session.chats.list[0]?.id ?? null);
+      // Só restaura os chats salvos se forem da sessão que está sendo mostrada: o bucket é global em
+      // storage.session e poderia carregar o chat de outra sessão (o reset por huddle semeia um vazio).
+      const restoredChats = chatsForHuddle(session.chats, session.state?.huddle?.id ?? null);
+      if (restoredChats) {
+        setChats(restoredChats);
+        setActiveChatId(restoredChats.list[0]?.id ?? null);
       }
       setHistory(local.history ?? []);
       setNameOverrides(local.nameOverrides ?? {});

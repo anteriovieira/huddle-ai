@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { chatAfterClose, fallbackTitle } from '../src/sidepanel/lib/chats.js';
+import { chatAfterClose, chatsForHuddle, fallbackTitle } from '../src/sidepanel/lib/chats.js';
 
 const list = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
@@ -14,6 +14,20 @@ test('closing the active chat focuses the one before it, or the next one when it
 test('closing another chat keeps the active one; closing the last chat leaves none', () => {
   assert.equal(chatAfterClose(list, 'a', 'c'), 'c');
   assert.equal(chatAfterClose([{ id: 'a' }], 'a', 'a'), null);
+});
+
+test('chatsForHuddle restores a stored set only when it belongs to the shown session', () => {
+  const stored = { huddleId: 'h1', list: [{ id: 'a' }] };
+  // Same session: restored as-is.
+  assert.equal(chatsForHuddle(stored, 'h1'), stored);
+  // Another session: ignored, so one session never shows another's chats.
+  assert.equal(chatsForHuddle(stored, 'h2'), null);
+  // Home screen (no huddle) matches a home-scoped set, not a real session's.
+  assert.deepEqual(chatsForHuddle({ huddleId: null, list: [] }, null), { huddleId: null, list: [] });
+  assert.equal(chatsForHuddle(stored, null), null);
+  // Missing or malformed buckets degrade to null.
+  assert.equal(chatsForHuddle(null, 'h1'), null);
+  assert.equal(chatsForHuddle({ huddleId: 'h1' }, 'h1'), null);
 });
 
 test('fallbackTitle keeps the first words, stripping quotes and trailing punctuation', () => {
