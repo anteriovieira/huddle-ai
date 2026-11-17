@@ -13,8 +13,8 @@ function WebStep({ step }) {
   return (
     <details className="chat-step">
       <summary className="chat-step__summary">
+        <Icon name="globe" className="icon chat-step__kind" />
         <span className="chat-step__label">
-          <Icon name="globe" className="icon chat-step__kind" />
           {step.query ? t('chat.stepWebSearch', { query: `“${step.query}”` }) : t('chat.stepWebLatest')}
           {' · '}
           {step.error

@@ -3979,10 +3979,11 @@ a.ref__title {
   font-size: 13px;
 }
 .chat-step__summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   min-height: 24px;
+  padding: 2px 0;
   color: var(--muted);
   cursor: pointer;
   list-style: none;
@@ -3993,9 +3994,15 @@ a.ref__title {
 .chat-step__summary:hover {
   color: var(--text);
 }
+.chat-step__label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+}
 .chat-step__chevron {
   width: 12px;
   height: 12px;
+  margin-top: 4px;
   flex-shrink: 0;
   transform: rotate(180deg);
   transition: transform 0.15s ease;
@@ -4029,6 +4036,7 @@ a.ref__title {
 .chat-step__kind {
   width: 13px;
   height: 13px;
+  margin-top: 3px;
   flex-shrink: 0;
   color: var(--blue);
 }

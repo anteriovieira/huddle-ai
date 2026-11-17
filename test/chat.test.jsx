@@ -5,6 +5,9 @@ import { JSDOM } from 'jsdom';
 const dom = new JSDOM('<!doctype html><html><body><div id="app"></div></body></html>', { url: 'http://localhost' });
 global.window = dom.window;
 global.document = dom.window.document;
+// react-dom reads navigator.userAgent at import time; expose jsdom's navigator (Node provides no
+// global one here) before react-dom/client is dynamically imported below.
+global.navigator = dom.window.navigator;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // jsdom lacks a few DOM APIs that the scroll effects and Radix tooltips call.
