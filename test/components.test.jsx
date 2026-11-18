@@ -339,6 +339,29 @@ test('Header groups secondary actions (sessions, home, back to Slack) behind the
   assert.doesNotMatch(html, /Postar no thread/);
 });
 
+test('Header shows which meeting is on screen instead of the build version', () => {
+  const header = (huddle) =>
+    render(
+      h(
+        TooltipProvider,
+        null,
+        h(Header, { huddle, version: '1.0.0', chatOpen: false, now: Date.now(), onToggleChat() {}, onOpenLogs() {}, onOpenSettings() {} }),
+      ),
+    );
+  const live = header({ active: true, startedAt: Date.now() - 1000, title: 'Daily do time' });
+  assert.match(live, /header__sub[^>]*>Daily do time</);
+  assert.match(live, /role="timer"/);
+  assert.match(header({ active: true, startedAt: Date.now() - 1000 }), /header__sub[^>]*>Ao vivo</);
+  const ended = header({ active: false, startedAt: 0, title: 'Daily do time' });
+  assert.match(ended, /header__sub[^>]*>Daily do time · Encerrado</);
+  assert.doesNotMatch(ended, /role="timer"/);
+  const idle = header(null);
+  assert.doesNotMatch(idle, /header__sub/);
+  assert.doesNotMatch(idle, /Chat com a reunião/);
+  // The version moved into the overflow menu (closed here), so it is not in the header bar.
+  assert.doesNotMatch(live, /1\.0\.0/);
+});
+
 test('InfoBar shows copy and the ticker toggle on the insights tab, but not thread-post', () => {
   const html = render(
     h(

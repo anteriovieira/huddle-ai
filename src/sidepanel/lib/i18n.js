@@ -80,6 +80,7 @@ export const STRINGS = {
   'unit.event.other': 'events',
 
   // Header
+  'header.live': 'Live',
   'header.ended': 'Ended',
   'header.more': 'More',
   'header.backToSlack': 'Back to Slack',

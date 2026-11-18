@@ -6,6 +6,19 @@ import { Tooltip } from '../ui/Tooltip.jsx';
 import { KebabMenu } from '../ui/Menu.jsx';
 import { AtaInfo } from './Ata.jsx';
 
+// What the header says under the app name: which meeting is on screen and whether it is still
+// running. Nothing when idle — the idle screen already says there is no huddle.
+function headerSubtitle(huddle, t) {
+  if (!huddle) return null;
+  const title = huddle.title?.trim();
+  if (huddle.active) return title || t('header.live');
+  return title ? `${title} · ${t('header.ended')}` : t('header.ended');
+}
+
+// Layout: identity + meeting context on the left; on the right the live clock, then the actions
+// in order of use — chat (acts on this meeting), settings, and the overflow menu last. The menu
+// holds the places you navigate to (Slack, home, previous sessions, analytics) and, apart from
+// them, the diagnostics (logs, build version).
 export function Header({
   huddle,
   version,
@@ -20,53 +33,59 @@ export function Header({
   onReturnToSlack,
 }) {
   const t = useT();
+  const subtitle = headerSubtitle(huddle, t);
   return (
     <header className="header">
       <Icon name="headphones" className="icon icon--title" />
       <div className="header__titles">
         <span className="header__app">Huddle AI</span>
-        <span className="header__sub">v{version}</span>
+        {subtitle && (
+          <span className="header__sub" title={subtitle}>
+            {subtitle}
+          </span>
+        )}
       </div>
       {huddle && huddle.active && (
-        <span className="pill pill--live">
-          <span className="dot" />
-          <span id="clock">{formatClock(now - huddle.startedAt)}</span>
-        </span>
-      )}
-      <KebabMenu
-        label={t('header.more')}
-        items={[
-          onReturnToSlack && { label: t('header.backToSlack'), icon: 'slack', onSelect: onReturnToSlack },
-          onHome && { label: t('header.home'), icon: 'home', onSelect: onHome },
-          onOpenAtas && { label: t('header.sessions'), icon: 'logs', onSelect: onOpenAtas },
-          { label: t('header.logs'), icon: 'history', onSelect: onOpenLogs },
-        ]}
-      />
-      {onOpenAnalytics && (
-        <Tooltip label={t('header.analytics')} side="bottom">
-          <button className="icon-button" type="button" aria-label={t('header.analytics')} onClick={onOpenAnalytics}>
-            <Icon name="chart" />
-          </button>
+        <Tooltip label={t('header.live')} side="bottom">
+          <span className="pill pill--live" role="timer" aria-label={t('header.live')}>
+            <span className="dot" />
+            <span id="clock">{formatClock(now - huddle.startedAt)}</span>
+          </span>
         </Tooltip>
       )}
-      {huddle && (
-        <Tooltip label={t('header.askMeeting')} side="bottom">
-          <button
-            className={chatOpen ? 'icon-button icon-button--on' : 'icon-button'}
-            type="button"
-            aria-label={t('header.chatAria')}
-            aria-pressed={String(chatOpen)}
-            onClick={onToggleChat}
-          >
-            <Icon name="chat" />
+      <div className="header__actions">
+        {huddle && (
+          <Tooltip label={t('header.askMeeting')} side="bottom">
+            <button
+              className={chatOpen ? 'icon-button icon-button--on' : 'icon-button'}
+              type="button"
+              aria-label={t('header.chatAria')}
+              aria-pressed={String(chatOpen)}
+              onClick={onToggleChat}
+            >
+              <Icon name="chat" />
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label={t('header.settings')} side="bottom">
+          <button className="icon-button" type="button" aria-label={t('header.settings')} onClick={onOpenSettings}>
+            <Icon name="settings" />
           </button>
         </Tooltip>
-      )}
-      <Tooltip label={t('header.settings')} side="bottom">
-        <button className="icon-button" type="button" aria-label={t('header.settings')} onClick={onOpenSettings}>
-          <Icon name="sliders" />
-        </button>
-      </Tooltip>
+        <KebabMenu
+          label={t('header.more')}
+          size="md"
+          footer={`Huddle AI v${version}`}
+          items={[
+            onReturnToSlack && { label: t('header.backToSlack'), icon: 'slack', onSelect: onReturnToSlack },
+            onHome && { label: t('header.home'), icon: 'home', onSelect: onHome },
+            onOpenAtas && { label: t('header.sessions'), icon: 'history', onSelect: onOpenAtas },
+            onOpenAnalytics && { label: t('header.analytics'), icon: 'chart', onSelect: onOpenAnalytics },
+            { separator: true },
+            { label: t('header.logs'), icon: 'logs', onSelect: onOpenLogs },
+          ]}
+        />
+      </div>
     </header>
   );
 }

@@ -16,6 +16,7 @@
   "unit.session.other": "sessões",
   "unit.event.one": "evento",
   "unit.event.other": "eventos",
+  "header.live": "Ao vivo",
   "header.ended": "Encerrado",
   "header.more": "Mais",
   "header.backToSlack": "Voltar ao Slack",

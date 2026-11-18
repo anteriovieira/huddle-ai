@@ -164,6 +164,10 @@ select {
 .header__titles {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  /* Room for title + subtitle even when there is no subtitle (idle), so the header keeps the
+     same height in every state and the content below does not jump. */
+  min-height: 41px;
   min-width: 0;
   flex: 1;
 }
@@ -173,6 +177,18 @@ select {
   font-size: 15px;
   font-weight: 900;
   color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The actions sit closer to each other than to the rest of the header, so they read as one
+   toolbar: chat, settings, then the overflow menu last. */
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .header__sub {
@@ -3789,6 +3805,12 @@ a.ref__title {
   color: var(--muted);
 }
 
+/* While its menu is open the trigger stays highlighted, tying the menu to the button. */
+.kebab[data-state='open'] {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
 .pill--xs {
   padding: 0 6px;
   font-size: 11px;
@@ -3796,7 +3818,7 @@ a.ref__title {
 
 .menu {
   z-index: 1000;
-  min-width: 168px;
+  min-width: 184px;
   padding: 4px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -3832,6 +3854,21 @@ a.ref__title {
 .menu__item .icon {
   width: 15px;
   height: 15px;
+}
+
+.menu__sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+/* Muted, non-interactive last line (e.g. the build version). */
+.menu__footer {
+  padding: 4px 8px 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
 }
 
 .menu__item--danger {
