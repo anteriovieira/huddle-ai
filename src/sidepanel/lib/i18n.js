@@ -149,6 +149,8 @@ export const STRINGS = {
   'caption.markDetected': '{label} detected',
   'caption.askContext': 'Ask the AI for more context',
   'caption.askContextAria': 'Ask the AI for more context about this caption',
+  'caption.research': 'Research on the web',
+  'caption.researchAria': 'Open the chat with web search on and research the recent conversation on the web',
   'captions.ariaLabel': 'Captions',
   'captions.emptyTitle': 'No captions yet. They appear here as people speak.',
   'captions.emptyHintPre': 'Nothing showing even with the huddle open? Check that captions are enabled in the huddle or in your ',
@@ -507,6 +509,7 @@ export const STRINGS = {
   'toast.sessionLoaded': 'Session loaded. Ask about it in the chat or check the tabs.',
   'toast.sessionDeleted': 'Session deleted.',
   'toast.chatNeedKey': 'Add the API key for the chosen model in settings to chat with the meeting.',
+  'toast.researchNeedKey': 'Add a Firecrawl API key in settings to research on the web.',
 
   // Mark dialog (built in App)
   'mark.label.question': 'Question',

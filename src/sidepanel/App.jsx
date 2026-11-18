@@ -111,6 +111,21 @@ const SUMMARIZE_THREAD_PROMPT = {
   Español: 'Resume el hilo de Slack de esta reunión: los puntos principales, decisiones y preguntas abiertas.',
 };
 
+// Question posted to the chat by the "research on the web" action on a caption. Web search is turned
+// on for the chat; the model builds a focused query from the recent conversation and searches.
+const RESEARCH_PROMPT = {
+  English:
+    'Based on what has been discussed in the recent conversation, work out the key topic worth looking up, build a focused web search query for it, search the web, and bring back what you find — with sources.',
+  Portuguese:
+    'Com base no que foi discutido nas conversas recentes, descubra o tópico principal que vale pesquisar, monte uma busca na web focada, pesquise na internet e traga o que encontrar — com as fontes.',
+  Português:
+    'Com base no que foi discutido nas conversas recentes, descubra o tópico principal que vale pesquisar, monte uma busca na web focada, pesquise na internet e traga o que encontrar — com as fontes.',
+  Spanish:
+    'Con base en lo que se ha hablado en la conversación reciente, averigua el tema principal que vale la pena buscar, arma una búsqueda web enfocada, busca en internet y trae lo que encuentres — con las fuentes.',
+  Español:
+    'Con base en lo que se ha hablado en la conversación reciente, averigua el tema principal que vale la pena buscar, arma una búsqueda web enfocada, busca en internet y trae lo que encuentres — con las fuentes.',
+};
+
 function newChat(index = 1) {
   return { id: `c${Date.now().toString(36)}${chatSeq++}`, title: `Chat ${index}`, messages: [] };
 }
@@ -1638,6 +1653,72 @@ export function App() {
     askInChat(q);
   }, [askInChat]);
 
+  // "Research on the web" from a caption: opens a fresh chat WITH web search on, then asks the model
+  // to build a search from the recent conversation and look it up on the internet. The clicked line
+  // goes along as the anchor ("this"); the full transcript is already context inside askMeeting.
+  const researchFromCaptions = useCallback(
+    async (anchor) => {
+      setChatOpen(true);
+      const cfg = latest.current.settings;
+      if (!hasKeyForModel(cfg)) {
+        flash(tr('toast.chatNeedKey'));
+        return;
+      }
+      if (!cfg.firecrawlKey?.trim()) {
+        flash(tr('toast.researchNeedKey'));
+        return;
+      }
+      const chat = newChat();
+      const question = RESEARCH_PROMPT[cfg.language] ?? RESEARCH_PROMPT.English;
+      const context = anchor ? { label: String(anchor), text: String(anchor) } : null;
+      const modelQuestion = context ? `${context.text}\n\n${question}` : question;
+      const userMessage = { role: 'user', text: question, ...(context ? { context: context.label, modelText: modelQuestion } : null) };
+      setChats((prev) => ({
+        ...prev,
+        list: [...prev.list, { ...chat, title: `Chat ${prev.list.length + 1}`, messages: [userMessage] }],
+      }));
+      setActiveChatId(chat.id);
+      // Deixa a busca na web ligada neste chat: o chip aparece aceso e as próximas perguntas também
+      // pesquisam.
+      setChatWebSearch((m) => ({ ...m, [chat.id]: true }));
+      setChatBusy((b) => new Set(b).add(chat.id));
+      setChatStream({ chatId: chat.id, text: '', steps: [] });
+      nameChat(chat.id, context ? context.text : question);
+      logEvent('info', `Pesquisa na web a partir das legendas (${latest.current.utterances.length} falas)`);
+      const steps = [];
+      try {
+        const answer = await askMeeting({
+          settings: cfg,
+          utterances: latest.current.utterances,
+          history: [],
+          question: modelQuestion,
+          sessions: latest.current.pastSessions,
+          thread: latest.current.threadForAI,
+          webSearch: true,
+          firecrawlKey: cfg.firecrawlKey,
+          onText: (delta) => setChatStream((s) => (s?.chatId === chat.id ? { ...s, text: s.text + delta } : s)),
+          onStep: (step) => {
+            steps.push(step);
+            setChatStream((s) => (s?.chatId === chat.id ? { ...s, steps: [...steps] } : s));
+          },
+          log: logEvent,
+        });
+        appendMessage(chat.id, { role: 'assistant', text: answer, ...(steps.length && { steps }) });
+      } catch (error) {
+        appendMessage(chat.id, { role: 'error', text: error.message });
+        logEvent('error', `Falha na pesquisa: ${error.message}`);
+      } finally {
+        setChatBusy((b) => {
+          const next = new Set(b);
+          next.delete(chat.id);
+          return next;
+        });
+        setChatStream(null);
+      }
+    },
+    [appendMessage, nameChat, flash, tr],
+  );
+
   // --- Derived view helpers ---
   const ataProps = (record) => ({
     done,
@@ -1932,7 +2013,7 @@ export function App() {
       );
     }
     if (section === 'captions') {
-      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />;
+      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />;
     }
     return minutesRunning ? (
       <AtaLoading utterances={utterances.length} participants={speakerCount} />
@@ -1996,7 +2077,7 @@ export function App() {
     <section className="pane" key={section}>
       <InfoBar tab={section} {...infoBarProps} />
       {section === 'captions' ? (
-        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
+        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />
       ) : (
         <div className="pane__body">{panelContent(section)}</div>
       )}
@@ -2023,7 +2104,7 @@ export function App() {
         <Tabs tab={safeTab} items={oneColTabs} onSelect={onSelectTab} />
         <InfoBar tab={safeTab} {...infoBarProps} />
         {safeTab === 'captions' ? (
-          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} />
+          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />
         ) : (
           <main className={`main main--${safeTab}`} id="main">
             {panelContent(safeTab)}

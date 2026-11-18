@@ -700,6 +700,14 @@ select {
   height: 14px;
 }
 
+/* The per-caption action buttons (research on the web + ask the AI), grouped at the far right. */
+.caption__actions {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 2px;
+}
+
 .caption__meta {
   display: flex;
   align-items: baseline;

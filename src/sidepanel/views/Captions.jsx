@@ -15,7 +15,7 @@ const OVERSCAN = 8; // falas extras renderizadas acima/abaixo da viewport
 
 // Uma linha de legenda. `style`/`innerRef` só são usados pela lista virtualizada (posicionamento
 // absoluto + medição de altura); na lista normal ficam de fora.
-function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef }) {
+function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, onResearch, style, innerRef }) {
   const t = useT();
   const markLabel = mark ? t(`mark.${mark}`) : '';
   return (
@@ -45,16 +45,31 @@ function CaptionRow({ u, line, live, mark, onMarkClick, onAskAI, style, innerRef
             </span>
           ))}
       </div>
-      {onAskAI && (
-        <button
-          type="button"
-          className="caption__ask"
-          title={t('caption.askContext')}
-          aria-label={t('caption.askContextAria')}
-          onClick={() => onAskAI(`${u.speaker}: ${u.text}`)}
-        >
-          <Icon name="chat-plus" />
-        </button>
+      {(onAskAI || onResearch) && (
+        <div className="caption__actions">
+          {onResearch && (
+            <button
+              type="button"
+              className="caption__ask"
+              title={t('caption.research')}
+              aria-label={t('caption.researchAria')}
+              onClick={() => onResearch(`${u.speaker}: ${u.text}`)}
+            >
+              <Icon name="globe" />
+            </button>
+          )}
+          {onAskAI && (
+            <button
+              type="button"
+              className="caption__ask"
+              title={t('caption.askContext')}
+              aria-label={t('caption.askContextAria')}
+              onClick={() => onAskAI(`${u.speaker}: ${u.text}`)}
+            >
+              <Icon name="chat-plus" />
+            </button>
+          )}
+        </div>
       )}
     </li>
   );
@@ -97,7 +112,7 @@ function firstAfter(offsets, y) {
 // Lista virtualizada: mede a altura real de cada fala renderizada (as legendas quebram em várias
 // linhas, então altura é variável) e cacheia por id. Posiciona só a janela visível de forma
 // absoluta dentro de um contêiner com a altura total, lendo o scroll do contêiner-pai (scrollRef).
-function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, scrollRef, follow }) {
+function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, onResearch, scrollRef, follow }) {
   const t = useT();
   const heights = useRef(new Map());
   const [tick, setTick] = useState(0);
@@ -175,6 +190,7 @@ function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, sc
         mark={markMap.get(i + 1)}
         onMarkClick={onMarkClick}
         onAskAI={onAskAI}
+        onResearch={onResearch}
         innerRef={measure(id)}
         style={{ position: 'absolute', top: offsets[i], left: 0, right: 0 }}
       />,
@@ -192,7 +208,7 @@ function VirtualCaptions({ utterances, huddle, markMap, onMarkClick, onAskAI, sc
 // no fim, novas falas rolam junto; ao subir, o auto-scroll pausa e aparece o
 // botão para voltar ao vivo. Funciona em qualquer largura (1, 2 ou 3 colunas),
 // porque é dona do próprio contêiner de scroll.
-export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI }) {
+export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI, onResearch }) {
   const t = useT();
   const scrollRef = useRef(null);
   const [follow, setFollow] = useState(true);
@@ -233,11 +249,12 @@ export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI 
             markMap={markMap}
             onMarkClick={onMarkClick}
             onAskAI={onAskAI}
+            onResearch={onResearch}
             scrollRef={scrollRef}
             follow={follow}
           />
         ) : (
-          <CaptionsView utterances={utterances} huddle={huddle} marks={marks} onMarkClick={onMarkClick} onAskAI={onAskAI} />
+          <CaptionsView utterances={utterances} huddle={huddle} marks={marks} onMarkClick={onMarkClick} onAskAI={onAskAI} onResearch={onResearch} />
         )}
       </div>
       {huddle.active && utterances.length > 0 && (
@@ -255,7 +272,7 @@ export function CaptionsPanel({ utterances, huddle, marks, onMarkClick, onAskAI 
   );
 }
 
-export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI }) {
+export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI, onResearch }) {
   const t = useT();
   if (!utterances.length) {
     return (
@@ -289,6 +306,7 @@ export function CaptionsView({ utterances, huddle, marks, onMarkClick, onAskAI }
           mark={markMap.get(index + 1)}
           onMarkClick={onMarkClick}
           onAskAI={onAskAI}
+          onResearch={onResearch}
         />
       ))}
     </ol>
