@@ -402,7 +402,6 @@
   "toast.sessionLoaded": "Sessão carregada. Pergunte sobre ela no chat ou veja as abas.",
   "toast.sessionDeleted": "Sessão apagada.",
   "toast.chatNeedKey": "Adicione a chave da API do modelo escolhido nas configurações para conversar com a reunião.",
-  "toast.researchNeedKey": "Adicione uma chave da API do Firecrawl nas configurações para pesquisar na web.",
   "mark.label.question": "Pergunta",
   "mark.label.decision": "Decisão",
   "mark.label.action": "Ação",

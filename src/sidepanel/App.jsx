@@ -1664,10 +1664,8 @@ export function App() {
         flash(tr('toast.chatNeedKey'));
         return;
       }
-      if (!cfg.firecrawlKey?.trim()) {
-        flash(tr('toast.researchNeedKey'));
-        return;
-      }
+      // O botão só aparece quando há chave do Firecrawl (ver onResearch no render), então aqui a
+      // busca na web já está garantida.
       const chat = newChat();
       const question = RESEARCH_PROMPT[cfg.language] ?? RESEARCH_PROMPT.English;
       const context = anchor ? { label: String(anchor), text: String(anchor) } : null;
@@ -2013,7 +2011,7 @@ export function App() {
       );
     }
     if (section === 'captions') {
-      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />;
+      return <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={settings.firecrawlKey?.trim() ? researchFromCaptions : undefined} />;
     }
     return minutesRunning ? (
       <AtaLoading utterances={utterances.length} participants={speakerCount} />
@@ -2077,7 +2075,7 @@ export function App() {
     <section className="pane" key={section}>
       <InfoBar tab={section} {...infoBarProps} />
       {section === 'captions' ? (
-        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />
+        <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={settings.firecrawlKey?.trim() ? researchFromCaptions : undefined} />
       ) : (
         <div className="pane__body">{panelContent(section)}</div>
       )}
@@ -2104,7 +2102,7 @@ export function App() {
         <Tabs tab={safeTab} items={oneColTabs} onSelect={onSelectTab} />
         <InfoBar tab={safeTab} {...infoBarProps} />
         {safeTab === 'captions' ? (
-          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={researchFromCaptions} />
+          <CaptionsPanel utterances={utterances} huddle={huddle} marks={currentInsights?.data.marks ?? []} onMarkClick={onMarkClick} onAskAI={askAboutInsight} onResearch={settings.firecrawlKey?.trim() ? researchFromCaptions : undefined} />
         ) : (
           <main className={`main main--${safeTab}`} id="main">
             {panelContent(safeTab)}

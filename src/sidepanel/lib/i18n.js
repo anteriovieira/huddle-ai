@@ -509,7 +509,6 @@ export const STRINGS = {
   'toast.sessionLoaded': 'Session loaded. Ask about it in the chat or check the tabs.',
   'toast.sessionDeleted': 'Session deleted.',
   'toast.chatNeedKey': 'Add the API key for the chosen model in settings to chat with the meeting.',
-  'toast.researchNeedKey': 'Add a Firecrawl API key in settings to research on the web.',
 
   // Mark dialog (built in App)
   'mark.label.question': 'Question',
